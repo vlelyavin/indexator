@@ -3,54 +3,59 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
 
-  /* Pure Black & White Dark Theme */
-  /* Light mode - keep default */
-  --color-background: white;
-  --color-foreground: rgb(17 24 39);
-  --color-card: white;
-  --color-card-foreground: rgb(17 24 39);
-  --color-border: rgb(229 231 235);
-  --color-input: rgb(229 231 235);
-  --color-ring: rgb(59 130 246);
+/* Pure Black & White Dark Theme - CSS Variables */
+:root {
+  /* Light mode colors */
+  --color-background: 255 255 255;
+  --color-foreground: 17 24 39;
+  --color-card: 255 255 255;
+  --color-card-foreground: 17 24 39;
+  --color-border: 229 231 235;
+  --color-input: 229 231 235;
+  --color-ring: 59 130 246;
 
   /* Semantic colors - preserved in both modes */
-  --color-success: rgb(16 185 129);
-  --color-warning: rgb(245 158 11);
-  --color-error: rgb(239 68 68);
-  --color-info: rgb(59 130 246);
-  --color-critical: rgb(220 38 38);
+  --color-success: 16 185 129;
+  --color-warning: 245 158 11;
+  --color-error: 239 68 68;
+  --color-info: 59 130 246;
+  --color-critical: 220 38 38;
+}
 
-  /* Dark mode - pure black & white */
-  @media (prefers-color-scheme: dark) {
-    --color-background: rgb(0 0 0);           /* Pure black #000000 */
-    --color-foreground: rgb(255 255 255);      /* Pure white #ffffff */
-    --color-card: rgb(10 10 10);              /* Very dark gray #0a0a0a */
-    --color-card-foreground: rgb(255 255 255); /* Pure white */
-    --color-border: rgb(26 26 26);            /* Dark gray #1a1a1a */
-    --color-input: rgb(26 26 26);             /* Dark gray */
-    --color-ring: rgb(59 130 246);            /* Blue accent */
-    --color-accent: rgb(20 20 20);            /* Slightly lighter #141414 */
-    --color-accent-foreground: rgb(255 255 255);
-    --color-muted: rgb(26 26 26);
-    --color-muted-foreground: rgb(160 160 160); /* Light gray #a0a0a0 */
-    --color-secondary: rgb(26 26 26);
-    --color-secondary-foreground: rgb(255 255 255);
-  }
+/* Dark mode - pure black & white */
+.dark {
+  --color-background: 0 0 0;           /* Pure black #000000 */
+  --color-foreground: 255 255 255;      /* Pure white #ffffff */
+  --color-card: 10 10 10;              /* Very dark gray #0a0a0a */
+  --color-card-foreground: 255 255 255; /* Pure white */
+  --color-border: 26 26 26;            /* Dark gray #1a1a1a */
+  --color-input: 26 26 26;             /* Dark gray */
+  --color-ring: 59 130 246;            /* Blue accent */
+  --color-accent: 20 20 20;            /* Slightly lighter #141414 */
+  --color-accent-foreground: 255 255 255;
+  --color-muted: 26 26 26;
+  --color-muted-foreground: 160 160 160; /* Light gray #a0a0a0 */
+  --color-secondary: 26 26 26;
+  --color-secondary-foreground: 255 255 255;
+}
 
-  .dark {
-    --color-background: rgb(0 0 0);           /* Pure black #000000 */
-    --color-foreground: rgb(255 255 255);      /* Pure white #ffffff */
-    --color-card: rgb(10 10 10);              /* Very dark gray #0a0a0a */
-    --color-card-foreground: rgb(255 255 255); /* Pure white */
-    --color-border: rgb(26 26 26);            /* Dark gray #1a1a1a */
-    --color-input: rgb(26 26 26);             /* Dark gray */
-    --color-ring: rgb(59 130 246);            /* Blue accent */
-    --color-accent: rgb(20 20 20);            /* Slightly lighter #141414 */
-    --color-accent-foreground: rgb(255 255 255);
-    --color-muted: rgb(26 26 26);
-    --color-muted-foreground: rgb(160 160 160); /* Light gray #a0a0a0 */
-    --color-secondary: rgb(26 26 26);
-    --color-secondary-foreground: rgb(255 255 255);
+/* System preference dark mode */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --color-background: 0 0 0;
+    --color-foreground: 255 255 255;
+    --color-card: 10 10 10;
+    --color-card-foreground: 255 255 255;
+    --color-border: 26 26 26;
+    --color-input: 26 26 26;
+    --color-ring: 59 130 246;
+    --color-accent: 20 20 20;
+    --color-accent-foreground: 255 255 255;
+    --color-muted: 26 26 26;
+    --color-muted-foreground: 160 160 160;
+    --color-secondary: 26 26 26;
+    --color-secondary-foreground: 255 255 255;
   }
 }

@@ -96,7 +96,25 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         <nav className="flex-1 space-y-1 p-3">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            // Only highlight if this is the longest matching route
+            const isActive = (() => {
+              if (!pathname.startsWith(item.href)) return false;
+
+              // Find all matching routes from navItems
+              const allMatching = navItems.filter(i =>
+                pathname.startsWith(i.href) || pathname === i.href
+              );
+
+              // This route is active if it's the longest match
+              const longestMatch = allMatching.reduce(
+                (longest, current) =>
+                  current.href.length > longest.href.length ? current : longest,
+                allMatching[0]
+              );
+
+              return longestMatch.href === item.href;
+            })();
+
             return (
               <Link
                 key={item.href}

@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 
 # Supported languages
 SUPPORTED_LANGUAGES = ["uk", "ru", "en"]
-DEFAULT_LANGUAGE = "uk"
+DEFAULT_LANGUAGE = "en"
 
 # Cache for loaded translations
 _translations: Dict[str, Dict[str, Any]] = {}

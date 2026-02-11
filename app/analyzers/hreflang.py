@@ -21,18 +21,22 @@ class HreflangAnalyzer(BaseAnalyzer):
     """Analyzer for hreflang tags and international SEO setup."""
 
     name = "hreflang"
-    display_name = "Hreflang"
-    description = "Аналіз налаштувань мультимовних та регіональних версій сторінок."
     icon = ""
-    theory = """<strong>Hreflang</strong> — атрибут, що вказує пошуковим системам на мовні та регіональні версії сторінки. Використовується у тезі <code>&lt;link rel="alternate" hreflang="xx" href="URL"&gt;</code>.
 
-<strong>Основні правила:</strong>
-• Кожна сторінка повинна мати <strong>самопосилання</strong> (self-referencing) — hreflang, що вказує на саму себе
-• Теги мають бути <strong>двосторонніми</strong>: якщо A посилається на B, то B повинна посилатися на A
-• Використовуйте коди мов за стандартом <strong>ISO 639-1</strong> (uk, en, de, fr тощо)
-• Додайте <code>x-default</code> для версії за замовчуванням
+    def __init__(self):
+        super().__init__()
 
-<strong>Помилки hreflang</strong> можуть призвести до показу неправильної мовної версії у результатах пошуку та втрати трафіку з міжнародних ринків."""
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.hreflang.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.hreflang.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.hreflang.theory")
 
     async def analyze(
         self,
@@ -86,16 +90,16 @@ class HreflangAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="no_hreflang",
                 severity=SeverityLevel.INFO,
-                message="Hreflang теги відсутні (одномовний сайт)",
-                details="На сторінках сайту не знайдено hreflang тегів. Для одномовного сайту це нормально.",
-                recommendation="Якщо сайт має мовні версії, додайте hreflang теги для кожної мовної версії.",
+                message=self.t("analyzers.hreflang.no_hreflang"),
+                details=self.t("analyzers.hreflang.no_hreflang_details"),
+                recommendation=self.t("analyzers.hreflang.no_hreflang_recommendation"),
             ))
 
             severity = self._determine_overall_severity(issues)
 
             return self.create_result(
                 severity=severity,
-                summary="Hreflang теги відсутні (одномовний сайт)",
+                summary=self.t("analyzers.hreflang.no_hreflang_summary"),
                 issues=issues,
                 data={
                     "has_hreflang": False,
@@ -111,8 +115,8 @@ class HreflangAnalyzer(BaseAnalyzer):
         issues.append(self.create_issue(
             category="hreflang_found",
             severity=SeverityLevel.SUCCESS,
-            message=f"Знайдено {len(display_languages)} мовних версій на {len(pages_with_hreflang)} сторінках",
-            details=f"Мови: {', '.join(sorted(display_languages))}",
+            message=self.t("analyzers.hreflang.hreflang_found", languages=len(display_languages), pages=len(pages_with_hreflang)),
+            details=self.t("analyzers.hreflang.languages_list", langs=', '.join(sorted(display_languages))),
         ))
 
         # 3. Check self-referencing
@@ -130,10 +134,10 @@ class HreflangAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_self_reference",
                 severity=SeverityLevel.WARNING,
-                message=f"Відсутнє самопосилання: {len(missing_self_ref)} сторінок",
-                details="Кожна сторінка з hreflang повинна мати тег, що посилається на саму себе.",
+                message=self.t("analyzers.hreflang.missing_self_reference", count=len(missing_self_ref)),
+                details=self.t("analyzers.hreflang.missing_self_reference_details"),
                 affected_urls=missing_self_ref[:20],
-                recommendation="Додайте hreflang тег з посиланням на поточну сторінку для її мовної версії.",
+                recommendation=self.t("analyzers.hreflang.missing_self_reference_recommendation"),
                 count=len(missing_self_ref),
             ))
 
@@ -172,10 +176,10 @@ class HreflangAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_return_tags",
                 severity=SeverityLevel.WARNING,
-                message=f"Відсутні зворотні посилання: {len(missing_return_tags)}",
-                details="Hreflang теги мають бути двосторонніми: якщо сторінка A посилається на B, то B повинна посилатися на A.",
+                message=self.t("analyzers.hreflang.missing_return_tags", count=len(missing_return_tags)),
+                details=self.t("analyzers.hreflang.missing_return_tags_details"),
                 affected_urls=missing_return_tags[:20],
-                recommendation="Додайте відповідні hreflang теги на цільових сторінках, що вказують назад.",
+                recommendation=self.t("analyzers.hreflang.missing_return_tags_recommendation"),
                 count=len(missing_return_tags),
             ))
 
@@ -191,9 +195,9 @@ class HreflangAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="invalid_lang_codes",
                 severity=SeverityLevel.ERROR,
-                message=f"Некоректні мовні коди: {', '.join(sorted(invalid_codes))}",
-                details="Виявлено мовні коди, що не відповідають стандарту ISO 639-1.",
-                recommendation="Використовуйте коректні коди мов за стандартом ISO 639-1 (наприклад: uk, en, de, fr).",
+                message=self.t("analyzers.hreflang.invalid_lang_codes", codes=', '.join(sorted(invalid_codes))),
+                details=self.t("analyzers.hreflang.invalid_lang_codes_details"),
+                recommendation=self.t("analyzers.hreflang.invalid_lang_codes_recommendation"),
             ))
 
         # 6. Check x-default presence
@@ -202,9 +206,9 @@ class HreflangAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_x_default",
                 severity=SeverityLevel.INFO,
-                message="Відсутній x-default hreflang",
-                details="x-default вказує версію сторінки для користувачів, мова яких не відповідає жодній із зазначених.",
-                recommendation="Додайте hreflang=\"x-default\" з посиланням на основну версію сторінки.",
+                message=self.t("analyzers.hreflang.missing_x_default"),
+                details=self.t("analyzers.hreflang.missing_x_default_details"),
+                recommendation=self.t("analyzers.hreflang.missing_x_default_recommendation"),
             ))
 
         # 7. Build language table
@@ -215,30 +219,34 @@ class HreflangAnalyzer(BaseAnalyzer):
                     lang_stats[lang_code] = 0
                 lang_stats[lang_code] += 1
 
+        h_lang = self.t("table.language")
+        h_page_count = self.t("table.page_count")
+        h_status = self.t("table.status")
+
         table_rows = []
         for lang_code in sorted(lang_stats.keys()):
-            status = "✓ Коректний"
+            status = self.t("analyzers.hreflang.status_correct")
             base_lang = lang_code.split("-")[0] if "-" in lang_code else lang_code
             if base_lang not in VALID_LANG_CODES:
-                status = "✗ Некоректний код"
+                status = self.t("analyzers.hreflang.status_invalid")
             elif lang_code == "x-default":
-                status = "✓ За замовчуванням"
+                status = self.t("analyzers.hreflang.status_default")
 
             table_rows.append({
-                "Мова": lang_code,
-                "Кількість сторінок": str(lang_stats[lang_code]),
-                "Статус": status,
+                h_lang: lang_code,
+                h_page_count: str(lang_stats[lang_code]),
+                h_status: status,
             })
 
         tables.append({
-            "title": "Мовні версії",
-            "headers": ["Мова", "Кількість сторінок", "Статус"],
+            "title": self.t("analyzers.hreflang.table_title"),
+            "headers": [h_lang, h_page_count, h_status],
             "rows": table_rows[:10],
         })
 
         # 8. Summary and result
         severity = self._determine_overall_severity(issues)
-        summary = f"Знайдено {len(display_languages)} мовних версій на {len(pages_with_hreflang)} сторінках"
+        summary = self.t("analyzers.hreflang.summary", languages=len(display_languages), pages=len(pages_with_hreflang))
 
         return self.create_result(
             severity=severity,

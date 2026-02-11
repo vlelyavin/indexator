@@ -12,21 +12,22 @@ class CMSAnalyzer(BaseAnalyzer):
     """Analyzer for detecting the CMS/platform used by the website."""
 
     name = "cms"
-    display_name = "CMS / Платформа"
-    description = "Визначення системи керування контентом або платформи сайту."
     icon = ""
-    theory = """<strong>CMS (Content Management System)</strong> — система керування контентом для створення та управління сайтом.
 
-<strong>Популярні CMS:</strong>
-• <strong>WordPress</strong> — ~40% всіх сайтів у світі
-• <strong>Shopify</strong> — платформа для e-commerce
-• <strong>Tilda</strong> — конструктор сайтів
-• <strong>1C-Bitrix</strong> — популярна CMS в СНД
-• <strong>OpenCart/PrestaShop</strong> — платформи для інтернет-магазинів
+    def __init__(self):
+        super().__init__()
 
-<strong>Чому важливо знати CMS:</strong>
-• Допомагає підібрати інструменти оптимізації та визначити типові проблеми
-• Впливає на вибір хостингу та серверних налаштувань"""
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.cms.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.cms.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.cms.theory")
 
     # CMS detection signatures
     CMS_SIGNATURES: Dict[str, Dict[str, Any]] = {
@@ -252,8 +253,8 @@ class CMSAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="cms_detected",
                 severity=SeverityLevel.SUCCESS,
-                message=f"Судячи з усього, на сайті використовується {cms_name}",
-                details=f"Виявлені ознаки: {', '.join(evidence[:3])}",
+                message=self.t("analyzers.cms.detected", cms=cms_name),
+                details=self.t("analyzers.cms.detected_details", evidence=", ".join(evidence[:3])),
                 recommendation=self._get_cms_recommendation(cms_name),
             ))
 
@@ -263,23 +264,23 @@ class CMSAnalyzer(BaseAnalyzer):
                 issues.append(self.create_issue(
                     category="multiple_cms",
                     severity=SeverityLevel.INFO,
-                    message=f"Також виявлені ознаки: {', '.join(other_cms)}",
-                    details="Сайт може використовувати кілька технологій або гібридну архітектуру.",
+                    message=self.t("analyzers.cms.multiple_detected", cms=", ".join(other_cms)),
+                    details=self.t("analyzers.cms.multiple_detected_details"),
                 ))
         else:
             issues.append(self.create_issue(
                 category="cms_unknown",
                 severity=SeverityLevel.INFO,
-                message="CMS не визначено",
-                details="Сайт може використовувати кастомну розробку або невідому CMS.",
+                message=self.t("analyzers.cms.unknown"),
+                details=self.t("analyzers.cms.unknown_details"),
             ))
 
         # Summary
         if detected_cms:
             primary = detected_cms[0]
-            summary = f"Судячи з усього, використовується {primary[0]}"
+            summary = self.t("analyzers.cms.summary_detected", cms=primary[0])
         else:
-            summary = "Платформу не вдалося визначити"
+            summary = self.t("analyzers.cms.summary_unknown")
 
         return self.create_result(
             severity=SeverityLevel.SUCCESS if detected_cms else SeverityLevel.INFO,
@@ -294,16 +295,21 @@ class CMSAnalyzer(BaseAnalyzer):
 
     def _get_cms_recommendation(self, cms_name: str) -> str:
         """Get SEO recommendations for specific CMS."""
-        recommendations = {
-            "WordPress": "Встановіть SEO-плагін (Yoast SEO або Rank Math). Оптимізуйте швидкість через кешування (WP Super Cache, W3 Total Cache).",
-            "Shopify": "Використовуйте вбудовані SEO-функції. Зверніть увагу на обмеження з robots.txt та URL структурою.",
-            "Joomla": "Встановіть розширення для SEO (sh404SEF). Увімкніть SEF URLs в налаштуваннях.",
-            "Drupal": "Використовуйте модулі Pathauto, Metatag, Redirect для SEO.",
-            "Tilda": "Заповніть SEO-налаштування для кожної сторінки. Використовуйте Zero Block для кастомізації.",
-            "1C-Bitrix": "Налаштуйте модуль SEO. Увімкніть композитний кеш для швидкості.",
-            "OpenCart": "Встановіть SEO-розширення. Налаштуйте SEO URLs.",
-            "Wix": "Використовуйте Wix SEO Wiz. Заповніть мета-теги для всіх сторінок.",
-            "Magento": "Налаштуйте каталог SEO URLs. Використовуйте вбудовані мета-теги.",
-            "Next.js": "Використовуйте next/head для мета-тегів. Налаштуйте SSR/SSG для SEO.",
+        # Map CMS names to translation keys
+        cms_key_map = {
+            "WordPress": "wordpress",
+            "Shopify": "shopify",
+            "Joomla": "joomla",
+            "Drupal": "drupal",
+            "Tilda": "tilda",
+            "1C-Bitrix": "bitrix",
+            "OpenCart": "opencart",
+            "Wix": "wix",
+            "Magento": "magento",
+            "Next.js": "nextjs",
         }
-        return recommendations.get(cms_name, "Ознайомтеся з SEO-рекомендаціями для вашої платформи.")
+
+        cms_key = cms_key_map.get(cms_name)
+        if cms_key:
+            return self.t(f"analyzers.cms.recommendation_{cms_key}")
+        return self.t("analyzers.cms.recommendation_default")

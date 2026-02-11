@@ -12,21 +12,22 @@ class ExternalLinksAnalyzer(BaseAnalyzer):
     """Analyzer for external outbound links."""
 
     name = "external_links"
-    display_name = "Зовнішні посилання"
-    description = "Аналіз вихідних посилань на інші сайти та їх атрибутів."
     icon = ""
-    theory = """<strong>Зовнішні посилання (Outbound Links)</strong> — посилання з вашого сайту на інші ресурси.
 
-<strong>Атрибути rel:</strong>
-• <strong>Dofollow</strong> — передає PageRank цільовому сайту
-• <strong>Nofollow</strong> (<code>rel="nofollow"</code>) — не передає вагу, для реклами
-• <strong>Sponsored</strong> (<code>rel="sponsored"</code>) — для платних посилань
-• <strong>UGC</strong> (<code>rel="ugc"</code>) — для коментарів користувачів
+    def __init__(self):
+        super().__init__()
 
-<strong>Рекомендації:</strong>
-• Використовуйте nofollow для комерційних посилань
-• Додавайте <code>target="_blank"</code> та <code>rel="noopener"</code> для зовнішніх посилань
-• Тримайте баланс між dofollow та nofollow"""
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.external_links.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.external_links.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.external_links.theory")
 
     async def analyze(
         self,
@@ -96,10 +97,10 @@ class ExternalLinksAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="commercial_no_nofollow",
                 severity=SeverityLevel.WARNING,
-                message=f"Комерційні посилання без nofollow: {len(commercial_domains)} шт.",
-                details="Посилання на комерційні/партнерські сайти рекомендується позначати rel='nofollow' або rel='sponsored'.",
+                message=self.t("analyzers.external_links.commercial_no_nofollow", count=len(commercial_domains)),
+                details=self.t("analyzers.external_links.commercial_no_nofollow_details"),
                 affected_urls=[link['href'] for link in commercial_domains[:20]],
-                recommendation="Додайте rel='nofollow' або rel='sponsored' до комерційних посилань.",
+                recommendation=self.t("analyzers.external_links.commercial_no_nofollow_recommendation"),
                 count=len(commercial_domains),
             ))
 
@@ -109,9 +110,9 @@ class ExternalLinksAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="many_dofollow",
                 severity=SeverityLevel.INFO,
-                message=f"Більшість зовнішніх посилань без nofollow ({dofollow_count}/{total_external})",
-                details="Велика кількість dofollow посилань передає ваш 'link juice' іншим сайтам.",
-                recommendation="Розгляньте додавання nofollow до несуттєвих зовнішніх посилань.",
+                message=self.t("analyzers.external_links.many_dofollow", dofollow=dofollow_count, total=total_external),
+                details=self.t("analyzers.external_links.many_dofollow_details"),
+                recommendation=self.t("analyzers.external_links.many_dofollow_recommendation"),
             ))
 
         # Check for suspicious/many links to same domain
@@ -120,14 +121,17 @@ class ExternalLinksAnalyzer(BaseAnalyzer):
                 issues.append(self.create_issue(
                     category="many_links_same_domain",
                     severity=SeverityLevel.INFO,
-                    message=f"Багато посилань на {domain}: {count} шт.",
-                    details=f"Знайдено {count} посилань на один домен.",
-                    recommendation="Переконайтеся, що це навмисно і посилання релевантні.",
+                    message=self.t("analyzers.external_links.many_links_same_domain", domain=domain, count=count),
+                    details=self.t("analyzers.external_links.many_links_same_domain_details", count=count),
+                    recommendation=self.t("analyzers.external_links.many_links_same_domain_recommendation"),
                 ))
 
         # Create table with top domains
         if domains_count:
             top_domains = domains_count.most_common(10)
+            h_domain = self.t("table.domain")
+            h_count = self.t("table.link_count")
+            h_nofollow = self.t("table.with_nofollow")
             table_data = []
 
             for domain, count in top_domains:
@@ -136,25 +140,25 @@ class ExternalLinksAnalyzer(BaseAnalyzer):
                 nofollow_count = sum(1 for l in domain_links if l['has_nofollow'])
 
                 table_data.append({
-                    "Домен": domain[:50] + "..." if len(domain) > 50 else domain,
-                    "Кількість посилань": count,
-                    "З nofollow": f"{nofollow_count}/{count}",
+                    h_domain: domain[:50] + "..." if len(domain) > 50 else domain,
+                    h_count: count,
+                    h_nofollow: f"{nofollow_count}/{count}",
                 })
 
             tables.append({
-                "title": "Топ-10 доменів за кількістю посилань",
-                "headers": ["Домен", "Кількість посилань", "З nofollow"],
+                "title": self.t("analyzers.external_links.table_title"),
+                "headers": [h_domain, h_count, h_nofollow],
                 "rows": table_data,
             })
 
         # Summary
         if not issues:
-            summary = f"Знайдено {total_external} зовнішніх посилань на {unique_domains} доменів"
+            summary = self.t("analyzers.external_links.summary_ok", total=total_external, domains=unique_domains)
             severity = SeverityLevel.SUCCESS
         else:
             warning_count = sum(1 for i in issues if i.severity == SeverityLevel.WARNING)
             info_count = sum(1 for i in issues if i.severity == SeverityLevel.INFO)
-            summary = f"Знайдено {total_external} зовнішніх посилань. Попереджень: {warning_count}, інфо: {info_count}"
+            summary = self.t("analyzers.external_links.summary_issues", total=total_external, warnings=warning_count, info=info_count)
             severity = self._determine_overall_severity(issues)
 
         return self.create_result(

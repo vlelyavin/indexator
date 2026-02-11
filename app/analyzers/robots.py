@@ -14,24 +14,22 @@ class RobotsAnalyzer(BaseAnalyzer):
     """Analyzer for robots.txt, sitemap.xml, and indexing issues."""
 
     name = "robots"
-    display_name = "Індексація"
-    description = "Правильне налаштування robots.txt та sitemap.xml допомагає пошуковим системам ефективно індексувати сайт."
     icon = ""
-    theory = """<strong>Robots.txt</strong> — файл, що керує доступом пошукових роботів до сторінок сайту.
 
-<strong>Основні директиви:</strong>
-• <code>User-agent: *</code> — правила для всіх роботів
-• <code>Disallow: /admin/</code> — заборона індексації шляху
-• <code>Allow: /</code> — дозвіл індексації
-• <code>Sitemap: URL</code> — посилання на карту сайту
+    def __init__(self):
+        super().__init__()
 
-<strong>Sitemap.xml</strong> — список сторінок для індексації. Допомагає роботам знайти всі сторінки та прискорює індексацію нового контенту.
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.robots.name")
 
-<strong>Рекомендації:</strong>
-• Завжди майте robots.txt та sitemap.xml
-• Вкажіть sitemap у robots.txt
-• Не блокуйте CSS/JS файли
-• Подайте sitemap у Google Search Console"""
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.robots.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.robots.theory")
 
     async def analyze(
         self,
@@ -79,18 +77,18 @@ class RobotsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="no_robots_txt",
                 severity=SeverityLevel.WARNING,
-                message="Файл robots.txt відсутній",
-                details="robots.txt допомагає контролювати, які сторінки індексуються пошуковими системами.",
-                recommendation="Створіть файл robots.txt у корені сайту.",
+                message=self.t("analyzers.robots.no_robots_txt"),
+                details=self.t("analyzers.robots.no_robots_txt_details"),
+                recommendation=self.t("analyzers.robots.no_robots_txt_recommendation"),
             ))
         else:
             if robots_data.errors:
                 issues.append(self.create_issue(
                     category="robots_txt_errors",
                     severity=SeverityLevel.WARNING,
-                    message=f"Помилки у robots.txt: {len(robots_data.errors)} шт.",
+                    message=self.t("analyzers.robots.robots_errors", count=len(robots_data.errors)),
                     details="; ".join(robots_data.errors[:5]),
-                    recommendation="Виправте синтаксичні помилки у robots.txt.",
+                    recommendation=self.t("analyzers.robots.robots_errors_recommendation"),
                     count=len(robots_data.errors),
                 ))
 
@@ -98,9 +96,9 @@ class RobotsAnalyzer(BaseAnalyzer):
                 issues.append(self.create_issue(
                     category="no_sitemap_in_robots",
                     severity=SeverityLevel.INFO,
-                    message="Sitemap не вказано у robots.txt",
-                    details="Рекомендується вказати шлях до sitemap у robots.txt.",
-                    recommendation="Додайте рядок 'Sitemap: https://yoursite.com/sitemap.xml' у robots.txt.",
+                    message=self.t("analyzers.robots.no_sitemap_in_robots"),
+                    details=self.t("analyzers.robots.no_sitemap_in_robots_details"),
+                    recommendation=self.t("analyzers.robots.no_sitemap_in_robots_recommendation"),
                 ))
 
         # Create issues for sitemap
@@ -108,18 +106,18 @@ class RobotsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="no_sitemap",
                 severity=SeverityLevel.ERROR,
-                message="Файл sitemap.xml відсутній",
-                details="Sitemap допомагає пошуковим системам знаходити всі сторінки сайту.",
-                recommendation="Створіть sitemap.xml та додайте його у robots.txt та Google Search Console.",
+                message=self.t("analyzers.robots.no_sitemap"),
+                details=self.t("analyzers.robots.no_sitemap_details"),
+                recommendation=self.t("analyzers.robots.no_sitemap_recommendation"),
             ))
         else:
             if sitemap_data.errors:
                 issues.append(self.create_issue(
                     category="sitemap_errors",
                     severity=SeverityLevel.WARNING,
-                    message=f"Проблеми з sitemap: {len(sitemap_data.errors)} шт.",
+                    message=self.t("analyzers.robots.sitemap_errors", count=len(sitemap_data.errors)),
                     details="; ".join(sitemap_data.errors[:5]),
-                    recommendation="Перевірте валідність sitemap.xml.",
+                    recommendation=self.t("analyzers.robots.sitemap_errors_recommendation"),
                     count=len(sitemap_data.errors),
                 ))
 
@@ -127,9 +125,9 @@ class RobotsAnalyzer(BaseAnalyzer):
                 issues.append(self.create_issue(
                     category="empty_sitemap",
                     severity=SeverityLevel.WARNING,
-                    message="Sitemap порожній",
-                    details="Sitemap не містить URL-адрес.",
-                    recommendation="Додайте URL-адреси сторінок у sitemap.xml.",
+                    message=self.t("analyzers.robots.empty_sitemap"),
+                    details=self.t("analyzers.robots.empty_sitemap_details"),
+                    recommendation=self.t("analyzers.robots.empty_sitemap_recommendation"),
                 ))
 
             # Compare sitemap URLs with crawled pages
@@ -151,10 +149,10 @@ class RobotsAnalyzer(BaseAnalyzer):
                     issues.append(self.create_issue(
                         category="sitemap_urls_not_found",
                         severity=SeverityLevel.WARNING,
-                        message=f"URL у sitemap не знайдено на сайті: {len(sitemap_not_crawled)} шт.",
-                        details="Ці URL вказані в sitemap, але не були знайдені краулером або повертають помилку.",
+                        message=self.t("analyzers.robots.sitemap_urls_not_found", count=len(sitemap_not_crawled)),
+                        details=self.t("analyzers.robots.sitemap_urls_not_found_details"),
                         affected_urls=list(sitemap_not_crawled)[:20],
-                        recommendation="Перевірте ці URL та видаліть неіснуючі з sitemap.",
+                        recommendation=self.t("analyzers.robots.sitemap_urls_not_found_recommendation"),
                         count=len(sitemap_not_crawled),
                     ))
 
@@ -162,10 +160,10 @@ class RobotsAnalyzer(BaseAnalyzer):
                     issues.append(self.create_issue(
                         category="pages_not_in_sitemap",
                         severity=SeverityLevel.INFO,
-                        message=f"Сторінки не включені в sitemap: {len(crawled_not_in_sitemap)} шт.",
-                        details="Ці сторінки знайдені на сайті, але відсутні в sitemap.xml.",
+                        message=self.t("analyzers.robots.pages_not_in_sitemap", count=len(crawled_not_in_sitemap)),
+                        details=self.t("analyzers.robots.pages_not_in_sitemap_details"),
                         affected_urls=list(crawled_not_in_sitemap)[:20],
-                        recommendation="Додайте важливі сторінки в sitemap для кращої індексації.",
+                        recommendation=self.t("analyzers.robots.pages_not_in_sitemap_recommendation"),
                         count=len(crawled_not_in_sitemap),
                     ))
 
@@ -194,10 +192,10 @@ class RobotsAnalyzer(BaseAnalyzer):
                     issues.append(self.create_issue(
                         category="sitemap_old_lastmod",
                         severity=SeverityLevel.INFO,
-                        message=f"Застарілі дати lastmod у sitemap: {len(old_lastmod)} URL",
-                        details="Більше половини URL мають lastmod старше 6 місяців. Оновіть дати або контент.",
+                        message=self.t("analyzers.robots.sitemap_old_lastmod", count=len(old_lastmod)),
+                        details=self.t("analyzers.robots.sitemap_old_lastmod_details"),
                         affected_urls=[url for url, _ in old_lastmod[:10]],
-                        recommendation="Оновіть lastmod дати в sitemap при зміні контенту сторінок.",
+                        recommendation=self.t("analyzers.robots.sitemap_old_lastmod_recommendation"),
                     ))
 
         # Create issues for noindex pages
@@ -205,10 +203,10 @@ class RobotsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="noindex_pages",
                 severity=SeverityLevel.INFO,
-                message=f"Сторінки з noindex: {len(noindex_pages)} шт.",
-                details="Ці сторінки не будуть індексуватися пошуковими системами.",
+                message=self.t("analyzers.robots.noindex_pages", count=len(noindex_pages)),
+                details=self.t("analyzers.robots.noindex_pages_details"),
                 affected_urls=noindex_pages[:20],
-                recommendation="Переконайтеся, що noindex встановлено навмисно для цих сторінок.",
+                recommendation=self.t("analyzers.robots.noindex_pages_recommendation"),
                 count=len(noindex_pages),
             ))
 
@@ -217,52 +215,56 @@ class RobotsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="canonical_issues",
                 severity=SeverityLevel.WARNING,
-                message=f"Проблеми з canonical: {len(canonical_issues)} шт.",
-                details="Canonical теги вказують на сторінки, які не існують або знаходяться поза сайтом.",
+                message=self.t("analyzers.robots.canonical_issues", count=len(canonical_issues)),
+                details=self.t("analyzers.robots.canonical_issues_details"),
                 affected_urls=[c['url'] for c in canonical_issues[:20]],
-                recommendation="Перевірте та виправте canonical теги.",
+                recommendation=self.t("analyzers.robots.canonical_issues_recommendation"),
                 count=len(canonical_issues),
             ))
 
         # Create table with indexing status
+        h_element = self.t("table.element")
+        h_status = self.t("table.status")
+        h_details = self.t("table.details")
+
         table_data = []
 
         table_data.append({
-            "Елемент": "robots.txt",
-            "Статус": "✓ Є" if robots_data.exists else "✗ Відсутній",
-            "Деталі": f"Sitemap: {len(robots_data.sitemaps)}, Disallow: {len(robots_data.disallowed_paths)}" if robots_data.exists else "-",
+            h_element: "robots.txt",
+            h_status: self.t("analyzers.robots.status_exists") if robots_data.exists else self.t("analyzers.robots.status_missing"),
+            h_details: f"Sitemap: {len(robots_data.sitemaps)}, Disallow: {len(robots_data.disallowed_paths)}" if robots_data.exists else "-",
         })
 
         table_data.append({
-            "Елемент": "sitemap.xml",
-            "Статус": "✓ Є" if sitemap_data.exists else "✗ Відсутній",
-            "Деталі": f"URL: {sitemap_data.urls_count}, файлів: {sitemap_data.sitemap_count}" if sitemap_data.exists else "-",
+            h_element: "sitemap.xml",
+            h_status: self.t("analyzers.robots.status_exists") if sitemap_data.exists else self.t("analyzers.robots.status_missing"),
+            h_details: f"URL: {sitemap_data.urls_count}, {self.t('analyzers.robots.files')}: {sitemap_data.sitemap_count}" if sitemap_data.exists else "-",
         })
 
         table_data.append({
-            "Елемент": "noindex сторінки",
-            "Статус": f"{len(noindex_pages)} шт." if noindex_pages else "0",
-            "Деталі": noindex_pages[0][:50] + "..." if noindex_pages else "Немає",
+            h_element: self.t("analyzers.robots.noindex_pages_label"),
+            h_status: self.t("analyzers.robots.count_items", count=len(noindex_pages)) if noindex_pages else "0",
+            h_details: noindex_pages[0][:50] + "..." if noindex_pages else self.t("analyzers.robots.none"),
         })
 
         tables.append({
-            "title": "Статус індексації",
-            "headers": ["Елемент", "Статус", "Деталі"],
+            "title": self.t("analyzers.robots.table_title"),
+            "headers": [h_element, h_status, h_details],
             "rows": table_data,
         })
 
         # Summary
         if not issues:
-            summary = "Налаштування індексації в порядку"
+            summary = self.t("analyzers.robots.summary_ok")
         else:
             error_count = sum(1 for i in issues if i.severity == SeverityLevel.ERROR)
             warning_count = sum(1 for i in issues if i.severity == SeverityLevel.WARNING)
             parts = []
             if error_count:
-                parts.append(f"помилок: {error_count}")
+                parts.append(self.t("analyzers.robots.errors_count", count=error_count))
             if warning_count:
-                parts.append(f"попереджень: {warning_count}")
-            summary = f"Проблеми з індексацією: {', '.join(parts)}"
+                parts.append(self.t("analyzers.robots.warnings_count", count=warning_count))
+            summary = self.t("analyzers.robots.summary_issues", issues=', '.join(parts))
 
         severity = self._determine_overall_severity(issues)
 

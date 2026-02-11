@@ -13,18 +13,22 @@ class LinksAnalyzer(BaseAnalyzer):
     """Analyzer for broken internal and external links."""
 
     name = "links"
-    display_name = "Биті посилання"
-    description = "Биті посилання погіршують користувацький досвід та можуть негативно впливати на SEO."
     icon = ""
-    theory = """<strong>Биті посилання (Broken Links)</strong> — посилання на неіснуючі сторінки (404) або недоступні ресурси. Витрачають краулінговий бюджет, погіршують UX та втрачають link juice.
 
-<strong>Типи:</strong>
-• <strong>Внутрішні</strong> — посилання на неіснуючі сторінки вашого сайту
-• <strong>Зовнішні</strong> — посилання на видалені сторінки інших сайтів
+    def __init__(self):
+        super().__init__()
 
-<strong>Як виправити:</strong>
-• Внутрішні: відновіть сторінку або налаштуйте 301 редірект
-• Зовнішні: оновіть посилання або видаліть його"""
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.links.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.links.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.links.theory")
 
     async def analyze(
         self,
@@ -107,10 +111,10 @@ class LinksAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="broken_internal",
                 severity=SeverityLevel.ERROR,
-                message=f"Биті внутрішні посилання: {len(broken_internal)} шт.",
-                details="Внутрішні посилання на неіснуючі сторінки шкодять SEO та користувацькому досвіду.",
+                message=self.t("analyzers.links.broken_internal", count=len(broken_internal)),
+                details=self.t("analyzers.links.broken_internal_details"),
                 affected_urls=[link['url'] for link in broken_internal[:20]],
-                recommendation="Виправте або видаліть биті посилання. Налаштуйте редиректи для видалених сторінок.",
+                recommendation=self.t("analyzers.links.broken_internal_recommendation"),
                 count=len(broken_internal),
             ))
 
@@ -119,38 +123,42 @@ class LinksAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="broken_external",
                 severity=SeverityLevel.WARNING,
-                message=f"Биті зовнішні посилання: {len(broken_external)} шт.",
-                details="Посилання на неіснуючі зовнішні ресурси можуть розчарувати користувачів.",
+                message=self.t("analyzers.links.broken_external", count=len(broken_external)),
+                details=self.t("analyzers.links.broken_external_details"),
                 affected_urls=[link['url'] for link in broken_external[:20]],
-                recommendation="Оновіть або видаліть биті зовнішні посилання.",
+                recommendation=self.t("analyzers.links.broken_external_recommendation"),
                 count=len(broken_external),
             ))
 
         # Create table with broken links
+        h_type = self.t("table.type")
+        h_link = self.t("table.link")
+        h_status = self.t("table.status")
+        h_found_on = self.t("table.found_on")
         table_data = []
 
         for link in broken_internal[:15]:
             status_text = f"{link['status']}" if link['status'] > 0 else "Timeout/Error"
             table_data.append({
-                "Тип": "Внутрішнє",
-                "Посилання": link['url'][:60] + "..." if len(link['url']) > 60 else link['url'],
-                "Статус": status_text,
-                "Знайдено на": link['source_pages'][0] if link['source_pages'] else "-",
+                h_type: self.t("analyzers.links.type_internal"),
+                h_link: link['url'][:60] + "..." if len(link['url']) > 60 else link['url'],
+                h_status: status_text,
+                h_found_on: link['source_pages'][0] if link['source_pages'] else "-",
             })
 
         for link in broken_external[:10]:
             status_text = f"{link['status']}" if link['status'] > 0 else "Timeout/Error"
             table_data.append({
-                "Тип": "Зовнішнє",
-                "Посилання": link['url'][:60] + "..." if len(link['url']) > 60 else link['url'],
-                "Статус": status_text,
-                "Знайдено на": link['source_pages'][0] if link['source_pages'] else "-",
+                h_type: self.t("analyzers.links.type_external"),
+                h_link: link['url'][:60] + "..." if len(link['url']) > 60 else link['url'],
+                h_status: status_text,
+                h_found_on: link['source_pages'][0] if link['source_pages'] else "-",
             })
 
         if table_data:
             tables.append({
-                "title": "Биті посилання",
-                "headers": ["Тип", "Посилання", "Статус", "Знайдено на"],
+                "title": self.t("analyzers.links.table_title"),
+                "headers": [h_type, h_link, h_status, h_found_on],
                 "rows": table_data,
             })
 
@@ -159,14 +167,14 @@ class LinksAnalyzer(BaseAnalyzer):
         total_external = len(external_links)
 
         if not issues:
-            summary = f"Перевірено {total_internal} внутрішніх та {total_external} зовнішніх посилань. Проблем не знайдено."
+            summary = self.t("analyzers.links.summary_ok", internal=total_internal, external=total_external)
         else:
             parts = []
             if broken_internal:
-                parts.append(f"внутрішніх: {len(broken_internal)}")
+                parts.append(self.t("analyzers.links.internal_count", count=len(broken_internal)))
             if broken_external:
-                parts.append(f"зовнішніх: {len(broken_external)}")
-            summary = f"Знайдено битих посилань: {', '.join(parts)}"
+                parts.append(self.t("analyzers.links.external_count", count=len(broken_external)))
+            summary = self.t("analyzers.links.summary_issues", issues=', '.join(parts))
 
         severity = self._determine_overall_severity(issues)
 

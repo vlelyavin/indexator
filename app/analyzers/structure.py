@@ -12,21 +12,22 @@ class StructureAnalyzer(BaseAnalyzer):
     """Analyzer for site structure (depth, orphan pages, internal linking)."""
 
     name = "structure"
-    display_name = "Структура сайту"
-    description = "Правильна структура сайту забезпечує ефективну індексацію та хороший користувацький досвід."
     icon = ""
-    theory = """<strong>Структура сайту</strong> — організація сторінок та зв'язків між ними.
 
-<strong>Глибина вкладеності (Click Depth):</strong>
-• Важливі сторінки мають бути на глибині 1-3 кліки
-• Сторінки на глибині 4+ гірше індексуються
+    def __init__(self):
+        super().__init__()
 
-<strong>Сирітські сторінки (Orphan Pages):</strong>
-• Сторінки без жодного внутрішнього посилання — пошукові роботи можуть їх не знайти
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.structure.name")
 
-<strong>Рекомендації:</strong>
-• Використовуйте breadcrumbs та внутрішні посилання у контенті
-• Перевіряйте на сирітські сторінки регулярно"""
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.structure.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.structure.theory")
 
     async def analyze(
         self,
@@ -95,11 +96,10 @@ class StructureAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="deep_pages",
                 severity=SeverityLevel.WARNING,
-                message=f"Глибоко вкладені сторінки: {len(deep_pages)} шт.",
-                details=f"Ці сторінки знаходяться на глибині більше {settings.MAX_CLICK_DEPTH} кліків від головної. "
-                        "Це ускладнює їх знаходження для користувачів та пошукових систем.",
+                message=self.t("analyzers.structure.deep_pages", count=len(deep_pages)),
+                details=self.t("analyzers.structure.deep_pages_details", max_depth=settings.MAX_CLICK_DEPTH),
                 affected_urls=[url for url, _ in deep_pages[:20]],
-                recommendation="Перегляньте структуру навігації та додайте посилання на ці сторінки ближче до головної.",
+                recommendation=self.t("analyzers.structure.deep_pages_recommendation"),
                 count=len(deep_pages),
             ))
 
@@ -107,10 +107,10 @@ class StructureAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="orphan_pages",
                 severity=SeverityLevel.WARNING,
-                message=f"Сирітські сторінки (без вхідних посилань): {len(orphan_pages)} шт.",
-                details="На ці сторінки немає посилань з інших сторінок сайту. Пошуковим системам буде складно їх знайти.",
+                message=self.t("analyzers.structure.orphan_pages", count=len(orphan_pages)),
+                details=self.t("analyzers.structure.orphan_pages_details"),
                 affected_urls=orphan_pages[:20],
-                recommendation="Додайте внутрішні посилання на ці сторінки з релевантних розділів сайту.",
+                recommendation=self.t("analyzers.structure.orphan_pages_recommendation"),
                 count=len(orphan_pages),
             ))
 
@@ -118,10 +118,10 @@ class StructureAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="few_internal_links",
                 severity=SeverityLevel.INFO,
-                message=f"Сторінки з малою кількістю посилань: {len(pages_with_few_links)} шт.",
-                details="Сторінки з малою кількістю внутрішніх посилань можуть мати менший вплив на навігацію.",
+                message=self.t("analyzers.structure.few_internal_links", count=len(pages_with_few_links)),
+                details=self.t("analyzers.structure.few_internal_links_details"),
                 affected_urls=[url for url, _ in pages_with_few_links[:20]],
-                recommendation="Розгляньте можливість додавання посилань на пов'язані сторінки.",
+                recommendation=self.t("analyzers.structure.few_internal_links_recommendation"),
                 count=len(pages_with_few_links),
             ))
 
@@ -129,56 +129,63 @@ class StructureAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="very_deep_structure",
                 severity=SeverityLevel.ERROR,
-                message=f"Надто глибока структура сайту (максимум {max_depth} рівнів)",
-                details="Пошукові системи можуть не індексувати сторінки на великій глибині.",
-                recommendation="Перебудуйте структуру сайту, щоб всі важливі сторінки були доступні за 3-4 кліки.",
+                message=self.t("analyzers.structure.very_deep_structure", max_depth=max_depth),
+                details=self.t("analyzers.structure.very_deep_structure_details"),
+                recommendation=self.t("analyzers.structure.very_deep_structure_recommendation"),
             ))
 
         # Create table with depth distribution
+        h_depth = self.t("table.depth")
+        h_page_count = self.t("table.page_count")
+        h_example = self.t("table.example")
+
         table_data = []
 
         for depth in sorted(depth_distribution.keys()):
             urls = depth_distribution[depth]
             status = "✓" if depth <= settings.MAX_CLICK_DEPTH else "⚠️"
             table_data.append({
-                "Глибина": f"{depth} {status}",
-                "Кількість сторінок": len(urls),
-                "Приклад": urls[0][:50] + "..." if urls and len(urls[0]) > 50 else (urls[0] if urls else "-"),
+                h_depth: f"{depth} {status}",
+                h_page_count: len(urls),
+                h_example: urls[0][:50] + "..." if urls and len(urls[0]) > 50 else (urls[0] if urls else "-"),
             })
 
         if table_data:
             tables.append({
-                "title": "Розподіл сторінок за глибиною",
-                "headers": ["Глибина", "Кількість сторінок", "Приклад"],
+                "title": self.t("analyzers.structure.table_depth_title"),
+                "headers": [h_depth, h_page_count, h_example],
                 "rows": table_data,
             })
 
         # Add orphan pages table if any
         if orphan_pages:
+            h_url = self.t("table.url")
+            h_title = "Title"
+
             orphan_table = []
             for url in orphan_pages[:15]:
                 page = pages.get(url)
                 title = page.title[:40] + "..." if page and page.title and len(page.title) > 40 else (page.title if page else "-")
                 orphan_table.append({
-                    "URL": url[:60] + "..." if len(url) > 60 else url,
-                    "Title": title,
+                    h_url: url[:60] + "..." if len(url) > 60 else url,
+                    h_title: title,
                 })
             tables.append({
-                "title": "Сирітські сторінки",
-                "headers": ["URL", "Title"],
+                "title": self.t("analyzers.structure.table_orphan_title"),
+                "headers": [h_url, h_title],
                 "rows": orphan_table,
             })
 
         # Summary
         if not issues:
-            summary = f"Структура сайту оптимальна. Максимальна глибина: {max_depth} рівнів."
+            summary = self.t("analyzers.structure.summary_ok", max_depth=max_depth)
         else:
             parts = []
             if deep_pages:
-                parts.append(f"глибоких сторінок: {len(deep_pages)}")
+                parts.append(self.t("analyzers.structure.summary_deep", count=len(deep_pages)))
             if orphan_pages:
-                parts.append(f"сирітських: {len(orphan_pages)}")
-            summary = f"Максимальна глибина: {max_depth}. Проблеми: {', '.join(parts)}"
+                parts.append(self.t("analyzers.structure.summary_orphan", count=len(orphan_pages)))
+            summary = self.t("analyzers.structure.summary_issues", max_depth=max_depth, issues=", ".join(parts))
 
         severity = self._determine_overall_severity(issues)
 

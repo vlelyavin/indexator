@@ -12,21 +12,22 @@ class FaviconAnalyzer(BaseAnalyzer):
     """Analyzer for favicon presence and format."""
 
     name = "favicon"
-    display_name = "Фавікон"
-    description = "Фавікон допомагає користувачам впізнавати ваш сайт у вкладках браузера та закладках."
     icon = ""
-    theory = """<strong>Фавікон (Favicon)</strong> — іконка сайту у вкладках браузера, закладках та результатах пошуку. Покращує впізнаваність бренду та CTR.
 
-<strong>Формати та розміри:</strong>
-• <strong>favicon.ico</strong> — класичний формат, 16x16 та 32x32 px
-• <strong>PNG</strong> — сучасний формат, 32x32, 192x192 px
-• <strong>SVG</strong> — векторний, масштабується без втрат
-• <strong>Apple Touch Icon</strong> — 180x180 px для iOS
+    def __init__(self):
+        super().__init__()
 
-<strong>Рекомендований набір:</strong>
-<code>&lt;link rel="icon" href="/favicon.ico" sizes="32x32"&gt;</code>
-<code>&lt;link rel="icon" href="/icon.svg" type="image/svg+xml"&gt;</code>
-<code>&lt;link rel="apple-touch-icon" href="/apple-touch-icon.png"&gt;</code>"""
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.favicon.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.favicon.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.favicon.theory")
 
     async def analyze(
         self,
@@ -96,26 +97,26 @@ class FaviconAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_favicon",
                 severity=SeverityLevel.ERROR,
-                message="Фавікон відсутній",
-                details="Не знайдено ні /favicon.ico, ні посилання <link rel=\"icon\"> у HTML.",
-                recommendation="Додайте фавікон у форматі .ico (16x16, 32x32) або .png/.svg.",
+                message=self.t("analyzers.favicon.missing"),
+                details=self.t("analyzers.favicon.missing_details"),
+                recommendation=self.t("analyzers.favicon.missing_recommendation"),
             ))
         elif not has_favicon_ico:
             issues.append(self.create_issue(
                 category="no_favicon_ico",
                 severity=SeverityLevel.WARNING,
-                message="Відсутній /favicon.ico",
-                details="Деякі старі браузери шукають фавікон за адресою /favicon.ico.",
-                recommendation="Додайте файл favicon.ico у корінь сайту для кращої сумісності.",
+                message=self.t("analyzers.favicon.no_ico"),
+                details=self.t("analyzers.favicon.no_ico_details"),
+                recommendation=self.t("analyzers.favicon.no_ico_recommendation"),
             ))
 
         if not has_apple_icon:
             issues.append(self.create_issue(
                 category="no_apple_touch_icon",
                 severity=SeverityLevel.INFO,
-                message="Відсутній Apple Touch Icon",
-                details="Apple Touch Icon використовується для закладок на iOS пристроях.",
-                recommendation="Додайте <link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"/apple-touch-icon.png\">",
+                message=self.t("analyzers.favicon.no_apple"),
+                details=self.t("analyzers.favicon.no_apple_details"),
+                recommendation=self.t("analyzers.favicon.no_apple_recommendation"),
             ))
 
         # Check favicon format recommendations
@@ -132,20 +133,20 @@ class FaviconAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="old_favicon_format",
                 severity=SeverityLevel.INFO,
-                message="Рекомендується SVG або PNG формат",
-                details="SVG фавікони масштабуються без втрати якості та підтримують темну тему.",
-                recommendation="Додайте SVG версію фавікону: <link rel=\"icon\" href=\"/favicon.svg\" type=\"image/svg+xml\">",
+                message=self.t("analyzers.favicon.old_format"),
+                details=self.t("analyzers.favicon.old_format_details"),
+                recommendation=self.t("analyzers.favicon.old_format_recommendation"),
             ))
 
         # Summary
         if not issues:
-            summary = "Фавікон налаштовано коректно"
+            summary = self.t("analyzers.favicon.summary_ok")
             severity = SeverityLevel.SUCCESS
         elif any(i.severity == SeverityLevel.ERROR for i in issues):
-            summary = "Фавікон відсутній"
+            summary = self.t("analyzers.favicon.summary_missing")
             severity = SeverityLevel.ERROR
         else:
-            summary = "Фавікон є, але можна покращити"
+            summary = self.t("analyzers.favicon.summary_needs_improvement")
             severity = SeverityLevel.WARNING
 
         return self.create_result(

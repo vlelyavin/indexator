@@ -14,23 +14,25 @@ class ImagesAnalyzer(BaseAnalyzer):
     """Analyzer for image optimization (alt, format, size)."""
 
     name = "images"
-    display_name = "Зображення"
-    description = "Оптимізовані зображення покращують швидкість завантаження та доступність сайту."
     icon = ""
-    theory = """<strong>Alt-атрибут</strong> — описує зміст зображення для пошукових систем, скрінрідерів та випадків коли зображення не завантажилось.
-
-<strong>Правила Alt:</strong>
-• Стисний опис до 125 символів з ключовими словами (без спаму)
-• Не починайте з "Зображення..." або "Фото..."
-• Для декоративних зображень — порожній <code>alt=""</code>
-
-<strong>Формати зображень:</strong>
-• <strong>WebP/AVIF</strong> — на 25-50% менше за JPEG, рекомендовані
-• <strong>JPEG</strong> — фотографії, <strong>PNG</strong> — прозорість, <strong>SVG</strong> — векторна графіка
-• Зображення понад 200 KB сповільнюють завантаження — стискайте та адаптуйте розмір"""
 
     LEGACY_FORMATS = {'jpg', 'jpeg', 'png', 'gif', 'bmp'}
     MODERN_FORMATS = {'webp', 'avif', 'svg'}
+
+    def __init__(self):
+        super().__init__()
+
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.images.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.images.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.images.theory")
 
     async def analyze(
         self,
@@ -140,10 +142,10 @@ class ImagesAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_alt",
                 severity=SeverityLevel.ERROR,
-                message=f"Зображення без alt: {len(missing_alt)} шт.",
-                details="Атрибут alt важливий для доступності та SEO. Пошукові системи використовують alt для розуміння вмісту зображень.",
+                message=self.t("analyzers.images.missing_alt", count=len(missing_alt)),
+                details=self.t("analyzers.images.missing_alt_details"),
                 affected_urls=[img['src'] for img in missing_alt[:10]],
-                recommendation="Додайте описовий alt атрибут до всіх зображень.",
+                recommendation=self.t("analyzers.images.missing_alt_recommendation"),
                 count=len(missing_alt),
             ))
 
@@ -151,10 +153,10 @@ class ImagesAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="empty_alt",
                 severity=SeverityLevel.WARNING,
-                message=f"Зображення з порожнім alt: {len(empty_alt)} шт.",
-                details="Порожній alt допустимий лише для декоративних зображень.",
+                message=self.t("analyzers.images.empty_alt", count=len(empty_alt)),
+                details=self.t("analyzers.images.empty_alt_details"),
                 affected_urls=[img['src'] for img in empty_alt[:10]],
-                recommendation="Заповніть alt описом зображення або позначте як декоративне (role='presentation').",
+                recommendation=self.t("analyzers.images.empty_alt_recommendation"),
                 count=len(empty_alt),
             ))
 
@@ -162,10 +164,10 @@ class ImagesAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="legacy_format",
                 severity=SeverityLevel.WARNING,
-                message=f"Застарілий формат зображень: {len(legacy_format)} шт.",
-                details="Формати JPEG та PNG можна замінити на WebP або AVIF для кращого стиснення.",
+                message=self.t("analyzers.images.legacy_format", count=len(legacy_format)),
+                details=self.t("analyzers.images.legacy_format_details"),
                 affected_urls=[img['src'] for img in legacy_format[:10]],
-                recommendation="Конвертуйте зображення у формат WebP. Це може зменшити розмір на 25-35%.",
+                recommendation=self.t("analyzers.images.legacy_format_recommendation"),
                 count=len(legacy_format),
             ))
 
@@ -173,10 +175,10 @@ class ImagesAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="critical_size",
                 severity=SeverityLevel.ERROR,
-                message=f"Дуже великі зображення (>1 MB): {len(critical_images)} шт.",
-                details="Зображення більше 1 MB критично сповільнюють завантаження сторінки.",
+                message=self.t("analyzers.images.critical_size", count=len(critical_images)),
+                details=self.t("analyzers.images.critical_size_details"),
                 affected_urls=[img['src'] for img in critical_images[:10]],
-                recommendation="Зменшіть розмір зображень через стиснення та/або зміну роздільної здатності.",
+                recommendation=self.t("analyzers.images.critical_size_recommendation"),
                 count=len(critical_images),
             ))
 
@@ -184,10 +186,10 @@ class ImagesAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="large_size",
                 severity=SeverityLevel.WARNING,
-                message=f"Великі зображення (>400 KB): {len(large_images)} шт.",
-                details="Великі зображення сповільнюють завантаження, особливо на мобільних пристроях.",
+                message=self.t("analyzers.images.large_size", count=len(large_images)),
+                details=self.t("analyzers.images.large_size_details"),
                 affected_urls=[img['src'] for img in large_images[:10]],
-                recommendation="Оптимізуйте зображення або використовуйте lazy loading.",
+                recommendation=self.t("analyzers.images.large_size_recommendation"),
                 count=len(large_images),
             ))
 
@@ -197,28 +199,33 @@ class ImagesAnalyzer(BaseAnalyzer):
                 return f"{size / (1024 * 1024):.1f} MB"
             return f"{size / 1024:.0f} KB"
 
+        h_image_url = self.t("table.image_url")
+        h_size = self.t("table.size")
+        h_problem = self.t("table.problem")
+        h_page = self.t("table.page")
+
         table_data = []
 
         for img in critical_images[:10]:
             table_data.append({
-                "URL зображення": img['src'][:80] + "..." if len(img['src']) > 80 else img['src'],
-                "Розмір": format_size(img['size']),
-                "Проблема": "Критичний розмір",
-                "Сторінка": img['pages'][0] if img['pages'] else "-",
+                h_image_url: img['src'][:80] + "..." if len(img['src']) > 80 else img['src'],
+                h_size: format_size(img['size']),
+                h_problem: self.t("analyzers.images.problem_critical_size"),
+                h_page: img['pages'][0] if img['pages'] else "-",
             })
 
         for img in large_images[:5]:
             table_data.append({
-                "URL зображення": img['src'][:80] + "..." if len(img['src']) > 80 else img['src'],
-                "Розмір": format_size(img['size']),
-                "Проблема": "Великий розмір",
-                "Сторінка": img['pages'][0] if img['pages'] else "-",
+                h_image_url: img['src'][:80] + "..." if len(img['src']) > 80 else img['src'],
+                h_size: format_size(img['size']),
+                h_problem: self.t("analyzers.images.problem_large_size"),
+                h_page: img['pages'][0] if img['pages'] else "-",
             })
 
         if table_data:
             tables.append({
-                "title": "Проблемні зображення",
-                "headers": ["URL зображення", "Розмір", "Проблема", "Сторінка"],
+                "title": self.t("analyzers.images.table_title"),
+                "headers": [h_image_url, h_size, h_problem, h_page],
                 "rows": table_data,
             })
 
@@ -226,16 +233,16 @@ class ImagesAnalyzer(BaseAnalyzer):
         problems_count = len(missing_alt) + len(critical_images) + len(large_images)
 
         if not issues:
-            summary = f"Всі {total_images} зображень оптимізовані"
+            summary = self.t("analyzers.images.summary_ok", count=total_images)
         else:
             parts = []
             if missing_alt:
-                parts.append(f"без alt: {len(missing_alt)}")
+                parts.append(self.t("analyzers.images.summary_no_alt", count=len(missing_alt)))
             if critical_images or large_images:
-                parts.append(f"завеликі: {len(critical_images) + len(large_images)}")
+                parts.append(self.t("analyzers.images.summary_too_large", count=len(critical_images) + len(large_images)))
             if legacy_format:
-                parts.append(f"застарілий формат: {len(legacy_format)}")
-            summary = f"Знайдено {total_images} зображень. Проблеми: {', '.join(parts)}"
+                parts.append(self.t("analyzers.images.summary_legacy_format", count=len(legacy_format)))
+            summary = self.t("analyzers.images.summary_issues", total=total_images, issues=", ".join(parts))
 
         severity = self._determine_overall_severity(issues)
 

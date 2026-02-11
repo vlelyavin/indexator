@@ -10,17 +10,22 @@ class RedirectsAnalyzer(BaseAnalyzer):
     """Analyzer for redirect chains and internal links to redirects."""
 
     name = "redirects"
-    display_name = "Редиректи"
-    description = "Аналіз перенаправлень та ланцюжків редиректів на сайті."
     icon = ""
-    theory = """<strong>Редиректи</strong> — перенаправлення з однієї URL-адреси на іншу. 301 (постійний) передає ~95% link juice, 302 (тимчасовий) може не передавати.
 
-<strong>Ланцюжки редиректів</strong> — коли URL перенаправляє на іншу URL, яка також перенаправляє далі. Кожен хоп витрачає краулінговий бюджет та додає затримку (~100-500 мс). Google може припинити слідувати після 3+ хопів.
+    def __init__(self):
+        super().__init__()
 
-<strong>Як виправити:</strong>
-• Замініть ланцюжки на прямий 301 редирект на кінцеву URL
-• Оновіть внутрішні посилання, щоб вони вели на кінцеву URL
-• Уникайте змішування 301 та 302 в одному ланцюжку"""
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.redirects.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.redirects.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.redirects.theory")
 
     async def analyze(
         self,
@@ -85,10 +90,10 @@ class RedirectsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="long_redirect_chains",
                 severity=SeverityLevel.ERROR,
-                message=f"Довгі ланцюжки (3+ хопів): {len(chains_3_plus)}",
-                details="Довгі ланцюжки редиректів витрачають краулінговий бюджет. Google може припинити слідувати після 3+ хопів.",
+                message=self.t("analyzers.redirects.long_redirect_chains", count=len(chains_3_plus)),
+                details=self.t("analyzers.redirects.long_redirect_chains_details"),
                 affected_urls=affected[:20],
-                recommendation="Замініть довгі ланцюжки на прямий 301 редирект на кінцеву URL-адресу.",
+                recommendation=self.t("analyzers.redirects.long_redirect_chains_recommendation"),
                 count=len(chains_3_plus),
             ))
 
@@ -98,10 +103,10 @@ class RedirectsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="redirect_chains",
                 severity=SeverityLevel.WARNING,
-                message=f"Ланцюжки редиректів (2 хопи): {len(chains_2_hops)}",
-                details="Ланцюжки з двома хопами додають затримку та витрачають краулінговий бюджет.",
+                message=self.t("analyzers.redirects.redirect_chains", count=len(chains_2_hops)),
+                details=self.t("analyzers.redirects.redirect_chains_details"),
                 affected_urls=affected[:20],
-                recommendation="Скоротіть ланцюжки до одного редиректу, налаштувавши прямий 301 на кінцеву URL.",
+                recommendation=self.t("analyzers.redirects.redirect_chains_recommendation"),
                 count=len(chains_2_hops),
             ))
 
@@ -111,10 +116,10 @@ class RedirectsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="internal_links_to_redirects",
                 severity=SeverityLevel.WARNING,
-                message=f"Внутрішні посилання на редиректи: {len(internal_links_to_redirects)}",
-                details="Внутрішні посилання ведуть на URL, які перенаправляються. Це додає зайву затримку для користувачів та пошукових ботів.",
+                message=self.t("analyzers.redirects.internal_links_to_redirects", count=len(internal_links_to_redirects)),
+                details=self.t("analyzers.redirects.internal_links_to_redirects_details"),
                 affected_urls=affected[:20],
-                recommendation="Оновіть внутрішні посилання, замінивши URL з редиректами на кінцеві адреси.",
+                recommendation=self.t("analyzers.redirects.internal_links_to_redirects_recommendation"),
                 count=len(internal_links_to_redirects),
             ))
 
@@ -122,9 +127,9 @@ class RedirectsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="no_redirect_issues",
                 severity=SeverityLevel.SUCCESS,
-                message="Проблем з редиректами не знайдено",
-                details="На сайті не виявлено проблемних ланцюжків редиректів.",
-                recommendation="Продовжуйте стежити за тим, щоб внутрішні посилання вели на кінцеві URL-адреси.",
+                message=self.t("analyzers.redirects.no_redirect_issues"),
+                details=self.t("analyzers.redirects.no_redirect_issues_details"),
+                recommendation=self.t("analyzers.redirects.no_redirect_issues_recommendation"),
             ))
 
         # Step 4: Create table
@@ -133,26 +138,30 @@ class RedirectsAnalyzer(BaseAnalyzer):
         # Sort chains by hops descending
         all_chains.sort(key=lambda x: x["hops"], reverse=True)
 
+        h_start = self.t("table.start_url")
+        h_end = self.t("table.end_url")
+        h_hops = self.t("table.hops")
+
         for chain in all_chains[:10]:
             table_data.append({
-                "Початковий URL": chain["start_url"][:70] + "..." if len(chain["start_url"]) > 70 else chain["start_url"],
-                "Кінцевий URL": chain["end_url"][:70] + "..." if len(chain["end_url"]) > 70 else chain["end_url"],
-                "Хопів": chain["hops"],
+                h_start: chain["start_url"][:70] + "..." if len(chain["start_url"]) > 70 else chain["start_url"],
+                h_end: chain["end_url"][:70] + "..." if len(chain["end_url"]) > 70 else chain["end_url"],
+                h_hops: chain["hops"],
             })
 
         if table_data:
             tables.append({
-                "title": "Ланцюжки редиректів",
-                "headers": ["Початковий URL", "Кінцевий URL", "Хопів"],
+                "title": self.t("analyzers.redirects.table_title"),
+                "headers": [h_start, h_end, h_hops],
                 "rows": table_data,
             })
 
         # Step 5: Summary
         total_chains = len(chains_2_hops) + len(chains_3_plus)
         if total_chains > 0:
-            summary = f"Знайдено {total_chains} ланцюжків редиректів"
+            summary = self.t("analyzers.redirects.summary_found", count=total_chains)
         else:
-            summary = "Проблем з редиректами не знайдено"
+            summary = self.t("analyzers.redirects.summary_none")
 
         severity = self._determine_overall_severity(issues)
 

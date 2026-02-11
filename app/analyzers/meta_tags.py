@@ -201,7 +201,7 @@ class MetaTagsAnalyzer(BaseAnalyzer):
                 if url not in seen_urls:
                     table_data.append({
                         h_url: url,
-                        h_problem: self.t("analyzer_content.meta_tags.issues.problem_missing_title",
+                        h_problem: self.t("analyzer_content.meta_tags.issues.problem_missing_title"),
                         h_title: "-",
                         h_description: pages[url].meta_description[:50] + "..." if pages[url].meta_description else "-",
                     })
@@ -211,7 +211,7 @@ class MetaTagsAnalyzer(BaseAnalyzer):
                 if url not in seen_urls:
                     table_data.append({
                         h_url: url,
-                        h_problem: self.t("analyzer_content.meta_tags.issues.problem_missing_description",
+                        h_problem: self.t("analyzer_content.meta_tags.issues.problem_missing_description"),
                         h_title: pages[url].title[:50] + "..." if pages[url].title else "-",
                         h_description: "-",
                     })

@@ -62,10 +62,10 @@ echo "[6/11] Installing Playwright Chromium..."
 sudo "$APP_DIR/venv/bin/playwright" install chromium
 sudo "$APP_DIR/venv/bin/playwright" install-deps chromium
 
-# 7. Next.js frontend - install dependencies
+# 7. Next.js frontend - install ALL dependencies (dev deps needed for build)
 echo "[7/11] Installing Next.js frontend dependencies..."
 cd "$FRONTEND_DIR"
-sudo npm ci --omit=dev
+sudo npm ci
 
 # 8. Prisma migrate (database schema)
 echo "[8/11] Running Prisma migrations..."

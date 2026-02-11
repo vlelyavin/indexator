@@ -375,6 +375,9 @@ async def run_audit(audit_id: str, request: AuditRequest):
 
         results = {}
         for i, analyzer in enumerate(analyzers):
+            # Set analyzer language before execution
+            analyzer.set_language(lang)
+
             await queue.put(ProgressEvent(
                 status=AuditStatus.ANALYZING,
                 progress=40 + ((i + 1) / len(analyzers) * 40),

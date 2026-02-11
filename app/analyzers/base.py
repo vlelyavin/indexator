@@ -1,7 +1,7 @@
 """Base analyzer class."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from ..models import AnalyzerResult, AuditIssue, PageData, SeverityLevel
 
@@ -14,6 +14,41 @@ class BaseAnalyzer(ABC):
     description: str = ""
     icon: str = ""
     theory: str = ""  # Теоретическая справка: что это и зачем нужно
+
+    def __init__(self):
+        """Initialize analyzer with default language."""
+        self.language: str = "en"
+        self.translator: Optional[Any] = None
+
+    def set_language(self, language: str) -> None:
+        """
+        Set language for this analyzer instance.
+
+        Args:
+            language: Language code (en, ru, uk)
+        """
+        self.language = language
+        # Import here to avoid circular dependencies
+        from ..i18n import get_translator
+        self.translator = get_translator(language) if language != "uk" else None
+
+    def t(self, key: str, **kwargs) -> str:
+        """
+        Translate a key with optional formatting.
+
+        Args:
+            key: Translation key in dot notation
+            **kwargs: Values for placeholder substitution
+
+        Returns:
+            Translated string
+        """
+        if self.translator:
+            return self.translator(key, **kwargs)
+        # Fallback to Ukrainian (default locale)
+        from ..i18n import t
+        text = t(key, "uk", **kwargs)
+        return text
 
     @abstractmethod
     async def analyze(

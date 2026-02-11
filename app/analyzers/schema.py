@@ -14,22 +14,22 @@ class SchemaAnalyzer(BaseAnalyzer):
     """Analyzer for Schema.org structured data detection."""
 
     name = "schema"
-    display_name = "Структуровані дані"
-    description = "Аналіз розмітки Schema.org та структурованих даних на сторінках сайту."
     icon = ""
-    theory = """<strong>Schema.org</strong> — стандарт розмітки структурованих даних, який допомагає пошуковим системам краще розуміти вміст сторінок.
 
-<strong>Формати розмітки:</strong>
-• <strong>JSON-LD</strong> — рекомендований Google формат, вбудовується через <code>&lt;script type="application/ld+json"&gt;</code>
-• <strong>Microdata</strong> — атрибути itemscope, itemtype, itemprop безпосередньо в HTML
+    def __init__(self):
+        super().__init__()
 
-<strong>Основні типи Schema:</strong>
-• <strong>Organization</strong> — інформація про компанію (логотип, контакти)
-• <strong>Product</strong> — товари з ціною та наявністю
-• <strong>BreadcrumbList</strong> — хлібні крихти для навігації
-• <strong>Article / FAQPage</strong> — статті та FAQ
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.schema.name")
 
-<strong>Переваги:</strong> розширені сніпети (Rich Snippets) у пошуку, підвищення CTR на 20-30%, кращий Knowledge Graph."""
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.schema.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.schema.theory")
 
     async def analyze(
         self,
@@ -107,10 +107,12 @@ class SchemaAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="has_structured_data",
                 severity=SeverityLevel.SUCCESS,
-                message=f"Знайдено {num_types} типів Schema.org на {num_pages_with} сторінках",
-                details=f"JSON-LD: {len(pages_with_json_ld)} сторінок, Microdata: {len(pages_with_microdata)} сторінок. "
-                        f"Типи: {', '.join(schema_types.keys())}",
-                recommendation="Продовжуйте використовувати структуровані дані та розширюйте покриття.",
+                message=self.t("analyzers.schema.has_structured_data", types=num_types, pages=num_pages_with),
+                details=self.t("analyzers.schema.has_structured_data_details",
+                              json_ld=len(pages_with_json_ld),
+                              microdata=len(pages_with_microdata),
+                              types=', '.join(schema_types.keys())),
+                recommendation=self.t("analyzers.schema.has_structured_data_recommendation"),
                 count=num_pages_with,
             ))
 
@@ -118,10 +120,12 @@ class SchemaAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="no_structured_data",
                 severity=SeverityLevel.WARNING,
-                message=f"Структуровані дані відсутні на {len(pages_without_schema)} сторінках",
-                details=f"З {total_pages} проаналізованих сторінок {len(pages_without_schema)} не містять розмітки Schema.org.",
+                message=self.t("analyzers.schema.no_structured_data", count=len(pages_without_schema)),
+                details=self.t("analyzers.schema.no_structured_data_details",
+                              total=total_pages,
+                              without=len(pages_without_schema)),
                 affected_urls=pages_without_schema[:20],
-                recommendation="Додайте JSON-LD розмітку на всі важливі сторінки сайту.",
+                recommendation=self.t("analyzers.schema.no_structured_data_recommendation"),
                 count=len(pages_without_schema),
             ))
 
@@ -131,10 +135,10 @@ class SchemaAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_organization",
                 severity=SeverityLevel.INFO,
-                message="Розмітка Organization відсутня на головній сторінці",
-                details="Schema типу Organization допомагає Google відобразити інформацію про компанію в Knowledge Panel.",
+                message=self.t("analyzers.schema.missing_organization"),
+                details=self.t("analyzers.schema.missing_organization_details"),
                 affected_urls=[base_url],
-                recommendation="Додайте JSON-LD розмітку Organization з назвою, логотипом та контактами на головну сторінку.",
+                recommendation=self.t("analyzers.schema.missing_organization_recommendation"),
             ))
 
         # Check for BreadcrumbList
@@ -142,9 +146,9 @@ class SchemaAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_breadcrumbs",
                 severity=SeverityLevel.INFO,
-                message="Розмітка BreadcrumbList відсутня",
-                details="Хлібні крихти (BreadcrumbList) покращують навігацію у пошуковій видачі.",
-                recommendation="Додайте JSON-LD розмітку BreadcrumbList для відображення шляху сторінки в результатах пошуку.",
+                message=self.t("analyzers.schema.missing_breadcrumbs"),
+                details=self.t("analyzers.schema.missing_breadcrumbs_details"),
+                recommendation=self.t("analyzers.schema.missing_breadcrumbs_recommendation"),
             ))
 
         # JSON-LD parsing errors
@@ -153,35 +157,39 @@ class SchemaAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="json_ld_errors",
                 severity=SeverityLevel.WARNING,
-                message=f"Помилки у JSON-LD розмітці на {len(error_urls)} сторінках",
-                details=f"Знайдено {len(json_ld_errors)} блоків JSON-LD з некоректним синтаксисом.",
+                message=self.t("analyzers.schema.json_ld_errors", count=len(error_urls)),
+                details=self.t("analyzers.schema.json_ld_errors_details", blocks=len(json_ld_errors)),
                 affected_urls=error_urls[:20],
-                recommendation="Перевірте та виправте синтаксис JSON-LD. Використовуйте валідатор Google Rich Results Test.",
+                recommendation=self.t("analyzers.schema.json_ld_errors_recommendation"),
                 count=len(json_ld_errors),
             ))
 
         # Create table with schema types
         if schema_types:
+            h_type = self.t("table.schema_type")
+            h_count = self.t("table.page_count")
+            h_example = self.t("table.example_url")
+
             table_rows = []
             for type_name, count in schema_types.most_common(10):
                 example_url = schema_type_examples.get(type_name, "-")
                 table_rows.append({
-                    "Тип Schema": type_name,
-                    "Кількість сторінок": str(count),
-                    "Приклад URL": example_url,
+                    h_type: type_name,
+                    h_count: str(count),
+                    h_example: example_url,
                 })
 
             tables.append({
-                "title": "Типи структурованих даних",
-                "headers": ["Тип Schema", "Кількість сторінок", "Приклад URL"],
+                "title": self.t("analyzers.schema.table_title"),
+                "headers": [h_type, h_count, h_example],
                 "rows": table_rows[:10],
             })
 
         # Summary
         if num_pages_with > 0:
-            summary = f"Знайдено {num_types} типів Schema.org на {num_pages_with} сторінках"
+            summary = self.t("analyzers.schema.summary_found", types=num_types, pages=num_pages_with)
         else:
-            summary = "Структуровані дані відсутні"
+            summary = self.t("analyzers.schema.summary_none")
 
         severity = self._determine_overall_severity(issues)
 

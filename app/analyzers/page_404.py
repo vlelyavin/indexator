@@ -15,16 +15,22 @@ class Page404Analyzer(BaseAnalyzer):
     """Analyzer for custom 404 error page."""
 
     name = "page_404"
-    display_name = "Сторінка 404"
-    description = "Кастомна сторінка 404 покращує користувацький досвід та допомагає утримати відвідувачів на сайті."
     icon = ""
-    theory = """<strong>Сторінка 404</strong> — сторінка помилки, яка показується коли запитаний URL не існує.
 
-<strong>Обов'язкові елементи:</strong>
-• HTTP статус <strong>404</strong> (не 200! Інакше — "soft 404", що витрачає краулінговий бюджет)
-• Зрозуміле повідомлення про помилку
-• Посилання на головну + навігація по сайту
-• Форма пошуку (опціонально)"""
+    def __init__(self):
+        super().__init__()
+
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.page_404.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.page_404.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.page_404.theory")
 
     async def analyze(
         self,
@@ -96,13 +102,13 @@ class Page404Analyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="404_check_failed",
                 severity=SeverityLevel.WARNING,
-                message="Не вдалося перевірити сторінку 404",
-                details=f"Помилка: {str(e)}",
-                recommendation="Перевірте доступність сайту.",
+                message=self.t("analyzers.page_404.check_failed"),
+                details=self.t("analyzers.page_404.check_failed_details", error=str(e)),
+                recommendation=self.t("analyzers.page_404.check_failed_recommendation"),
             ))
             return self.create_result(
                 severity=SeverityLevel.WARNING,
-                summary="Не вдалося перевірити сторінку 404",
+                summary=self.t("analyzers.page_404.check_failed_summary"),
                 issues=issues,
             )
 
@@ -111,56 +117,56 @@ class Page404Analyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="wrong_404_status",
                 severity=SeverityLevel.ERROR,
-                message="Неправильний HTTP статус для неіснуючих сторінок",
-                details=f"Сервер повертає статус {status_code} замість 404 для неіснуючих URL.",
-                recommendation="Налаштуйте сервер повертати статус 404 для неіснуючих сторінок. Це важливо для SEO.",
+                message=self.t("analyzers.page_404.wrong_status"),
+                details=self.t("analyzers.page_404.wrong_status_details", status=status_code),
+                recommendation=self.t("analyzers.page_404.wrong_status_recommendation"),
             ))
 
         if not has_custom_404:
             issues.append(self.create_issue(
                 category="no_custom_404",
                 severity=SeverityLevel.ERROR,
-                message="Відсутня кастомна сторінка 404",
-                details="Сервер не показує зрозуміле повідомлення про помилку 404.",
-                recommendation="Створіть кастомну сторінку 404 з корисною інформацією для користувача.",
+                message=self.t("analyzers.page_404.no_custom"),
+                details=self.t("analyzers.page_404.no_custom_details"),
+                recommendation=self.t("analyzers.page_404.no_custom_recommendation"),
             ))
 
         if has_custom_404 and not has_navigation:
             issues.append(self.create_issue(
                 category="404_no_navigation",
                 severity=SeverityLevel.WARNING,
-                message="Сторінка 404 без навігації",
-                details="На сторінці 404 відсутня навігація по сайту.",
-                recommendation="Додайте меню навігації на сторінку 404, щоб користувачі могли продовжити перегляд сайту.",
+                message=self.t("analyzers.page_404.no_navigation"),
+                details=self.t("analyzers.page_404.no_navigation_details"),
+                recommendation=self.t("analyzers.page_404.no_navigation_recommendation"),
             ))
 
         if has_custom_404 and not has_home_link:
             issues.append(self.create_issue(
                 category="404_no_home_link",
                 severity=SeverityLevel.WARNING,
-                message="Сторінка 404 без посилання на головну",
-                details="Немає очевидного способу повернутися на головну сторінку.",
-                recommendation="Додайте чітке посилання 'На головну' або кнопку повернення.",
+                message=self.t("analyzers.page_404.no_home_link"),
+                details=self.t("analyzers.page_404.no_home_link_details"),
+                recommendation=self.t("analyzers.page_404.no_home_link_recommendation"),
             ))
 
         if has_custom_404 and not has_search:
             issues.append(self.create_issue(
                 category="404_no_search",
                 severity=SeverityLevel.INFO,
-                message="Сторінка 404 без пошуку",
-                details="Форма пошуку на сторінці 404 допомагає користувачам знайти потрібний контент.",
-                recommendation="Додайте форму пошуку на сторінку 404.",
+                message=self.t("analyzers.page_404.no_search"),
+                details=self.t("analyzers.page_404.no_search_details"),
+                recommendation=self.t("analyzers.page_404.no_search_recommendation"),
             ))
 
         # Summary
         if returns_404_status and has_custom_404 and has_navigation:
-            summary = "Сторінка 404 налаштована коректно"
+            summary = self.t("analyzers.page_404.summary_ok")
             severity = SeverityLevel.SUCCESS
         elif not returns_404_status or not has_custom_404:
-            summary = "Потрібно створити або виправити сторінку 404"
+            summary = self.t("analyzers.page_404.summary_needs_fix")
             severity = SeverityLevel.ERROR
         else:
-            summary = "Сторінка 404 є, але потребує покращень"
+            summary = self.t("analyzers.page_404.summary_needs_improvement")
             severity = SeverityLevel.WARNING
 
         return self.create_result(

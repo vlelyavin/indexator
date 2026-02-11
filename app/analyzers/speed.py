@@ -18,17 +18,22 @@ class SpeedAnalyzer(BaseAnalyzer):
     """Analyzer for page speed using Google PageSpeed Insights API."""
 
     name = "speed"
-    display_name = "Швидкість завантаження"
-    description = "Швидкість завантаження впливає на ранжування та користувацький досвід."
     icon = ""
-    theory = """<strong>Core Web Vitals</strong> — метрики Google для оцінки користувацького досвіду. Офіційний фактор ранжування з 2021 року.
 
-<strong>Основні метрики:</strong>
-• <strong>LCP (Largest Contentful Paint)</strong> — час до найбільшого елемента. Ціль: ≤2.5с
-• <strong>FID/TBT (First Input Delay / Total Blocking Time)</strong> — затримка взаємодії. Ціль: ≤100мс / ≤300мс
-• <strong>CLS (Cumulative Layout Shift)</strong> — візуальна стабільність. Ціль: ≤0.1
+    def __init__(self):
+        super().__init__()
 
-Кожна секунда затримки знижує конверсію на ~7%."""
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.speed.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.speed.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.speed.theory")
 
     # Target metrics (in seconds where applicable)
     MOBILE_TARGETS = {
@@ -56,17 +61,17 @@ class SpeedAnalyzer(BaseAnalyzer):
         pagespeed_result = await self._get_pagespeed_insights(base_url)
 
         if not pagespeed_result.mobile and not pagespeed_result.desktop:
-            error_details = pagespeed_result.error or "API може бути недоступним або URL заблоковано."
+            error_details = pagespeed_result.error or self.t("analyzers.speed.api_unavailable")
             issues.append(self.create_issue(
                 category="pagespeed_unavailable",
                 severity=SeverityLevel.WARNING,
-                message="Не вдалося отримати дані PageSpeed Insights",
+                message=self.t("analyzers.speed.no_data"),
                 details=error_details,
-                recommendation="Перевірте URL вручну на https://pagespeed.web.dev/",
+                recommendation=self.t("analyzers.speed.check_manually"),
             ))
             return self.create_result(
                 severity=SeverityLevel.WARNING,
-                summary="Не вдалося отримати дані про швидкість",
+                summary=self.t("analyzers.speed.no_speed_data"),
                 issues=issues,
                 data={"error": error_details},
             )
@@ -82,17 +87,17 @@ class SpeedAnalyzer(BaseAnalyzer):
                 issues.append(self.create_issue(
                     category="mobile_score_critical",
                     severity=SeverityLevel.ERROR,
-                    message=f"Критично низький Mobile Score: {mobile.score}/100",
-                    details="Мобільна версія сайту завантажується дуже повільно.",
-                    recommendation="Терміново оптимізуйте: стисніть зображення, мінімізуйте CSS/JS, використовуйте кешування.",
+                    message=self.t("analyzers.speed.mobile_critical", score=mobile.score),
+                    details=self.t("analyzers.speed.mobile_critical_details"),
+                    recommendation=self.t("analyzers.speed.mobile_critical_recommendation"),
                 ))
             elif mobile.score < 70:
                 issues.append(self.create_issue(
                     category="mobile_score_low",
                     severity=SeverityLevel.WARNING,
-                    message=f"Низький Mobile Score: {mobile.score}/100",
-                    details="Є значний потенціал для покращення мобільної швидкості.",
-                    recommendation="Оптимізуйте зображення, зменшіть кількість запитів, використовуйте lazy loading.",
+                    message=self.t("analyzers.speed.mobile_low", score=mobile.score),
+                    details=self.t("analyzers.speed.mobile_low_details"),
+                    recommendation=self.t("analyzers.speed.mobile_low_recommendation"),
                 ))
 
         # Analyze desktop results
@@ -105,75 +110,84 @@ class SpeedAnalyzer(BaseAnalyzer):
                 issues.append(self.create_issue(
                     category="desktop_score_critical",
                     severity=SeverityLevel.ERROR,
-                    message=f"Критично низький Desktop Score: {desktop.score}/100",
-                    details="Десктопна версія сайту завантажується дуже повільно.",
-                    recommendation="Перевірте серверну відповідь, оптимізуйте ресурси.",
+                    message=self.t("analyzers.speed.desktop_critical", score=desktop.score),
+                    details=self.t("analyzers.speed.desktop_critical_details"),
+                    recommendation=self.t("analyzers.speed.desktop_critical_recommendation"),
                 ))
             elif desktop.score < 70:
                 issues.append(self.create_issue(
                     category="desktop_score_low",
                     severity=SeverityLevel.WARNING,
-                    message=f"Низький Desktop Score: {desktop.score}/100",
-                    details="Є потенціал для покращення десктопної швидкості.",
-                    recommendation="Оптимізуйте критичний шлях рендерингу.",
+                    message=self.t("analyzers.speed.desktop_low", score=desktop.score),
+                    details=self.t("analyzers.speed.desktop_low_details"),
+                    recommendation=self.t("analyzers.speed.desktop_low_recommendation"),
                 ))
 
         # Create metrics table
+        # Get translated header keys
+        h_metric = self.t("table.metric")
+        h_target = self.t("table.target")
+
         table_data = []
 
         if pagespeed_result.mobile:
             m = pagespeed_result.mobile
             table_data.append({
-                "Метрика": "Performance Score",
+                h_metric: "Performance Score",
                 "Mobile": f"{m.score}/100 {'✓' if m.score >= 70 else '⚠️' if m.score >= 50 else '✗'}",
                 "Desktop": f"{pagespeed_result.desktop.score}/100 {'✓' if pagespeed_result.desktop.score >= 70 else '⚠️' if pagespeed_result.desktop.score >= 50 else '✗'}" if pagespeed_result.desktop else "-",
-                "Ціль": "≥ 70",
+                h_target: "≥ 70",
             })
 
             if m.fcp is not None:
                 table_data.append({
-                    "Метрика": "First Contentful Paint (FCP)",
+                    h_metric: "First Contentful Paint (FCP)",
                     "Mobile": f"{m.fcp:.1f}s {'✓' if m.fcp <= self.MOBILE_TARGETS['fcp'] else '✗'}",
                     "Desktop": f"{pagespeed_result.desktop.fcp:.1f}s" if pagespeed_result.desktop and pagespeed_result.desktop.fcp else "-",
-                    "Ціль": f"≤ {self.MOBILE_TARGETS['fcp']}s / {self.DESKTOP_TARGETS['fcp']}s",
+                    h_target: f"≤ {self.MOBILE_TARGETS['fcp']}s / {self.DESKTOP_TARGETS['fcp']}s",
                 })
 
             if m.lcp is not None:
                 table_data.append({
-                    "Метрика": "Largest Contentful Paint (LCP)",
+                    h_metric: "Largest Contentful Paint (LCP)",
                     "Mobile": f"{m.lcp:.1f}s {'✓' if m.lcp <= self.MOBILE_TARGETS['lcp'] else '✗'}",
                     "Desktop": f"{pagespeed_result.desktop.lcp:.1f}s" if pagespeed_result.desktop and pagespeed_result.desktop.lcp else "-",
-                    "Ціль": f"≤ {self.MOBILE_TARGETS['lcp']}s / {self.DESKTOP_TARGETS['lcp']}s",
+                    h_target: f"≤ {self.MOBILE_TARGETS['lcp']}s / {self.DESKTOP_TARGETS['lcp']}s",
                 })
 
             if m.cls is not None:
                 table_data.append({
-                    "Метрика": "Cumulative Layout Shift (CLS)",
+                    h_metric: "Cumulative Layout Shift (CLS)",
                     "Mobile": f"{m.cls:.3f} {'✓' if m.cls <= 0.1 else '✗'}",
                     "Desktop": f"{pagespeed_result.desktop.cls:.3f}" if pagespeed_result.desktop and pagespeed_result.desktop.cls else "-",
-                    "Ціль": "≤ 0.1",
+                    h_target: "≤ 0.1",
                 })
 
             if m.tbt is not None:
                 table_data.append({
-                    "Метрика": "Total Blocking Time (TBT)",
+                    h_metric: "Total Blocking Time (TBT)",
                     "Mobile": f"{m.tbt:.0f}ms {'✓' if m.tbt <= 300 else '✗'}",
                     "Desktop": f"{pagespeed_result.desktop.tbt:.0f}ms" if pagespeed_result.desktop and pagespeed_result.desktop.tbt else "-",
-                    "Ціль": "≤ 300ms",
+                    h_target: "≤ 300ms",
                 })
 
             if m.speed_index is not None:
                 table_data.append({
-                    "Метрика": "Speed Index",
+                    h_metric: "Speed Index",
                     "Mobile": f"{m.speed_index:.1f}s {'✓' if m.speed_index <= self.MOBILE_TARGETS['speed_index'] else '✗'}",
                     "Desktop": f"{pagespeed_result.desktop.speed_index:.1f}s" if pagespeed_result.desktop and pagespeed_result.desktop.speed_index else "-",
-                    "Ціль": f"≤ {self.MOBILE_TARGETS['speed_index']}s / {self.DESKTOP_TARGETS['speed_index']}s",
+                    h_target: f"≤ {self.MOBILE_TARGETS['speed_index']}s / {self.DESKTOP_TARGETS['speed_index']}s",
                 })
 
         if table_data:
             tables.append({
-                "title": "Core Web Vitals та метрики швидкості",
-                "headers": ["Метрика", "Mobile", "Desktop", "Ціль"],
+                "title": self.t("analyzers.speed.table_title"),
+                "headers": [
+                    self.t("table.metric"),
+                    "Mobile",
+                    "Desktop",
+                    self.t("table.target")
+                ],
                 "rows": table_data,
             })
 
@@ -194,16 +208,16 @@ class SpeedAnalyzer(BaseAnalyzer):
         desktop_score = pagespeed_result.desktop.score if pagespeed_result.desktop else 0
 
         if mobile_score >= 70 and desktop_score >= 70:
-            summary = f"Швидкість в нормі. Mobile: {mobile_score}/100, Desktop: {desktop_score}/100"
+            summary = self.t("analyzers.speed.summary_good", mobile=mobile_score, desktop=desktop_score)
             if not any(i.severity == SeverityLevel.ERROR for i in issues):
                 severity = SeverityLevel.SUCCESS
             else:
                 severity = SeverityLevel.WARNING
         elif mobile_score >= 50 or desktop_score >= 50:
-            summary = f"Потрібна оптимізація. Mobile: {mobile_score}/100, Desktop: {desktop_score}/100"
+            summary = self.t("analyzers.speed.summary_needs_optimization", mobile=mobile_score, desktop=desktop_score)
             severity = SeverityLevel.WARNING
         else:
-            summary = f"Критичні проблеми швидкості. Mobile: {mobile_score}/100, Desktop: {desktop_score}/100"
+            summary = self.t("analyzers.speed.summary_critical", mobile=mobile_score, desktop=desktop_score)
             severity = SeverityLevel.ERROR
 
         return self.create_result(
@@ -230,27 +244,27 @@ class SpeedAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category=f"{device.lower()}_fcp_slow",
                 severity=SeverityLevel.WARNING,
-                message=f"{device} FCP повільний: {metrics.fcp:.1f}s (ціль: ≤{targets['fcp']}s)",
-                details="First Contentful Paint вимірює час до появи першого контенту.",
-                recommendation="Оптимізуйте критичний CSS, використовуйте preload для шрифтів.",
+                message=self.t("analyzers.speed.fcp_slow", device=device, value=f"{metrics.fcp:.1f}", target=targets['fcp']),
+                details=self.t("analyzers.speed.fcp_details"),
+                recommendation=self.t("analyzers.speed.fcp_recommendation"),
             ))
 
         if metrics.lcp and metrics.lcp > targets['lcp']:
             issues.append(self.create_issue(
                 category=f"{device.lower()}_lcp_slow",
                 severity=SeverityLevel.WARNING,
-                message=f"{device} LCP повільний: {metrics.lcp:.1f}s (ціль: ≤{targets['lcp']}s)",
-                details="Largest Contentful Paint вимірює час завантаження найбільшого елементу.",
-                recommendation="Оптимізуйте зображення, використовуйте CDN, прискоріть серверну відповідь.",
+                message=self.t("analyzers.speed.lcp_slow", device=device, value=f"{metrics.lcp:.1f}", target=targets['lcp']),
+                details=self.t("analyzers.speed.lcp_details"),
+                recommendation=self.t("analyzers.speed.lcp_recommendation"),
             ))
 
         if metrics.cls and metrics.cls > 0.1:
             issues.append(self.create_issue(
                 category=f"{device.lower()}_cls_high",
                 severity=SeverityLevel.WARNING,
-                message=f"{device} CLS високий: {metrics.cls:.3f} (ціль: ≤0.1)",
-                details="Cumulative Layout Shift вимірює візуальну стабільність сторінки.",
-                recommendation="Задайте розміри для зображень та рекламних блоків, уникайте динамічного контенту.",
+                message=self.t("analyzers.speed.cls_high", device=device, value=f"{metrics.cls:.3f}"),
+                details=self.t("analyzers.speed.cls_details"),
+                recommendation=self.t("analyzers.speed.cls_recommendation"),
             ))
 
         return issues

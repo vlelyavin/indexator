@@ -10,15 +10,22 @@ class MobileAnalyzer(BaseAnalyzer):
     """Analyzer for mobile viewport and friendliness."""
 
     name = "mobile"
-    display_name = "Мобільна адаптивність"
-    description = "Перевірка базових вимог до мобільної версії сайту."
     icon = ""
-    theory = """<strong>Mobile-First Indexing</strong> — з 2019 року Google індексує мобільну версію сайту як основну. Без коректного viewport мета-тегу сторінка відображатиметься некоректно на мобільних пристроях.
 
-<strong>Вимоги:</strong>
-• <strong>Viewport мета-тег</strong> — обов'язковий: <code>&lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;</code>
-• <strong>Без Flash</strong> — Flash не підтримується мобільними браузерами
-• <strong>Адаптивний дизайн</strong> — контент повинен масштабуватися під будь-який розмір екрану"""
+    def __init__(self):
+        super().__init__()
+
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.mobile.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.mobile.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.mobile.theory")
 
     async def analyze(
         self,
@@ -90,8 +97,8 @@ class MobileAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="viewport_ok",
                 severity=SeverityLevel.SUCCESS,
-                message=f"Всі {total_ok} сторінок мають коректний viewport",
-                details="Мета-тег viewport налаштовано правильно на всіх сторінках.",
+                message=self.t("analyzers.mobile.viewport_ok", count=total_ok),
+                details=self.t("analyzers.mobile.viewport_ok_details"),
                 count=total_ok,
             ))
 
@@ -99,10 +106,10 @@ class MobileAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_viewport",
                 severity=SeverityLevel.ERROR,
-                message=f"{len(pages_no_viewport)} сторінок без viewport",
-                details="Без мета-тегу viewport мобільні браузери відображають сторінку у масштабі десктопу.",
+                message=self.t("analyzers.mobile.missing_viewport", count=len(pages_no_viewport)),
+                details=self.t("analyzers.mobile.missing_viewport_details"),
                 affected_urls=pages_no_viewport[:20],
-                recommendation="Додайте <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"> у <head>.",
+                recommendation=self.t("analyzers.mobile.missing_viewport_recommendation"),
                 count=len(pages_no_viewport),
             ))
 
@@ -110,10 +117,10 @@ class MobileAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="bad_viewport",
                 severity=SeverityLevel.WARNING,
-                message=f"Некоректний viewport: {len(pages_bad_viewport)} сторінок",
-                details="Viewport не містить width=device-width, що може спричинити проблеми з масштабуванням.",
+                message=self.t("analyzers.mobile.bad_viewport", count=len(pages_bad_viewport)),
+                details=self.t("analyzers.mobile.bad_viewport_details"),
                 affected_urls=pages_bad_viewport[:20],
-                recommendation="Переконайтеся, що viewport містить width=device-width.",
+                recommendation=self.t("analyzers.mobile.bad_viewport_recommendation"),
                 count=len(pages_bad_viewport),
             ))
 
@@ -121,26 +128,26 @@ class MobileAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="flash_content",
                 severity=SeverityLevel.ERROR,
-                message=f"Flash-контент: {len(pages_with_flash)} сторінок",
-                details="Flash не підтримується мобільними браузерами та більшістю сучасних десктопних браузерів.",
+                message=self.t("analyzers.mobile.flash_content", count=len(pages_with_flash)),
+                details=self.t("analyzers.mobile.flash_content_details"),
                 affected_urls=pages_with_flash[:20],
-                recommendation="Замініть Flash-контент на HTML5, CSS3 або JavaScript.",
+                recommendation=self.t("analyzers.mobile.flash_content_recommendation"),
                 count=len(pages_with_flash),
             ))
 
         # Summary
         if not pages_no_viewport and not pages_bad_viewport and not pages_with_flash:
-            summary = f"Всі {total_ok} сторінок мають viewport"
+            summary = self.t("analyzers.mobile.summary_ok", count=total_ok)
             severity = SeverityLevel.SUCCESS
         else:
             parts = []
             if pages_no_viewport:
-                parts.append(f"без viewport: {len(pages_no_viewport)}")
+                parts.append(self.t("analyzers.mobile.summary_no_viewport", count=len(pages_no_viewport)))
             if pages_bad_viewport:
-                parts.append(f"некоректний: {len(pages_bad_viewport)}")
+                parts.append(self.t("analyzers.mobile.summary_bad_viewport", count=len(pages_bad_viewport)))
             if pages_with_flash:
-                parts.append(f"Flash: {len(pages_with_flash)}")
-            summary = f"Проблеми: {', '.join(parts)}"
+                parts.append(self.t("analyzers.mobile.summary_flash", count=len(pages_with_flash)))
+            summary = self.t("analyzers.mobile.summary_issues", issues=", ".join(parts))
             severity = self._determine_overall_severity(issues)
 
         return self.create_result(

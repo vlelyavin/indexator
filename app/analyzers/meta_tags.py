@@ -12,18 +12,22 @@ class MetaTagsAnalyzer(BaseAnalyzer):
     """Analyzer for meta tags (title, description)."""
 
     name = "meta_tags"
-    display_name = "Мета-теги"
-    description = "Мета-теги Title та Description впливають на ранжування та клікабельність у пошуковій видачі."
     icon = ""
-    theory = """<strong>Title (заголовок сторінки)</strong> — HTML-тег, заголовок сніпету у видачі. Один з найважливіших факторів ранжування.
 
-<strong>Оптимальна довжина:</strong> 50-60 символів (~600px). Короткі — не використовують потенціал, довгі — обрізаються.
-• Кожна сторінка — унікальний Title з ключовим словом на початку
+    def __init__(self):
+        super().__init__()
 
-<strong>Description (мета-опис)</strong> — текст під заголовком у видачі. Не впливає на ранжування, але впливає на CTR.
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.meta_tags.name")
 
-<strong>Оптимальна довжина:</strong> 150-160 символів (~920px для десктопу).
-• Стисло опишіть зміст сторінки, включіть заклик до дії (CTA)"""
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.meta_tags.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.meta_tags.theory")
 
     async def analyze(
         self,
@@ -82,10 +86,10 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_title",
                 severity=SeverityLevel.ERROR,
-                message=f"Відсутній Title: {len(missing_titles)} сторінок",
-                details="Title є важливим фактором ранжування. Кожна сторінка повинна мати унікальний Title.",
+                message=self.t("analyzers.meta_tags.missing_title", count=len(missing_titles)),
+                details=self.t("analyzers.meta_tags.missing_title_details"),
                 affected_urls=missing_titles[:20],
-                recommendation="Додайте унікальний тег <title> для кожної сторінки.",
+                recommendation=self.t("analyzers.meta_tags.missing_title_recommendation"),
                 count=len(missing_titles),
             ))
 
@@ -94,10 +98,10 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_description",
                 severity=SeverityLevel.ERROR,
-                message=f"Відсутній Description: {len(missing_descriptions)} сторінок",
-                details="Meta Description впливає на клікабельність у пошуковій видачі.",
+                message=self.t("analyzers.meta_tags.missing_description", count=len(missing_descriptions)),
+                details=self.t("analyzers.meta_tags.missing_description_details"),
                 affected_urls=missing_descriptions[:20],
-                recommendation="Додайте унікальний мета-тег description для кожної сторінки.",
+                recommendation=self.t("analyzers.meta_tags.missing_description_recommendation"),
                 count=len(missing_descriptions),
             ))
 
@@ -106,10 +110,10 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="short_title",
                 severity=SeverityLevel.WARNING,
-                message=f"Занадто короткий Title: {len(short_titles)} сторінок",
-                details=f"Оптимальна довжина Title: {settings.TITLE_MIN_LENGTH}-{settings.TITLE_MAX_LENGTH} символів.",
+                message=self.t("analyzers.meta_tags.short_title", count=len(short_titles)),
+                details=self.t("analyzers.meta_tags.short_title_details", min=settings.TITLE_MIN_LENGTH, max=settings.TITLE_MAX_LENGTH),
                 affected_urls=[url for url, _, _ in short_titles[:20]],
-                recommendation="Розширте Title, включивши більше ключових слів.",
+                recommendation=self.t("analyzers.meta_tags.short_title_recommendation"),
                 count=len(short_titles),
             ))
 
@@ -118,10 +122,10 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="long_title",
                 severity=SeverityLevel.WARNING,
-                message=f"Занадто довгий Title: {len(long_titles)} сторінок",
-                details=f"Оптимальна довжина Title: {settings.TITLE_MIN_LENGTH}-{settings.TITLE_MAX_LENGTH} символів. Довший Title буде обрізаний у видачі.",
+                message=self.t("analyzers.meta_tags.long_title", count=len(long_titles)),
+                details=self.t("analyzers.meta_tags.long_title_details", min=settings.TITLE_MIN_LENGTH, max=settings.TITLE_MAX_LENGTH),
                 affected_urls=[url for url, _, _ in long_titles[:20]],
-                recommendation="Скоротіть Title до 60 символів.",
+                recommendation=self.t("analyzers.meta_tags.long_title_recommendation"),
                 count=len(long_titles),
             ))
 
@@ -130,10 +134,10 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="short_description",
                 severity=SeverityLevel.WARNING,
-                message=f"Занадто короткий Description: {len(short_descriptions)} сторінок",
-                details=f"Оптимальна довжина Description: {settings.DESCRIPTION_MIN_LENGTH}-{settings.DESCRIPTION_MAX_LENGTH} символів.",
+                message=self.t("analyzers.meta_tags.short_description", count=len(short_descriptions)),
+                details=self.t("analyzers.meta_tags.short_description_details", min=settings.DESCRIPTION_MIN_LENGTH, max=settings.DESCRIPTION_MAX_LENGTH),
                 affected_urls=[url for url, _, _ in short_descriptions[:20]],
-                recommendation="Розширте Description, описавши вміст сторінки детальніше.",
+                recommendation=self.t("analyzers.meta_tags.short_description_recommendation"),
                 count=len(short_descriptions),
             ))
 
@@ -142,10 +146,10 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="long_description",
                 severity=SeverityLevel.WARNING,
-                message=f"Занадто довгий Description: {len(long_descriptions)} сторінок",
-                details=f"Оптимальна довжина Description: {settings.DESCRIPTION_MIN_LENGTH}-{settings.DESCRIPTION_MAX_LENGTH} символів.",
+                message=self.t("analyzers.meta_tags.long_description", count=len(long_descriptions)),
+                details=self.t("analyzers.meta_tags.long_description_details", min=settings.DESCRIPTION_MIN_LENGTH, max=settings.DESCRIPTION_MAX_LENGTH),
                 affected_urls=[url for url, _, _ in long_descriptions[:20]],
-                recommendation="Скоротіть Description до 160 символів.",
+                recommendation=self.t("analyzers.meta_tags.long_description_recommendation"),
                 count=len(long_descriptions),
             ))
 
@@ -159,10 +163,10 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="duplicate_title",
                 severity=SeverityLevel.ERROR,
-                message=f"Дублі Title: {len(duplicate_titles)} груп дублікатів",
-                details="Дублі Title ускладнюють розуміння пошуковими системами унікальності контенту.",
+                message=self.t("analyzers.meta_tags.duplicate_title", count=len(duplicate_titles)),
+                details=self.t("analyzers.meta_tags.duplicate_title_details"),
                 affected_urls=dup_urls[:20],
-                recommendation="Створіть унікальний Title для кожної сторінки.",
+                recommendation=self.t("analyzers.meta_tags.duplicate_title_recommendation"),
                 count=sum(duplicate_titles.values()),
             ))
 
@@ -176,42 +180,47 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="duplicate_description",
                 severity=SeverityLevel.WARNING,
-                message=f"Дублі Description: {len(duplicate_descriptions)} груп дублікатів",
-                details="Унікальний Description підвищує клікабельність у видачі.",
+                message=self.t("analyzers.meta_tags.duplicate_description", count=len(duplicate_descriptions)),
+                details=self.t("analyzers.meta_tags.duplicate_description_details"),
                 affected_urls=dup_urls[:20],
-                recommendation="Створіть унікальний Description для кожної сторінки.",
+                recommendation=self.t("analyzers.meta_tags.duplicate_description_recommendation"),
                 count=sum(duplicate_descriptions.values()),
             ))
 
         # Create table with problematic pages
         if missing_titles or missing_descriptions or short_titles or long_titles:
+            h_url = self.t("table.url")
+            h_problem = self.t("table.problem")
+            h_title = "Title"
+            h_description = "Description"
+
             table_data = []
             seen_urls = set()
 
             for url in missing_titles[:10]:
                 if url not in seen_urls:
                     table_data.append({
-                        "URL": url,
-                        "Проблема": "Відсутній Title",
-                        "Title": "-",
-                        "Description": pages[url].meta_description[:50] + "..." if pages[url].meta_description else "-",
+                        h_url: url,
+                        h_problem: self.t("analyzers.meta_tags.problem_missing_title"),
+                        h_title: "-",
+                        h_description: pages[url].meta_description[:50] + "..." if pages[url].meta_description else "-",
                     })
                     seen_urls.add(url)
 
             for url in missing_descriptions[:10]:
                 if url not in seen_urls:
                     table_data.append({
-                        "URL": url,
-                        "Проблема": "Відсутній Description",
-                        "Title": pages[url].title[:50] + "..." if pages[url].title else "-",
-                        "Description": "-",
+                        h_url: url,
+                        h_problem: self.t("analyzers.meta_tags.problem_missing_description"),
+                        h_title: pages[url].title[:50] + "..." if pages[url].title else "-",
+                        h_description: "-",
                     })
                     seen_urls.add(url)
 
             if table_data:
                 tables.append({
-                    "title": "Проблемні сторінки",
-                    "headers": ["URL", "Проблема", "Title", "Description"],
+                    "title": self.t("analyzers.meta_tags.table_title"),
+                    "headers": [h_url, h_problem, h_title, h_description],
                     "rows": table_data,
                 })
 
@@ -222,11 +231,11 @@ class MetaTagsAnalyzer(BaseAnalyzer):
 
         summary_parts = []
         if missing_titles or missing_descriptions:
-            summary_parts.append(f"Відсутні мета-теги: {len(missing_titles)} Title, {len(missing_descriptions)} Description")
+            summary_parts.append(self.t("analyzers.meta_tags.summary_missing", titles=len(missing_titles), descriptions=len(missing_descriptions)))
         if duplicate_titles or duplicate_descriptions:
-            summary_parts.append(f"Дублікати: {len(duplicate_titles)} Title, {len(duplicate_descriptions)} Description")
+            summary_parts.append(self.t("analyzers.meta_tags.summary_duplicates", titles=len(duplicate_titles), descriptions=len(duplicate_descriptions)))
         if not summary_parts:
-            summary_parts.append(f"Всі {total_pages} сторінок мають коректні мета-теги")
+            summary_parts.append(self.t("analyzers.meta_tags.summary_ok", pages=total_pages))
 
         severity = self._determine_overall_severity(issues)
 

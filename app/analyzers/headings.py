@@ -11,16 +11,22 @@ class HeadingsAnalyzer(BaseAnalyzer):
     """Analyzer for H1-H6 headings hierarchy."""
 
     name = "headings"
-    display_name = "Заголовки H1-H6"
-    description = "Аналіз заголовків H1-H6: наявність, унікальність та правильна ієрархія."
     icon = ""
-    theory = """<strong>Заголовки H1-H6</strong> — ієрархія заголовків для структурування контенту сторінки.
 
-<strong>Правила:</strong>
-• <strong>Рівно один H1</strong> на сторінку (кілька — розмивають фокус)
-• H1 унікальний для кожної сторінки, 20-70 символів
-• <strong>Ієрархія H1 → H2 → H3</strong> — не пропускайте рівні (H1 → H3 без H2 — порушення)
-• H2 використовуйте для основних розділів, H3 для підрозділів"""
+    def __init__(self):
+        super().__init__()
+
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.headings.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.headings.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.headings.theory")
 
     async def analyze(
         self,
@@ -64,10 +70,10 @@ class HeadingsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_h1",
                 severity=SeverityLevel.ERROR,
-                message=f"Відсутній H1: {len(missing_h1)} сторінок",
-                details="Заголовок H1 допомагає пошуковим системам зрозуміти тему сторінки.",
+                message=self.t("analyzers.headings.missing_h1", count=len(missing_h1)),
+                details=self.t("analyzers.headings.missing_h1_details"),
                 affected_urls=missing_h1[:20],
-                recommendation="Додайте один заголовок <h1> на кожну сторінку.",
+                recommendation=self.t("analyzers.headings.missing_h1_recommendation"),
                 count=len(missing_h1),
             ))
 
@@ -75,10 +81,10 @@ class HeadingsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="multiple_h1",
                 severity=SeverityLevel.WARNING,
-                message=f"Декілька H1: {len(multiple_h1)} сторінок",
-                details="Рекомендується мати лише один H1 на сторінці для чіткої структури.",
+                message=self.t("analyzers.headings.multiple_h1", count=len(multiple_h1)),
+                details=self.t("analyzers.headings.multiple_h1_details"),
                 affected_urls=[url for url, _ in multiple_h1[:20]],
-                recommendation="Залиште лише один H1, інші заголовки змініть на H2-H6.",
+                recommendation=self.t("analyzers.headings.multiple_h1_recommendation"),
                 count=len(multiple_h1),
             ))
 
@@ -86,10 +92,10 @@ class HeadingsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="empty_h1",
                 severity=SeverityLevel.ERROR,
-                message=f"Порожній H1: {len(empty_h1)} сторінок",
-                details="H1 без тексту не несе жодної SEO-цінності.",
+                message=self.t("analyzers.headings.empty_h1", count=len(empty_h1)),
+                details=self.t("analyzers.headings.empty_h1_details"),
                 affected_urls=empty_h1[:20],
-                recommendation="Заповніть H1 релевантним текстом із ключовими словами.",
+                recommendation=self.t("analyzers.headings.empty_h1_recommendation"),
                 count=len(empty_h1),
             ))
 
@@ -102,10 +108,10 @@ class HeadingsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="duplicate_h1",
                 severity=SeverityLevel.WARNING,
-                message=f"Дублі H1: {len(duplicate_h1s)} груп дублікатів",
-                details="Унікальний H1 допомагає розрізняти сторінки.",
+                message=self.t("analyzers.headings.duplicate_h1", count=len(duplicate_h1s)),
+                details=self.t("analyzers.headings.duplicate_h1_details"),
                 affected_urls=dup_urls[:20],
-                recommendation="Створіть унікальний H1 для кожної сторінки.",
+                recommendation=self.t("analyzers.headings.duplicate_h1_recommendation"),
                 count=sum(duplicate_h1s.values()),
             ))
 
@@ -135,48 +141,52 @@ class HeadingsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="hierarchy_violation",
                 severity=SeverityLevel.WARNING,
-                message=f"Порушення ієрархії заголовків: {len(hierarchy_violations)} сторінок",
-                details="Пропуск рівнів заголовків (наприклад, H1 → H3 без H2) порушує семантику.",
+                message=self.t("analyzers.headings.hierarchy_violation", count=len(hierarchy_violations)),
+                details=self.t("analyzers.headings.hierarchy_violation_details"),
                 affected_urls=[url for url, _, _ in hierarchy_violations[:20]],
-                recommendation="Дотримуйтесь послідовної ієрархії: H1 → H2 → H3 → H4.",
+                recommendation=self.t("analyzers.headings.hierarchy_violation_recommendation"),
                 count=len(hierarchy_violations),
             ))
 
         # Create table with problematic pages
+        h_url = self.t("table.url")
+        h_problem = self.t("table.problem")
+        h_h1 = "H1"
+
         table_data = []
 
         for url in missing_h1[:10]:
             table_data.append({
-                "URL": url,
-                "Проблема": "Відсутній H1",
-                "H1": "-",
+                h_url: url,
+                h_problem: self.t("analyzers.headings.problem_missing_h1"),
+                h_h1: "-",
             })
 
         for url, h1_list in multiple_h1[:10]:
             table_data.append({
-                "URL": url,
-                "Проблема": f"Декілька H1 ({len(h1_list)} шт.)",
-                "H1": " | ".join(h1_list[:3]) + ("..." if len(h1_list) > 3 else ""),
+                h_url: url,
+                h_problem: self.t("analyzers.headings.problem_multiple_h1", count=len(h1_list)),
+                h_h1: " | ".join(h1_list[:3]) + ("..." if len(h1_list) > 3 else ""),
             })
 
         for url in empty_h1[:10]:
             table_data.append({
-                "URL": url,
-                "Проблема": "Порожній H1",
-                "H1": "(порожньо)",
+                h_url: url,
+                h_problem: self.t("analyzers.headings.problem_empty_h1"),
+                h_h1: self.t("analyzers.headings.empty_value"),
             })
 
         for url, from_lvl, to_lvl in hierarchy_violations[:10]:
             table_data.append({
-                "URL": url,
-                "Проблема": f"H{from_lvl} → H{to_lvl} (пропуск)",
-                "H1": page.h1_tags[0] if pages.get(url) and pages[url].h1_tags else "-",
+                h_url: url,
+                h_problem: self.t("analyzers.headings.problem_hierarchy_skip", from_level=from_lvl, to_level=to_lvl),
+                h_h1: page.h1_tags[0] if pages.get(url) and pages[url].h1_tags else "-",
             })
 
         if table_data:
             tables.append({
-                "title": "Проблемні сторінки",
-                "headers": ["URL", "Проблема", "H1"],
+                "title": self.t("analyzers.headings.table_title"),
+                "headers": [h_url, h_problem, h_h1],
                 "rows": table_data,
             })
 
@@ -186,18 +196,18 @@ class HeadingsAnalyzer(BaseAnalyzer):
 
         summary_parts = []
         if missing_h1:
-            summary_parts.append(f"без H1: {len(missing_h1)}")
+            summary_parts.append(self.t("analyzers.headings.summary_missing", count=len(missing_h1)))
         if multiple_h1:
-            summary_parts.append(f"декілька H1: {len(multiple_h1)}")
+            summary_parts.append(self.t("analyzers.headings.summary_multiple", count=len(multiple_h1)))
         if duplicate_h1s:
-            summary_parts.append(f"дублів H1: {len(duplicate_h1s)}")
+            summary_parts.append(self.t("analyzers.headings.summary_duplicates", count=len(duplicate_h1s)))
         if hierarchy_violations:
-            summary_parts.append(f"порушень ієрархії: {len(hierarchy_violations)}")
+            summary_parts.append(self.t("analyzers.headings.summary_hierarchy", count=len(hierarchy_violations)))
 
         if summary_parts:
-            summary = f"Знайдено проблеми: {', '.join(summary_parts)}"
+            summary = self.t("analyzers.headings.summary_issues", issues=", ".join(summary_parts))
         else:
-            summary = f"Всі {total_pages} сторінок мають коректний H1"
+            summary = self.t("analyzers.headings.summary_ok", pages=total_pages)
 
         severity = self._determine_overall_severity(issues)
 

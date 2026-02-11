@@ -13,20 +13,22 @@ class DuplicatesAnalyzer(BaseAnalyzer):
     """Analyzer for duplicate content detection."""
 
     name = "duplicates"
-    display_name = "Дублікати контенту"
-    description = "Виявлення сторінок зі схожим або ідентичним контентом."
     icon = ""
-    theory = """<strong>Дублікати контенту</strong> — сторінки з ідентичним або дуже схожим текстом. Google не штрафує за дублікати, але обирає лише одну версію для індексації, інші ігноруються.
 
-<strong>Типи дублікатів:</strong>
-• <strong>Точні дублікати</strong> — повністю ідентичний контент на різних URL
-• <strong>Близькі дублікати</strong> — сторінки зі схожим текстом (>80% збіг)
-• <strong>Внутрішні дублікати</strong> — через параметри URL, www/non-www, http/https
+    def __init__(self):
+        super().__init__()
 
-<strong>Як виправити:</strong>
-• Встановіть канонічний тег (rel="canonical") на основну версію
-• Налаштуйте 301 редирект з дублікатів на оригінал
-• Додайте noindex для службових або фільтрованих сторінок"""
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.duplicates.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.duplicates.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.duplicates.theory")
 
     def _extract_text(self, html_content: str) -> str:
         """Extract and normalize text from HTML."""
@@ -161,9 +163,9 @@ class DuplicatesAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="no_duplicates",
                 severity=SeverityLevel.SUCCESS,
-                message="Дублікатів не виявлено",
-                details=f"Перевірено {len(signatures)} сторінок — дублікатів контенту не знайдено.",
-                recommendation="Продовжуйте створювати унікальний контент для кожної сторінки.",
+                message=self.t("analyzers.duplicates.no_duplicates"),
+                details=self.t("analyzers.duplicates.no_duplicates_details", count=len(signatures)),
+                recommendation=self.t("analyzers.duplicates.no_duplicates_recommendation"),
             ))
 
         if exact_groups:
@@ -173,10 +175,10 @@ class DuplicatesAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="exact_duplicates",
                 severity=SeverityLevel.ERROR,
-                message=f"Точні дублікати: {len(exact_groups)} груп",
-                details="Сторінки з практично ідентичним контентом. Google обере лише одну версію для індексації.",
+                message=self.t("analyzers.duplicates.exact_duplicates", count=len(exact_groups)),
+                details=self.t("analyzers.duplicates.exact_duplicates_details"),
                 affected_urls=list(set(affected))[:20],
-                recommendation="Встановіть канонічний тег (rel=\"canonical\") або налаштуйте 301 редирект на основну версію сторінки.",
+                recommendation=self.t("analyzers.duplicates.exact_duplicates_recommendation"),
                 count=len(exact_groups),
             ))
 
@@ -187,41 +189,45 @@ class DuplicatesAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="near_duplicates",
                 severity=SeverityLevel.WARNING,
-                message=f"Близькі дублікати: {len(near_groups)} груп",
-                details="Сторінки зі схожим контентом (більше 80% збігу). Можуть конкурувати між собою в пошуковій видачі.",
+                message=self.t("analyzers.duplicates.near_duplicates", count=len(near_groups)),
+                details=self.t("analyzers.duplicates.near_duplicates_details"),
                 affected_urls=list(set(affected))[:20],
-                recommendation="Об'єднайте схожі сторінки або додайте унікальний контент для кожної з них.",
+                recommendation=self.t("analyzers.duplicates.near_duplicates_recommendation"),
                 count=len(near_groups),
             ))
 
         # Step 5: Create table
         table_data = []
         all_pairs = (
-            [(a, b, sim, "Точний") for a, b, sim in exact_duplicate_pairs]
-            + [(a, b, sim, "Близький") for a, b, sim in near_duplicate_pairs]
+            [(a, b, sim, self.t("analyzers.duplicates.type_exact")) for a, b, sim in exact_duplicate_pairs]
+            + [(a, b, sim, self.t("analyzers.duplicates.type_near")) for a, b, sim in near_duplicate_pairs]
         )
         all_pairs.sort(key=lambda x: x[2], reverse=True)
 
+        h_url1 = self.t("table.url1")
+        h_url2 = self.t("table.url2")
+        h_similarity = self.t("table.similarity")
+
         for url_a, url_b, similarity, dup_type in all_pairs[:10]:
             table_data.append({
-                "URL 1": url_a[:70] + "..." if len(url_a) > 70 else url_a,
-                "URL 2": url_b[:70] + "..." if len(url_b) > 70 else url_b,
-                "Подібність": f"{similarity:.0%}",
+                h_url1: url_a[:70] + "..." if len(url_a) > 70 else url_a,
+                h_url2: url_b[:70] + "..." if len(url_b) > 70 else url_b,
+                h_similarity: f"{similarity:.0%}",
             })
 
         if table_data:
             tables.append({
-                "title": "Дублікати контенту",
-                "headers": ["URL 1", "URL 2", "Подібність"],
+                "title": self.t("analyzers.duplicates.table_title"),
+                "headers": [h_url1, h_url2, h_similarity],
                 "rows": table_data,
             })
 
         # Step 6: Summary
         total_groups = len(exact_groups) + len(near_groups)
         if total_groups > 0:
-            summary = f"Знайдено {total_groups} груп дублікатів"
+            summary = self.t("analyzers.duplicates.summary_found", count=total_groups)
         else:
-            summary = "Дублікатів не виявлено"
+            summary = self.t("analyzers.duplicates.summary_none")
 
         severity = self._determine_overall_severity(issues)
 

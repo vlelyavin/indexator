@@ -11,18 +11,22 @@ class SecurityAnalyzer(BaseAnalyzer):
     """Analyzer for HTTPS usage, security headers, and mixed content."""
 
     name = "security"
-    display_name = "HTTPS та безпека"
-    description = "Перевірка HTTPS, заголовків безпеки та змішаного контенту."
     icon = ""
-    theory = """<strong>HTTPS як фактор ранжування.</strong> З 2014 року Google враховує HTTPS як сигнал ранжування. Сайти без SSL-сертифіката втрачають позиції та довіру користувачів.
 
-<strong>Заголовки безпеки:</strong>
-• <strong>HSTS</strong> (Strict-Transport-Security) — примушує браузер завжди використовувати HTTPS
-• <strong>X-Content-Type-Options: nosniff</strong> — забороняє браузеру визначати MIME-тип самостійно
-• <strong>X-Frame-Options</strong> (DENY/SAMEORIGIN) — захист від clickjacking-атак
-• <strong>Content-Security-Policy</strong> — контролює джерела завантаження ресурсів
+    def __init__(self):
+        super().__init__()
 
-<strong>Змішаний контент</strong> — завантаження HTTP-ресурсів на HTTPS-сторінці. Браузери блокують такі ресурси, що призводить до помилок відображення та втрати довіри."""
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.security.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.security.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.security.theory")
 
     async def analyze(
         self,
@@ -40,9 +44,9 @@ class SecurityAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="no_https",
                 severity=SeverityLevel.ERROR,
-                message="Сайт не використовує HTTPS",
-                details="HTTPS є фактором ранжування Google з 2014 року. Без SSL-сертифіката сайт позначається як небезпечний.",
-                recommendation="Встановіть SSL-сертифікат та налаштуйте перенаправлення з HTTP на HTTPS.",
+                message=self.t("analyzers.security.no_https"),
+                details=self.t("analyzers.security.no_https_details"),
+                recommendation=self.t("analyzers.security.no_https_recommendation"),
             ))
 
         # 2. Check security headers on homepage
@@ -59,35 +63,35 @@ class SecurityAnalyzer(BaseAnalyzer):
                 "name": "Strict-Transport-Security (HSTS)",
                 "category": "missing_hsts",
                 "severity": SeverityLevel.WARNING,
-                "message": "Відсутній заголовок HSTS",
-                "details": "HSTS примушує браузер завжди використовувати HTTPS-з'єднання.",
-                "recommendation": "Додайте заголовок: Strict-Transport-Security: max-age=31536000; includeSubDomains",
+                "message": self.t("analyzers.security.missing_hsts"),
+                "details": self.t("analyzers.security.missing_hsts_details"),
+                "recommendation": self.t("analyzers.security.missing_hsts_recommendation"),
             },
             "x-content-type-options": {
                 "name": "X-Content-Type-Options",
                 "category": "missing_x_content_type",
                 "severity": SeverityLevel.INFO,
-                "message": "Відсутній X-Content-Type-Options",
-                "details": "Заголовок X-Content-Type-Options: nosniff запобігає MIME-sniffing атакам.",
-                "recommendation": "Додайте заголовок: X-Content-Type-Options: nosniff",
+                "message": self.t("analyzers.security.missing_x_content_type"),
+                "details": self.t("analyzers.security.missing_x_content_type_details"),
+                "recommendation": self.t("analyzers.security.missing_x_content_type_recommendation"),
                 "expected_value": "nosniff",
             },
             "x-frame-options": {
                 "name": "X-Frame-Options",
                 "category": "missing_x_frame",
                 "severity": SeverityLevel.INFO,
-                "message": "Відсутній X-Frame-Options",
-                "details": "Заголовок X-Frame-Options захищає від clickjacking-атак.",
-                "recommendation": "Додайте заголовок: X-Frame-Options: DENY або SAMEORIGIN",
+                "message": self.t("analyzers.security.missing_x_frame"),
+                "details": self.t("analyzers.security.missing_x_frame_details"),
+                "recommendation": self.t("analyzers.security.missing_x_frame_recommendation"),
                 "expected_values": ["deny", "sameorigin"],
             },
             "content-security-policy": {
                 "name": "Content-Security-Policy (CSP)",
                 "category": "missing_csp",
                 "severity": SeverityLevel.INFO,
-                "message": "Відсутній Content-Security-Policy",
-                "details": "CSP контролює, з яких джерел дозволено завантажувати ресурси на сторінці.",
-                "recommendation": "Налаштуйте Content-Security-Policy для контролю джерел ресурсів.",
+                "message": self.t("analyzers.security.missing_csp"),
+                "details": self.t("analyzers.security.missing_csp_details"),
+                "recommendation": self.t("analyzers.security.missing_csp_recommendation"),
             },
         }
 
@@ -99,16 +103,16 @@ class SecurityAnalyzer(BaseAnalyzer):
 
                 if header_value:
                     # Header present — check value if needed
-                    status = "✓ Присутній"
+                    status = self.t("analyzers.security.status_present")
                     value_display = header_value[:80]
 
                     if "expected_value" in header_info:
                         if header_value.lower().strip() != header_info["expected_value"]:
-                            status = "⚠ Некоректне значення"
+                            status = self.t("analyzers.security.status_invalid")
 
                     if "expected_values" in header_info:
                         if header_value.lower().strip() not in header_info["expected_values"]:
-                            status = "⚠ Некоректне значення"
+                            status = self.t("analyzers.security.status_invalid")
 
                     headers_status[header_key] = {
                         "name": header_info["name"],
@@ -119,7 +123,7 @@ class SecurityAnalyzer(BaseAnalyzer):
                     # Header missing
                     headers_status[header_key] = {
                         "name": header_info["name"],
-                        "status": "✗ Відсутній",
+                        "status": self.t("analyzers.security.status_missing"),
                         "value": "-",
                     }
                     issues.append(self.create_issue(
@@ -134,8 +138,8 @@ class SecurityAnalyzer(BaseAnalyzer):
             for header_key, header_info in security_headers.items():
                 headers_status[header_key] = {
                     "name": header_info["name"],
-                    "status": "? Невідомо",
-                    "value": "Не вдалося перевірити",
+                    "status": self.t("analyzers.security.status_unknown"),
+                    "value": self.t("analyzers.security.status_check_failed"),
                 }
 
         # 3. Check for mixed content on HTTPS pages
@@ -183,10 +187,10 @@ class SecurityAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="mixed_content",
                 severity=SeverityLevel.ERROR,
-                message=f"Змішаний контент: {len(pages_with_mixed_content)} сторінок",
-                details="Знайдено HTTP-ресурси (зображення, скрипти, стилі) на HTTPS-сторінках. Браузери можуть блокувати такі ресурси.",
+                message=self.t("analyzers.security.mixed_content", count=len(pages_with_mixed_content)),
+                details=self.t("analyzers.security.mixed_content_details"),
                 affected_urls=pages_with_mixed_content[:20],
-                recommendation="Замініть усі HTTP-посилання на ресурси на HTTPS або використовуйте протокол-відносні URL.",
+                recommendation=self.t("analyzers.security.mixed_content_recommendation"),
                 count=len(pages_with_mixed_content),
             ))
 
@@ -195,23 +199,27 @@ class SecurityAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="security_ok",
                 severity=SeverityLevel.SUCCESS,
-                message="HTTPS та безпека в нормі",
-                details="Сайт використовує HTTPS, основні заголовки безпеки присутні, змішаний контент не виявлено.",
+                message=self.t("analyzers.security.security_ok"),
+                details=self.t("analyzers.security.security_ok_details"),
             ))
 
         # 5. Build security headers table
+        h_header = self.t("table.header")
+        h_status = self.t("table.status")
+        h_value = self.t("table.value")
+
         table_rows = []
         for header_key in security_headers:
             info = headers_status.get(header_key, {})
             table_rows.append({
-                "Заголовок": info.get("name", header_key),
-                "Статус": info.get("status", "? Невідомо"),
-                "Значення": info.get("value", "-"),
+                h_header: info.get("name", header_key),
+                h_status: info.get("status", self.t("analyzers.security.status_unknown")),
+                h_value: info.get("value", "-"),
             })
 
         tables.append({
-            "title": "Заголовки безпеки",
-            "headers": ["Заголовок", "Статус", "Значення"],
+            "title": self.t("analyzers.security.table_title"),
+            "headers": [h_header, h_status, h_value],
             "rows": table_rows[:10],
         })
 
@@ -219,19 +227,19 @@ class SecurityAnalyzer(BaseAnalyzer):
         severity = self._determine_overall_severity(issues)
 
         if severity == SeverityLevel.SUCCESS:
-            summary = "HTTPS та безпека в нормі"
+            summary = self.t("analyzers.security.summary_ok")
         else:
             error_count = sum(1 for i in issues if i.severity == SeverityLevel.ERROR)
             warning_count = sum(1 for i in issues if i.severity == SeverityLevel.WARNING)
             info_count = sum(1 for i in issues if i.severity == SeverityLevel.INFO)
             parts = []
             if error_count:
-                parts.append(f"помилок: {error_count}")
+                parts.append(self.t("analyzers.security.summary_errors", count=error_count))
             if warning_count:
-                parts.append(f"попереджень: {warning_count}")
+                parts.append(self.t("analyzers.security.summary_warnings", count=warning_count))
             if info_count:
-                parts.append(f"інфо: {info_count}")
-            summary = f"Знайдено проблем: {', '.join(parts)}"
+                parts.append(self.t("analyzers.security.summary_info", count=info_count))
+            summary = self.t("analyzers.security.summary_issues", issues=", ".join(parts))
 
         return self.create_result(
             severity=severity,

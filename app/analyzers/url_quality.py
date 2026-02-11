@@ -11,18 +11,22 @@ class URLQualityAnalyzer(BaseAnalyzer):
     """Analyzer for URL structure and quality."""
 
     name = "url_quality"
-    display_name = "Якість URL"
-    description = "Аналіз структури та якості URL-адрес сторінок сайту."
     icon = ""
-    theory = """<strong>SEO-дружні URL</strong> — важливий фактор ранжування та юзабіліті. Пошукові системи краще розуміють структуровані URL з ключовими словами.
 
-<strong>Вимоги до URL:</strong>
-• <strong>Короткі</strong> — до 75 символів (шлях), критично — понад 120
-• <strong>Читабельні</strong> — зрозумілі людині та пошуковим роботам
-• <strong>Дефіси</strong> — замість підкреслень для розділення слів
-• <strong>Нижній регістр</strong> — уникайте великих літер (можуть створювати дублі)
-• <strong>Без спецсимволів</strong> — тільки латиниця, цифри та дефіси
-• <strong>Ключові слова в URL</strong> — допоміжний сигнал релевантності для Google"""
+    def __init__(self):
+        super().__init__()
+
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.url_quality.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.url_quality.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.url_quality.theory")
 
     async def analyze(
         self,
@@ -43,6 +47,9 @@ class URLQualityAnalyzer(BaseAnalyzer):
 
         # Collect table data for problematic URLs
         table_data: List[Dict[str, str]] = []
+        h_url = self.t("table.url")
+        h_problem = self.t("table.problem")
+        h_length = self.t("table.length")
 
         for url, page in pages.items():
             if page.status_code != 200:
@@ -56,41 +63,41 @@ class URLQualityAnalyzer(BaseAnalyzer):
             # Check path length
             if path_length > 120:
                 long_urls_error.append(url)
-                problems.append("Занадто довгий URL")
+                problems.append(self.t("analyzers.url_quality.problem_very_long"))
             elif path_length > 75:
                 long_urls_warn.append(url)
-                problems.append("Довгий URL")
+                problems.append(self.t("analyzers.url_quality.problem_long"))
 
             # Check uppercase
             if any(c.isupper() for c in path):
                 uppercase_urls.append(url)
-                problems.append("Великі літери")
+                problems.append(self.t("analyzers.url_quality.problem_uppercase"))
 
             # Check non-ASCII characters
             if any(ord(c) > 127 for c in path):
                 special_chars_urls.append(url)
-                problems.append("Спецсимволи")
+                problems.append(self.t("analyzers.url_quality.problem_special_chars"))
 
             # Check underscores
             if '_' in path:
                 underscore_urls.append(url)
-                problems.append("Підкреслення")
+                problems.append(self.t("analyzers.url_quality.problem_underscores"))
 
             # Check dynamic parameters (more than 1 param)
             if parsed.query and len(parsed.query.split('&')) > 1:
                 dynamic_urls.append(url)
-                problems.append("Параметри")
+                problems.append(self.t("analyzers.url_quality.problem_params"))
 
             # Check double slashes in path
             if '//' in path:
                 double_slash_urls.append(url)
-                problems.append("Подвійні слеші")
+                problems.append(self.t("analyzers.url_quality.problem_double_slashes"))
 
             if problems:
                 table_data.append({
-                    "URL": url,
-                    "Проблема": ", ".join(problems),
-                    "Довжина": str(path_length),
+                    h_url: url,
+                    h_problem: ", ".join(problems),
+                    h_length: str(path_length),
                 })
 
         # Create issues
@@ -98,10 +105,10 @@ class URLQualityAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="long_urls",
                 severity=SeverityLevel.WARNING,
-                message=f"Довгі URL: {len(long_urls_warn)} сторінок",
-                details="URL з довжиною шляху понад 75 символів гірше сприймаються користувачами та пошуковими системами.",
+                message=self.t("analyzers.url_quality.long_urls", count=len(long_urls_warn)),
+                details=self.t("analyzers.url_quality.long_urls_details"),
                 affected_urls=long_urls_warn[:20],
-                recommendation="Скоротіть URL, використовуючи лише ключові слова.",
+                recommendation=self.t("analyzers.url_quality.long_urls_recommendation"),
                 count=len(long_urls_warn),
             ))
 
@@ -109,10 +116,10 @@ class URLQualityAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="long_urls",
                 severity=SeverityLevel.ERROR,
-                message=f"Занадто довгі URL: {len(long_urls_error)} сторінок",
-                details="URL з довжиною шляху понад 120 символів можуть обрізатися у пошуковій видачі.",
+                message=self.t("analyzers.url_quality.very_long_urls", count=len(long_urls_error)),
+                details=self.t("analyzers.url_quality.very_long_urls_details"),
                 affected_urls=long_urls_error[:20],
-                recommendation="Терміново скоротіть URL до 75 символів.",
+                recommendation=self.t("analyzers.url_quality.very_long_urls_recommendation"),
                 count=len(long_urls_error),
             ))
 
@@ -120,10 +127,10 @@ class URLQualityAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="uppercase_urls",
                 severity=SeverityLevel.WARNING,
-                message=f"URL з великими літерами: {len(uppercase_urls)}",
-                details="URL з великими літерами можуть створювати дублі сторінок, оскільки сервер може обробляти різний регістр як різні сторінки.",
+                message=self.t("analyzers.url_quality.uppercase_urls", count=len(uppercase_urls)),
+                details=self.t("analyzers.url_quality.uppercase_urls_details"),
                 affected_urls=uppercase_urls[:20],
-                recommendation="Використовуйте тільки нижній регістр в URL та налаштуйте 301-редирект.",
+                recommendation=self.t("analyzers.url_quality.uppercase_urls_recommendation"),
                 count=len(uppercase_urls),
             ))
 
@@ -131,10 +138,10 @@ class URLQualityAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="special_chars",
                 severity=SeverityLevel.WARNING,
-                message=f"URL зі спецсимволами: {len(special_chars_urls)}",
-                details="Non-ASCII символи в URL кодуються у відсотковий формат, що ускладнює читання.",
+                message=self.t("analyzers.url_quality.special_chars", count=len(special_chars_urls)),
+                details=self.t("analyzers.url_quality.special_chars_details"),
                 affected_urls=special_chars_urls[:20],
-                recommendation="Використовуйте тільки латиницю, цифри та дефіси в URL.",
+                recommendation=self.t("analyzers.url_quality.special_chars_recommendation"),
                 count=len(special_chars_urls),
             ))
 
@@ -142,10 +149,10 @@ class URLQualityAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="underscores",
                 severity=SeverityLevel.INFO,
-                message=f"URL з підкресленнями: {len(underscore_urls)}",
-                details="Google рекомендує використовувати дефіси замість підкреслень для розділення слів у URL.",
+                message=self.t("analyzers.url_quality.underscores", count=len(underscore_urls)),
+                details=self.t("analyzers.url_quality.underscores_details"),
                 affected_urls=underscore_urls[:20],
-                recommendation="Замініть підкреслення на дефіси та налаштуйте 301-редирект.",
+                recommendation=self.t("analyzers.url_quality.underscores_recommendation"),
                 count=len(underscore_urls),
             ))
 
@@ -153,10 +160,10 @@ class URLQualityAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="dynamic_params",
                 severity=SeverityLevel.INFO,
-                message=f"URL з параметрами: {len(dynamic_urls)}",
-                details="URL з кількома GET-параметрами виглядають менш привабливо та можуть створювати дублі.",
+                message=self.t("analyzers.url_quality.dynamic_params", count=len(dynamic_urls)),
+                details=self.t("analyzers.url_quality.dynamic_params_details"),
                 affected_urls=dynamic_urls[:20],
-                recommendation="Використовуйте ЧПУ (людинозрозумілі URL) замість динамічних параметрів.",
+                recommendation=self.t("analyzers.url_quality.dynamic_params_recommendation"),
                 count=len(dynamic_urls),
             ))
 
@@ -164,10 +171,10 @@ class URLQualityAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="double_slashes",
                 severity=SeverityLevel.ERROR,
-                message=f"Подвійні слеші в URL: {len(double_slash_urls)}",
-                details="Подвійні слеші в шляху URL створюють дублі сторінок та ускладнюють індексацію.",
+                message=self.t("analyzers.url_quality.double_slashes", count=len(double_slash_urls)),
+                details=self.t("analyzers.url_quality.double_slashes_details"),
                 affected_urls=double_slash_urls[:20],
-                recommendation="Виправте подвійні слеші та налаштуйте 301-редирект на коректний URL.",
+                recommendation=self.t("analyzers.url_quality.double_slashes_recommendation"),
                 count=len(double_slash_urls),
             ))
 
@@ -179,15 +186,15 @@ class URLQualityAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="urls_ok",
                 severity=SeverityLevel.SUCCESS,
-                message="Всі URL відповідають стандартам",
-                details="Структура URL-адрес сайту відповідає рекомендаціям SEO.",
+                message=self.t("analyzers.url_quality.urls_ok"),
+                details=self.t("analyzers.url_quality.urls_ok_details"),
             ))
 
         # Create table with problematic URLs
         if table_data:
             tables.append({
-                "title": "Проблемні URL",
-                "headers": ["URL", "Проблема", "Довжина"],
+                "title": self.t("analyzers.url_quality.table_title"),
+                "headers": [h_url, h_problem, h_length],
                 "rows": table_data[:10],
             })
 
@@ -195,23 +202,29 @@ class URLQualityAnalyzer(BaseAnalyzer):
         total_pages = len([p for p in pages.values() if p.status_code == 200])
 
         if not has_problems:
-            summary = "Всі URL якісні"
+            summary = self.t("analyzers.url_quality.summary_ok")
             severity = SeverityLevel.SUCCESS
         else:
             parts = []
             if long_urls_warn or long_urls_error:
-                parts.append(f"довгі: {len(long_urls_warn) + len(long_urls_error)}")
+                parts.append(self.t("analyzers.url_quality.summary_long",
+                                  count=len(long_urls_warn) + len(long_urls_error)))
             if uppercase_urls:
-                parts.append(f"великі літери: {len(uppercase_urls)}")
+                parts.append(self.t("analyzers.url_quality.summary_uppercase",
+                                  count=len(uppercase_urls)))
             if special_chars_urls:
-                parts.append(f"спецсимволи: {len(special_chars_urls)}")
+                parts.append(self.t("analyzers.url_quality.summary_special_chars",
+                                  count=len(special_chars_urls)))
             if underscore_urls:
-                parts.append(f"підкреслення: {len(underscore_urls)}")
+                parts.append(self.t("analyzers.url_quality.summary_underscores",
+                                  count=len(underscore_urls)))
             if dynamic_urls:
-                parts.append(f"параметри: {len(dynamic_urls)}")
+                parts.append(self.t("analyzers.url_quality.summary_params",
+                                  count=len(dynamic_urls)))
             if double_slash_urls:
-                parts.append(f"подвійні слеші: {len(double_slash_urls)}")
-            summary = f"Знайдено проблем: {', '.join(parts)}"
+                parts.append(self.t("analyzers.url_quality.summary_double_slashes",
+                                  count=len(double_slash_urls)))
+            summary = self.t("analyzers.url_quality.summary_problems", problems=", ".join(parts))
             severity = self._determine_overall_severity(issues)
 
         return self.create_result(

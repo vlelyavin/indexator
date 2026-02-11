@@ -12,15 +12,22 @@ class ContentSectionsAnalyzer(BaseAnalyzer):
     """Analyzer for detecting blog, news, FAQ and help sections."""
 
     name = "content_sections"
-    display_name = "Інформаційні розділи"
-    description = "Виявлення блогу, новин, FAQ та довідкових розділів сайту."
     icon = ""
-    theory = """<strong>Інформаційні розділи</strong> — сторінки з корисним контентом, що привертають органічний трафік.
 
-<strong>Типи розділів:</strong>
-• <strong>Блог/Новини</strong> — статті, оновлення, експертний контент
-• <strong>FAQ</strong> — часті запитання та відповіді (може з'являтися у rich snippets)
-• <strong>База знань/Довідка</strong> — документація, інструкції"""
+    def __init__(self):
+        super().__init__()
+
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.content_sections.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.content_sections.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.content_sections.theory")
 
     # URL patterns for different content types
     BLOG_PATTERNS = [
@@ -134,8 +141,8 @@ class ContentSectionsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="blog_detected",
                 severity=SeverityLevel.SUCCESS,
-                message=f"Виявлено блог/новини: {len(blog_pages)} сторінок",
-                details="Наявність блогу допомагає залучати органічний трафік.",
+                message=self.t("analyzers.content_sections.blog_detected", count=len(blog_pages)),
+                details=self.t("analyzers.content_sections.blog_detected_details"),
                 affected_urls=blog_pages[:10],
                 count=len(blog_pages),
             ))
@@ -143,27 +150,27 @@ class ContentSectionsAnalyzer(BaseAnalyzer):
             # Check blog quality indicators
             missing_features = []
             if not blog_indicators['has_dates']:
-                missing_features.append("дати публікації")
+                missing_features.append(self.t("analyzers.content_sections.feature_dates"))
             if not blog_indicators['has_categories']:
-                missing_features.append("категорії")
+                missing_features.append(self.t("analyzers.content_sections.feature_categories"))
             if not blog_indicators['has_author']:
-                missing_features.append("автор")
+                missing_features.append(self.t("analyzers.content_sections.feature_author"))
 
             if missing_features:
                 issues.append(self.create_issue(
                     category="blog_missing_features",
                     severity=SeverityLevel.INFO,
-                    message=f"Блог: відсутні елементи: {', '.join(missing_features)}",
-                    details="Ці елементи покращують SEO та користувацький досвід блогу.",
-                    recommendation="Додайте відсутні елементи до сторінок блогу.",
+                    message=self.t("analyzers.content_sections.blog_missing_features", features=", ".join(missing_features)),
+                    details=self.t("analyzers.content_sections.blog_missing_features_details"),
+                    recommendation=self.t("analyzers.content_sections.blog_missing_features_recommendation"),
                 ))
         else:
             issues.append(self.create_issue(
                 category="no_blog",
                 severity=SeverityLevel.INFO,
-                message="Блог/новини не виявлено",
-                details="Інформаційний контент допомагає залучати органічний трафік та будувати експертність.",
-                recommendation="Розгляньте створення блогу з корисними статтями для вашої аудиторії.",
+                message=self.t("analyzers.content_sections.no_blog"),
+                details=self.t("analyzers.content_sections.no_blog_details"),
+                recommendation=self.t("analyzers.content_sections.no_blog_recommendation"),
             ))
 
         if has_faq:
@@ -171,8 +178,8 @@ class ContentSectionsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="faq_detected",
                 severity=SeverityLevel.SUCCESS,
-                message=f"Виявлено FAQ/довідку: {faq_count} сторінок",
-                details="FAQ допомагає користувачам знаходити відповіді та може з'являтися в rich snippets.",
+                message=self.t("analyzers.content_sections.faq_detected", count=faq_count),
+                details=self.t("analyzers.content_sections.faq_detected_details"),
                 affected_urls=list(set(faq_pages + pages_with_faq_structure))[:10],
                 count=faq_count,
             ))
@@ -182,64 +189,68 @@ class ContentSectionsAnalyzer(BaseAnalyzer):
                 issues.append(self.create_issue(
                     category="faq_no_schema",
                     severity=SeverityLevel.WARNING,
-                    message="FAQ без Schema.org розмітки",
-                    details="Розмітка FAQPage дозволяє відображати FAQ у результатах пошуку Google.",
-                    recommendation="Додайте Schema.org FAQPage розмітку до сторінок з FAQ.",
+                    message=self.t("analyzers.content_sections.faq_no_schema"),
+                    details=self.t("analyzers.content_sections.faq_no_schema_details"),
+                    recommendation=self.t("analyzers.content_sections.faq_no_schema_recommendation"),
                 ))
             else:
                 issues.append(self.create_issue(
                     category="faq_has_schema",
                     severity=SeverityLevel.SUCCESS,
-                    message=f"FAQ з Schema.org розміткою: {len(pages_with_schema_faq)} сторінок",
-                    details="FAQ може з'являтися у rich snippets Google.",
+                    message=self.t("analyzers.content_sections.faq_has_schema", count=len(pages_with_schema_faq)),
+                    details=self.t("analyzers.content_sections.faq_has_schema_details"),
                     affected_urls=pages_with_schema_faq[:5],
                 ))
         else:
             issues.append(self.create_issue(
                 category="no_faq",
                 severity=SeverityLevel.INFO,
-                message="FAQ не виявлено",
-                details="Розділ FAQ допомагає відповідати на часті питання користувачів.",
-                recommendation="Розгляньте створення розділу FAQ з розміткою Schema.org.",
+                message=self.t("analyzers.content_sections.no_faq"),
+                details=self.t("analyzers.content_sections.no_faq_details"),
+                recommendation=self.t("analyzers.content_sections.no_faq_recommendation"),
             ))
 
         # Create summary table
+        h_section = self.t("table.section")
+        h_status = self.t("table.status")
+        h_count = self.t("table.count")
+
         table_data = [
             {
-                "Розділ": "Блог/Новини",
-                "Статус": "✓ Є" if has_blog else "✗ Немає",
-                "Кількість": len(blog_pages) if has_blog else 0,
+                h_section: self.t("analyzers.content_sections.section_blog"),
+                h_status: self.t("analyzers.content_sections.status_present") if has_blog else self.t("analyzers.content_sections.status_absent"),
+                h_count: len(blog_pages) if has_blog else 0,
             },
             {
-                "Розділ": "FAQ/Довідка",
-                "Статус": "✓ Є" if has_faq else "✗ Немає",
-                "Кількість": len(set(faq_pages + pages_with_faq_structure)) if has_faq else 0,
+                h_section: self.t("analyzers.content_sections.section_faq"),
+                h_status: self.t("analyzers.content_sections.status_present") if has_faq else self.t("analyzers.content_sections.status_absent"),
+                h_count: len(set(faq_pages + pages_with_faq_structure)) if has_faq else 0,
             },
             {
-                "Розділ": "FAQ Schema.org",
-                "Статус": "✓ Є" if pages_with_schema_faq else "✗ Немає",
-                "Кількість": len(pages_with_schema_faq),
+                h_section: self.t("analyzers.content_sections.section_faq_schema"),
+                h_status: self.t("analyzers.content_sections.status_present") if pages_with_schema_faq else self.t("analyzers.content_sections.status_absent"),
+                h_count: len(pages_with_schema_faq),
             },
         ]
 
         tables.append({
-            "title": "Інформаційні розділи",
-            "headers": ["Розділ", "Статус", "Кількість"],
+            "title": self.t("analyzers.content_sections.table_title"),
+            "headers": [h_section, h_status, h_count],
             "rows": table_data,
         })
 
         # Summary
         found_sections = []
         if has_blog:
-            found_sections.append(f"блог ({len(blog_pages)})")
+            found_sections.append(self.t("analyzers.content_sections.summary_blog", count=len(blog_pages)))
         if has_faq:
-            found_sections.append(f"FAQ ({len(set(faq_pages + pages_with_faq_structure))})")
+            found_sections.append(self.t("analyzers.content_sections.summary_faq", count=len(set(faq_pages + pages_with_faq_structure))))
 
         if found_sections:
-            summary = f"Виявлено: {', '.join(found_sections)}"
+            summary = self.t("analyzers.content_sections.summary_found", sections=", ".join(found_sections))
             severity = SeverityLevel.SUCCESS
         else:
-            summary = "Інформаційні розділи не виявлено"
+            summary = self.t("analyzers.content_sections.summary_not_found")
             severity = SeverityLevel.INFO
 
         return self.create_result(

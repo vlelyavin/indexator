@@ -12,23 +12,22 @@ class SocialTagsAnalyzer(BaseAnalyzer):
     """Analyzer for Open Graph and Twitter Card meta tags."""
 
     name = "social_tags"
-    display_name = "Соціальні мета-теги"
-    description = "Аналіз Open Graph та Twitter Card тегів для коректного відображення у соціальних мережах."
     icon = ""
-    theory = """<strong>Open Graph (OG)</strong> — протокол розмітки, що контролює відображення сторінки при поширенні у Facebook, LinkedIn, Telegram та інших платформах.
 
-<strong>Основні OG теги:</strong>
-• <strong>og:title</strong> — заголовок для соцмереж (до 60 символів)
-• <strong>og:description</strong> — опис (до 200 символів)
-• <strong>og:image</strong> — зображення для прев'ю (рекомендовано 1200x630 px)
-• <strong>og:url</strong> — канонічна URL сторінки
-• <strong>og:type</strong> — тип контенту (website, article)
+    def __init__(self):
+        super().__init__()
 
-<strong>Twitter Cards:</strong>
-• <strong>twitter:card</strong> — тип картки (summary, summary_large_image)
-• <strong>twitter:title</strong>, <strong>twitter:description</strong>, <strong>twitter:image</strong>
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.social_tags.name")
 
-<strong>Переваги:</strong> привабливі прев'ю при поширенні, збільшення переходів із соцмереж, контроль над зовнішнім виглядом посилань."""
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.social_tags.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.social_tags.theory")
 
     async def analyze(
         self,
@@ -111,19 +110,19 @@ class SocialTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="og_tags_ok",
                 severity=SeverityLevel.SUCCESS,
-                message=f"Open Graph теги присутні на всіх {total_pages} сторінках",
-                details="Всі сторінки мають коректні OG теги для відображення у соціальних мережах.",
-                recommendation="Продовжуйте підтримувати OG теги актуальними.",
+                message=self.t("analyzers.social_tags.og_tags_ok", count=total_pages),
+                details=self.t("analyzers.social_tags.og_tags_ok_details"),
+                recommendation=self.t("analyzers.social_tags.og_tags_ok_recommendation"),
                 count=total_pages,
             ))
         elif pages_without_og:
             issues.append(self.create_issue(
                 category="missing_og_tags",
                 severity=SeverityLevel.WARNING,
-                message=f"Open Graph теги відсутні на {len(pages_without_og)} сторінках",
-                details="Сторінки без OG тегів відображатимуться некоректно при поширенні у соціальних мережах.",
+                message=self.t("analyzers.social_tags.missing_og_tags", count=len(pages_without_og)),
+                details=self.t("analyzers.social_tags.missing_og_tags_details"),
                 affected_urls=pages_without_og[:20],
-                recommendation="Додайте мета-теги og:title, og:description та og:image на всі сторінки.",
+                recommendation=self.t("analyzers.social_tags.missing_og_tags_recommendation"),
                 count=len(pages_without_og),
             ))
 
@@ -131,10 +130,10 @@ class SocialTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_og_image",
                 severity=SeverityLevel.WARNING,
-                message=f"Відсутній og:image на {len(pages_without_og_image)} сторінках",
-                details="Без og:image соціальні мережі можуть обрати випадкове зображення або не показати прев'ю.",
+                message=self.t("analyzers.social_tags.missing_og_image", count=len(pages_without_og_image)),
+                details=self.t("analyzers.social_tags.missing_og_image_details"),
                 affected_urls=pages_without_og_image[:20],
-                recommendation="Додайте og:image з розміром 1200x630 px для кожної сторінки.",
+                recommendation=self.t("analyzers.social_tags.missing_og_image_recommendation"),
                 count=len(pages_without_og_image),
             ))
 
@@ -142,10 +141,10 @@ class SocialTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_og_description",
                 severity=SeverityLevel.INFO,
-                message=f"Відсутній og:description на {len(pages_without_og_description)} сторінках",
-                details="Без og:description соціальні мережі використовуватимуть звичайний meta description або фрагмент тексту.",
+                message=self.t("analyzers.social_tags.missing_og_description", count=len(pages_without_og_description)),
+                details=self.t("analyzers.social_tags.missing_og_description_details"),
                 affected_urls=pages_without_og_description[:20],
-                recommendation="Додайте og:description з коротким привабливим описом сторінки (до 200 символів).",
+                recommendation=self.t("analyzers.social_tags.missing_og_description_recommendation"),
                 count=len(pages_without_og_description),
             ))
 
@@ -153,17 +152,17 @@ class SocialTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_twitter_card",
                 severity=SeverityLevel.INFO,
-                message=f"Twitter Card теги відсутні на {len(pages_without_twitter)} сторінках",
-                details="Без twitter:card посилання в Twitter/X відображатимуться без розширеного прев'ю.",
+                message=self.t("analyzers.social_tags.missing_twitter_card", count=len(pages_without_twitter)),
+                details=self.t("analyzers.social_tags.missing_twitter_card_details"),
                 affected_urls=pages_without_twitter[:20],
-                recommendation="Додайте <meta name=\"twitter:card\" content=\"summary_large_image\"> для розширених прев'ю.",
+                recommendation=self.t("analyzers.social_tags.missing_twitter_card_recommendation"),
                 count=len(pages_without_twitter),
             ))
 
         # Create table with tag status per page
         if page_tag_status:
             tables.append({
-                "title": "Статус соціальних тегів",
+                "title": self.t("analyzers.social_tags.table_title"),
                 "headers": ["URL", "og:title", "og:image", "twitter:card"],
                 "rows": page_tag_status[:10],
             })
@@ -173,12 +172,12 @@ class SocialTagsAnalyzer(BaseAnalyzer):
         num_twitter = len(pages_with_twitter)
 
         if total_pages == 0:
-            summary = "Немає сторінок для аналізу"
-        elif pages_without_og or pages_without_twitter:
-            missing_count = len(pages_without_og) + len(pages_without_twitter)
-            summary = f"OG теги: {num_og}/{total_pages} сторінок. Twitter Cards: {num_twitter}/{total_pages}"
+            summary = self.t("analyzers.social_tags.summary_no_pages")
         else:
-            summary = f"OG теги: {num_og}/{total_pages} сторінок. Twitter Cards: {num_twitter}/{total_pages}"
+            summary = self.t("analyzers.social_tags.summary",
+                           og=num_og,
+                           twitter=num_twitter,
+                           total=total_pages)
 
         severity = self._determine_overall_severity(issues)
 

@@ -11,21 +11,22 @@ class ContentAnalyzer(BaseAnalyzer):
     """Analyzer for page content (word count, thin content)."""
 
     name = "content"
-    display_name = "Контент"
-    description = "Достатня кількість якісного контенту важлива для ранжування у пошукових системах."
     icon = ""
-    theory = """<strong>Контент</strong> — основа SEO. Пошукові системи аналізують текст для розуміння тематики та релевантності сторінки.
 
-<strong>Мінімальні вимоги до об'єму:</strong>
-• <strong>Картки товарів:</strong> 300-500 символів — опис, характеристики
-• <strong>Категорії:</strong> 1500-2500 символів — SEO-текст з ключовими словами
-• <strong>Статті блогу:</strong> 3000-5000+ символів
-• <strong>Головна сторінка:</strong> 1000-2000 символів
+    def __init__(self):
+        super().__init__()
 
-<strong>Тонкий контент (Thin Content):</strong>
-Сторінки з мінімальним або неунікальним текстом можуть не потрапити в індекс або потрапити під фільтр Panda.
-• Пишіть унікальний контент з ключовими словами (без переспаму)
-• Додавайте корисну інформацію: таблиці, списки, FAQ"""
+    @property
+    def display_name(self) -> str:
+        return self.t("analyzers.content.name")
+
+    @property
+    def description(self) -> str:
+        return self.t("analyzers.content.description")
+
+    @property
+    def theory(self) -> str:
+        return self.t("analyzers.content.theory")
 
     async def analyze(
         self,
@@ -62,10 +63,10 @@ class ContentAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="empty_pages",
                 severity=SeverityLevel.ERROR,
-                message=f"Порожні сторінки: {len(empty_pages)} шт.",
-                details="Сторінки без текстового контенту не несуть цінності для пошукових систем.",
+                message=self.t("analyzers.content.empty_pages", count=len(empty_pages)),
+                details=self.t("analyzers.content.empty_pages_details"),
                 affected_urls=empty_pages[:20],
-                recommendation="Додайте унікальний текстовий контент або налаштуйте noindex для цих сторінок.",
+                recommendation=self.t("analyzers.content.empty_pages_recommendation"),
                 count=len(empty_pages),
             ))
 
@@ -73,34 +74,38 @@ class ContentAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="thin_content",
                 severity=SeverityLevel.WARNING,
-                message=f"Сторінки з малою кількістю контенту: {len(thin_content)} шт.",
-                details=f"Сторінки містять менше {settings.MIN_CONTENT_WORDS} слів. Для категорій та статей рекомендується більше тексту.",
+                message=self.t("analyzers.content.thin_content", count=len(thin_content)),
+                details=self.t("analyzers.content.thin_content_details", min_words=settings.MIN_CONTENT_WORDS),
                 affected_urls=[url for url, _ in thin_content[:20]],
-                recommendation="Розширте контент, додавши корисну інформацію для користувачів.",
+                recommendation=self.t("analyzers.content.thin_content_recommendation"),
                 count=len(thin_content),
             ))
 
         # Create table with thin content pages
+        h_url = self.t("table.url")
+        h_word_count = self.t("table.word_count")
+        h_status = self.t("table.status")
+
         table_data = []
 
         for url in empty_pages[:5]:
             table_data.append({
-                "URL": url[:70] + "..." if len(url) > 70 else url,
-                "Кількість слів": 0,
-                "Статус": "Порожня",
+                h_url: url[:70] + "..." if len(url) > 70 else url,
+                h_word_count: 0,
+                h_status: self.t("analyzers.content.status_empty"),
             })
 
         for url, count in thin_content[:15]:
             table_data.append({
-                "URL": url[:70] + "..." if len(url) > 70 else url,
-                "Кількість слів": count,
-                "Статус": "Мало контенту",
+                h_url: url[:70] + "..." if len(url) > 70 else url,
+                h_word_count: count,
+                h_status: self.t("analyzers.content.status_thin"),
             })
 
         if table_data:
             tables.append({
-                "title": "Сторінки з недостатнім контентом",
-                "headers": ["URL", "Кількість слів", "Статус"],
+                "title": self.t("analyzers.content.table_title"),
+                "headers": [h_url, h_word_count, h_status],
                 "rows": table_data,
             })
 
@@ -118,14 +123,14 @@ class ContentAnalyzer(BaseAnalyzer):
         ok_pages = total_pages - len(empty_pages) - len(thin_content)
 
         if not issues:
-            summary = f"Всі {total_pages} сторінок мають достатньо контенту. Середня кількість слів: {avg_words}"
+            summary = self.t("analyzers.content.summary_ok", pages=total_pages, avg_words=avg_words)
         else:
             parts = []
             if empty_pages:
-                parts.append(f"порожніх: {len(empty_pages)}")
+                parts.append(self.t("analyzers.content.summary_empty", count=len(empty_pages)))
             if thin_content:
-                parts.append(f"з малим контентом: {len(thin_content)}")
-            summary = f"Проблеми з контентом: {', '.join(parts)}. Середня кількість слів: {avg_words}"
+                parts.append(self.t("analyzers.content.summary_thin", count=len(thin_content)))
+            summary = self.t("analyzers.content.summary_issues", issues=", ".join(parts), avg_words=avg_words)
 
         severity = self._determine_overall_severity(issues)
 

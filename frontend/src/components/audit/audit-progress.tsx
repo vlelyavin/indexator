@@ -49,7 +49,7 @@ export function AuditProgressView({ progress }: AuditProgressViewProps) {
         </div>
 
         {/* Stage indicators */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-center gap-8 md:gap-16">
           {stages.map((s, i) => {
             const isActive = s.key === stage;
             const isPast = stages.findIndex((x) => x.key === stage) > i;

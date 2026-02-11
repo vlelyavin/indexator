@@ -25,7 +25,7 @@ class RedirectsAnalyzer(BaseAnalyzer):
 
     @property
     def theory(self) -> str:
-        return self.t("analyzers.redirects.theory")
+        return self.t("analyzer_content.redirects.theory")
 
     async def analyze(
         self,
@@ -90,10 +90,10 @@ class RedirectsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="long_redirect_chains",
                 severity=SeverityLevel.ERROR,
-                message=self.t("analyzers.redirects.long_redirect_chains", count=len(chains_3_plus)),
-                details=self.t("analyzers.redirects.long_redirect_chains_details"),
+                message=self.t("analyzer_content.redirects.issues.long_redirect_chains", count=len(chains_3_plus),
+                details=self.t("analyzer_content.redirects.issues.long_redirect_chains_details",
                 affected_urls=affected[:20],
-                recommendation=self.t("analyzers.redirects.long_redirect_chains_recommendation"),
+                recommendation=self.t("analyzer_content.redirects.issues.long_redirect_chains_recommendation",
                 count=len(chains_3_plus),
             ))
 
@@ -103,10 +103,10 @@ class RedirectsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="redirect_chains",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.redirects.redirect_chains", count=len(chains_2_hops)),
-                details=self.t("analyzers.redirects.redirect_chains_details"),
+                message=self.t("analyzer_content.redirects.issues.redirect_chains", count=len(chains_2_hops),
+                details=self.t("analyzer_content.redirects.issues.redirect_chains_details",
                 affected_urls=affected[:20],
-                recommendation=self.t("analyzers.redirects.redirect_chains_recommendation"),
+                recommendation=self.t("analyzer_content.redirects.issues.redirect_chains_recommendation",
                 count=len(chains_2_hops),
             ))
 
@@ -116,10 +116,10 @@ class RedirectsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="internal_links_to_redirects",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.redirects.internal_links_to_redirects", count=len(internal_links_to_redirects)),
-                details=self.t("analyzers.redirects.internal_links_to_redirects_details"),
+                message=self.t("analyzer_content.redirects.issues.internal_links_to_redirects", count=len(internal_links_to_redirects),
+                details=self.t("analyzer_content.redirects.issues.internal_links_to_redirects_details",
                 affected_urls=affected[:20],
-                recommendation=self.t("analyzers.redirects.internal_links_to_redirects_recommendation"),
+                recommendation=self.t("analyzer_content.redirects.issues.internal_links_to_redirects_recommendation",
                 count=len(internal_links_to_redirects),
             ))
 
@@ -127,9 +127,9 @@ class RedirectsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="no_redirect_issues",
                 severity=SeverityLevel.SUCCESS,
-                message=self.t("analyzers.redirects.no_redirect_issues"),
-                details=self.t("analyzers.redirects.no_redirect_issues_details"),
-                recommendation=self.t("analyzers.redirects.no_redirect_issues_recommendation"),
+                message=self.t("analyzer_content.redirects.issues.no_redirect_issues",
+                details=self.t("analyzer_content.redirects.issues.no_redirect_issues_details",
+                recommendation=self.t("analyzer_content.redirects.issues.no_redirect_issues_recommendation",
             ))
 
         # Step 4: Create table
@@ -138,9 +138,9 @@ class RedirectsAnalyzer(BaseAnalyzer):
         # Sort chains by hops descending
         all_chains.sort(key=lambda x: x["hops"], reverse=True)
 
-        h_start = self.t("table.start_url")
-        h_end = self.t("table.end_url")
-        h_hops = self.t("table.hops")
+        h_start = self.t("tables.start_url")
+        h_end = self.t("tables.end_url")
+        h_hops = self.t("tables.hops")
 
         for chain in all_chains[:10]:
             table_data.append({
@@ -151,7 +151,7 @@ class RedirectsAnalyzer(BaseAnalyzer):
 
         if table_data:
             tables.append({
-                "title": self.t("analyzers.redirects.table_title"),
+                "title": self.t("analyzer_content.redirects.issues.table_title",
                 "headers": [h_start, h_end, h_hops],
                 "rows": table_data,
             })
@@ -159,9 +159,9 @@ class RedirectsAnalyzer(BaseAnalyzer):
         # Step 5: Summary
         total_chains = len(chains_2_hops) + len(chains_3_plus)
         if total_chains > 0:
-            summary = self.t("analyzers.redirects.summary_found", count=total_chains)
+            summary = self.t("analyzer_content.redirects.summary.found", count=total_chains)
         else:
-            summary = self.t("analyzers.redirects.summary_none")
+            summary = self.t("analyzer_content.redirects.summary.none")
 
         severity = self._determine_overall_severity(issues)
 

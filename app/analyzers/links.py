@@ -28,7 +28,7 @@ class LinksAnalyzer(BaseAnalyzer):
 
     @property
     def theory(self) -> str:
-        return self.t("analyzers.links.theory")
+        return self.t("analyzer_content.links.theory")
 
     async def analyze(
         self,
@@ -111,10 +111,10 @@ class LinksAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="broken_internal",
                 severity=SeverityLevel.ERROR,
-                message=self.t("analyzers.links.broken_internal", count=len(broken_internal)),
-                details=self.t("analyzers.links.broken_internal_details"),
+                message=self.t("analyzer_content.links.issues.broken_internal", count=len(broken_internal),
+                details=self.t("analyzer_content.links.issues.broken_internal_details",
                 affected_urls=[link['url'] for link in broken_internal[:20]],
-                recommendation=self.t("analyzers.links.broken_internal_recommendation"),
+                recommendation=self.t("analyzer_content.links.issues.broken_internal_recommendation",
                 count=len(broken_internal),
             ))
 
@@ -123,24 +123,24 @@ class LinksAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="broken_external",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.links.broken_external", count=len(broken_external)),
-                details=self.t("analyzers.links.broken_external_details"),
+                message=self.t("analyzer_content.links.issues.broken_external", count=len(broken_external),
+                details=self.t("analyzer_content.links.issues.broken_external_details",
                 affected_urls=[link['url'] for link in broken_external[:20]],
-                recommendation=self.t("analyzers.links.broken_external_recommendation"),
+                recommendation=self.t("analyzer_content.links.issues.broken_external_recommendation",
                 count=len(broken_external),
             ))
 
         # Create table with broken links
-        h_type = self.t("table.type")
-        h_link = self.t("table.link")
-        h_status = self.t("table.status")
-        h_found_on = self.t("table.found_on")
+        h_type = self.t("tables.type")
+        h_link = self.t("tables.link")
+        h_status = self.t("tables.status")
+        h_found_on = self.t("tables.found_on")
         table_data = []
 
         for link in broken_internal[:15]:
             status_text = f"{link['status']}" if link['status'] > 0 else "Timeout/Error"
             table_data.append({
-                h_type: self.t("analyzers.links.type_internal"),
+                h_type: self.t("analyzer_content.links.issues.type_internal",
                 h_link: link['url'][:60] + "..." if len(link['url']) > 60 else link['url'],
                 h_status: status_text,
                 h_found_on: link['source_pages'][0] if link['source_pages'] else "-",
@@ -149,7 +149,7 @@ class LinksAnalyzer(BaseAnalyzer):
         for link in broken_external[:10]:
             status_text = f"{link['status']}" if link['status'] > 0 else "Timeout/Error"
             table_data.append({
-                h_type: self.t("analyzers.links.type_external"),
+                h_type: self.t("analyzer_content.links.issues.type_external",
                 h_link: link['url'][:60] + "..." if len(link['url']) > 60 else link['url'],
                 h_status: status_text,
                 h_found_on: link['source_pages'][0] if link['source_pages'] else "-",
@@ -157,7 +157,7 @@ class LinksAnalyzer(BaseAnalyzer):
 
         if table_data:
             tables.append({
-                "title": self.t("analyzers.links.table_title"),
+                "title": self.t("analyzer_content.links.issues.table_title",
                 "headers": [h_type, h_link, h_status, h_found_on],
                 "rows": table_data,
             })
@@ -167,14 +167,14 @@ class LinksAnalyzer(BaseAnalyzer):
         total_external = len(external_links)
 
         if not issues:
-            summary = self.t("analyzers.links.summary_ok", internal=total_internal, external=total_external)
+            summary = self.t("analyzer_content.links.summary.ok", internal=total_internal, external=total_external)
         else:
             parts = []
             if broken_internal:
-                parts.append(self.t("analyzers.links.internal_count", count=len(broken_internal)))
+                parts.append(self.t("analyzer_content.links.issues.internal_count", count=len(broken_internal))
             if broken_external:
-                parts.append(self.t("analyzers.links.external_count", count=len(broken_external)))
-            summary = self.t("analyzers.links.summary_issues", issues=', '.join(parts))
+                parts.append(self.t("analyzer_content.links.issues.external_count", count=len(broken_external))
+            summary = self.t("analyzer_content.links.summary.issues", issues=', '.join(parts))
 
         severity = self._determine_overall_severity(issues)
 

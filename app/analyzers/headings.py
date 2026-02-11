@@ -26,7 +26,7 @@ class HeadingsAnalyzer(BaseAnalyzer):
 
     @property
     def theory(self) -> str:
-        return self.t("analyzers.headings.theory")
+        return self.t("analyzer_content.headings.theory")
 
     async def analyze(
         self,
@@ -70,10 +70,10 @@ class HeadingsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_h1",
                 severity=SeverityLevel.ERROR,
-                message=self.t("analyzers.headings.missing_h1", count=len(missing_h1)),
-                details=self.t("analyzers.headings.missing_h1_details"),
+                message=self.t("analyzer_content.headings.issues.missing_h1", count=len(missing_h1),
+                details=self.t("analyzer_content.headings.issues.missing_h1_details",
                 affected_urls=missing_h1[:20],
-                recommendation=self.t("analyzers.headings.missing_h1_recommendation"),
+                recommendation=self.t("analyzer_content.headings.issues.missing_h1_recommendation",
                 count=len(missing_h1),
             ))
 
@@ -81,10 +81,10 @@ class HeadingsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="multiple_h1",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.headings.multiple_h1", count=len(multiple_h1)),
-                details=self.t("analyzers.headings.multiple_h1_details"),
+                message=self.t("analyzer_content.headings.issues.multiple_h1", count=len(multiple_h1),
+                details=self.t("analyzer_content.headings.issues.multiple_h1_details",
                 affected_urls=[url for url, _ in multiple_h1[:20]],
-                recommendation=self.t("analyzers.headings.multiple_h1_recommendation"),
+                recommendation=self.t("analyzer_content.headings.issues.multiple_h1_recommendation",
                 count=len(multiple_h1),
             ))
 
@@ -92,10 +92,10 @@ class HeadingsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="empty_h1",
                 severity=SeverityLevel.ERROR,
-                message=self.t("analyzers.headings.empty_h1", count=len(empty_h1)),
-                details=self.t("analyzers.headings.empty_h1_details"),
+                message=self.t("analyzer_content.headings.issues.empty_h1", count=len(empty_h1),
+                details=self.t("analyzer_content.headings.issues.empty_h1_details",
                 affected_urls=empty_h1[:20],
-                recommendation=self.t("analyzers.headings.empty_h1_recommendation"),
+                recommendation=self.t("analyzer_content.headings.issues.empty_h1_recommendation",
                 count=len(empty_h1),
             ))
 
@@ -108,10 +108,10 @@ class HeadingsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="duplicate_h1",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.headings.duplicate_h1", count=len(duplicate_h1s)),
-                details=self.t("analyzers.headings.duplicate_h1_details"),
+                message=self.t("analyzer_content.headings.issues.duplicate_h1", count=len(duplicate_h1s),
+                details=self.t("analyzer_content.headings.issues.duplicate_h1_details",
                 affected_urls=dup_urls[:20],
-                recommendation=self.t("analyzers.headings.duplicate_h1_recommendation"),
+                recommendation=self.t("analyzer_content.headings.issues.duplicate_h1_recommendation",
                 count=sum(duplicate_h1s.values()),
             ))
 
@@ -141,16 +141,16 @@ class HeadingsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="hierarchy_violation",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.headings.hierarchy_violation", count=len(hierarchy_violations)),
-                details=self.t("analyzers.headings.hierarchy_violation_details"),
+                message=self.t("analyzer_content.headings.issues.hierarchy_violation", count=len(hierarchy_violations),
+                details=self.t("analyzer_content.headings.issues.hierarchy_violation_details",
                 affected_urls=[url for url, _, _ in hierarchy_violations[:20]],
-                recommendation=self.t("analyzers.headings.hierarchy_violation_recommendation"),
+                recommendation=self.t("analyzer_content.headings.issues.hierarchy_violation_recommendation",
                 count=len(hierarchy_violations),
             ))
 
         # Create table with problematic pages
-        h_url = self.t("table.url")
-        h_problem = self.t("table.problem")
+        h_url = self.t("tables.url")
+        h_problem = self.t("tables.problem")
         h_h1 = "H1"
 
         table_data = []
@@ -158,34 +158,34 @@ class HeadingsAnalyzer(BaseAnalyzer):
         for url in missing_h1[:10]:
             table_data.append({
                 h_url: url,
-                h_problem: self.t("analyzers.headings.problem_missing_h1"),
+                h_problem: self.t("analyzer_content.headings.issues.problem_missing_h1",
                 h_h1: "-",
             })
 
         for url, h1_list in multiple_h1[:10]:
             table_data.append({
                 h_url: url,
-                h_problem: self.t("analyzers.headings.problem_multiple_h1", count=len(h1_list)),
+                h_problem: self.t("analyzer_content.headings.issues.problem_multiple_h1", count=len(h1_list),
                 h_h1: " | ".join(h1_list[:3]) + ("..." if len(h1_list) > 3 else ""),
             })
 
         for url in empty_h1[:10]:
             table_data.append({
                 h_url: url,
-                h_problem: self.t("analyzers.headings.problem_empty_h1"),
-                h_h1: self.t("analyzers.headings.empty_value"),
+                h_problem: self.t("analyzer_content.headings.issues.problem_empty_h1",
+                h_h1: self.t("analyzer_content.headings.issues.empty_value",
             })
 
         for url, from_lvl, to_lvl in hierarchy_violations[:10]:
             table_data.append({
                 h_url: url,
-                h_problem: self.t("analyzers.headings.problem_hierarchy_skip", from_level=from_lvl, to_level=to_lvl),
+                h_problem: self.t("analyzer_content.headings.issues.problem_hierarchy_skip", from_level=from_lvl, to_level=to_lvl,
                 h_h1: page.h1_tags[0] if pages.get(url) and pages[url].h1_tags else "-",
             })
 
         if table_data:
             tables.append({
-                "title": self.t("analyzers.headings.table_title"),
+                "title": self.t("analyzer_content.headings.issues.table_title",
                 "headers": [h_url, h_problem, h_h1],
                 "rows": table_data,
             })
@@ -196,18 +196,18 @@ class HeadingsAnalyzer(BaseAnalyzer):
 
         summary_parts = []
         if missing_h1:
-            summary_parts.append(self.t("analyzers.headings.summary_missing", count=len(missing_h1)))
+            summary_parts.append(self.t("analyzer_content.headings.summary.missing", count=len(missing_h1)))
         if multiple_h1:
-            summary_parts.append(self.t("analyzers.headings.summary_multiple", count=len(multiple_h1)))
+            summary_parts.append(self.t("analyzer_content.headings.summary.multiple", count=len(multiple_h1)))
         if duplicate_h1s:
-            summary_parts.append(self.t("analyzers.headings.summary_duplicates", count=len(duplicate_h1s)))
+            summary_parts.append(self.t("analyzer_content.headings.summary.duplicates", count=len(duplicate_h1s)))
         if hierarchy_violations:
-            summary_parts.append(self.t("analyzers.headings.summary_hierarchy", count=len(hierarchy_violations)))
+            summary_parts.append(self.t("analyzer_content.headings.summary.hierarchy", count=len(hierarchy_violations)))
 
         if summary_parts:
-            summary = self.t("analyzers.headings.summary_issues", issues=", ".join(summary_parts))
+            summary = self.t("analyzer_content.headings.summary.issues", issues=", ".join(summary_parts))
         else:
-            summary = self.t("analyzers.headings.summary_ok", pages=total_pages)
+            summary = self.t("analyzer_content.headings.summary.ok", pages=total_pages)
 
         severity = self._determine_overall_severity(issues)
 

@@ -27,7 +27,7 @@ class FaviconAnalyzer(BaseAnalyzer):
 
     @property
     def theory(self) -> str:
-        return self.t("analyzers.favicon.theory")
+        return self.t("analyzer_content.favicon.theory")
 
     async def analyze(
         self,
@@ -97,26 +97,26 @@ class FaviconAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_favicon",
                 severity=SeverityLevel.ERROR,
-                message=self.t("analyzers.favicon.missing"),
-                details=self.t("analyzers.favicon.missing_details"),
-                recommendation=self.t("analyzers.favicon.missing_recommendation"),
+                message=self.t("analyzer_content.favicon.issues.missing",
+                details=self.t("analyzer_content.favicon.details.missing"),
+                recommendation=self.t("analyzer_content.favicon.recommendations.missing"),
             ))
         elif not has_favicon_ico:
             issues.append(self.create_issue(
                 category="no_favicon_ico",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.favicon.no_ico"),
-                details=self.t("analyzers.favicon.no_ico_details"),
-                recommendation=self.t("analyzers.favicon.no_ico_recommendation"),
+                message=self.t("analyzer_content.favicon.issues.no_ico",
+                details=self.t("analyzer_content.favicon.issues.no_ico_details",
+                recommendation=self.t("analyzer_content.favicon.issues.no_ico_recommendation",
             ))
 
         if not has_apple_icon:
             issues.append(self.create_issue(
                 category="no_apple_touch_icon",
                 severity=SeverityLevel.INFO,
-                message=self.t("analyzers.favicon.no_apple"),
-                details=self.t("analyzers.favicon.no_apple_details"),
-                recommendation=self.t("analyzers.favicon.no_apple_recommendation"),
+                message=self.t("analyzer_content.favicon.issues.no_apple",
+                details=self.t("analyzer_content.favicon.issues.no_apple_details",
+                recommendation=self.t("analyzer_content.favicon.issues.no_apple_recommendation",
             ))
 
         # Check favicon format recommendations
@@ -133,20 +133,20 @@ class FaviconAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="old_favicon_format",
                 severity=SeverityLevel.INFO,
-                message=self.t("analyzers.favicon.old_format"),
-                details=self.t("analyzers.favicon.old_format_details"),
-                recommendation=self.t("analyzers.favicon.old_format_recommendation"),
+                message=self.t("analyzer_content.favicon.issues.old_format",
+                details=self.t("analyzer_content.favicon.issues.old_format_details",
+                recommendation=self.t("analyzer_content.favicon.issues.old_format_recommendation",
             ))
 
         # Summary
         if not issues:
-            summary = self.t("analyzers.favicon.summary_ok")
+            summary = self.t("analyzer_content.favicon.summary.ok")
             severity = SeverityLevel.SUCCESS
         elif any(i.severity == SeverityLevel.ERROR for i in issues):
-            summary = self.t("analyzers.favicon.summary_missing")
+            summary = self.t("analyzer_content.favicon.summary.missing")
             severity = SeverityLevel.ERROR
         else:
-            summary = self.t("analyzers.favicon.summary_needs_improvement")
+            summary = self.t("analyzer_content.favicon.summary.needs_improvement")
             severity = SeverityLevel.WARNING
 
         return self.create_result(

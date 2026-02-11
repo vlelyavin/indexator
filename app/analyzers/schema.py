@@ -29,7 +29,7 @@ class SchemaAnalyzer(BaseAnalyzer):
 
     @property
     def theory(self) -> str:
-        return self.t("analyzers.schema.theory")
+        return self.t("analyzer_content.schema.theory")
 
     async def analyze(
         self,
@@ -107,12 +107,12 @@ class SchemaAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="has_structured_data",
                 severity=SeverityLevel.SUCCESS,
-                message=self.t("analyzers.schema.has_structured_data", types=num_types, pages=num_pages_with),
-                details=self.t("analyzers.schema.has_structured_data_details",
-                              json_ld=len(pages_with_json_ld),
+                message=self.t("analyzer_content.schema.issues.has_structured_data", types=num_types, pages=num_pages_with,
+                details=self.t("analyzer_content.schema.issues.has_structured_data_details",
+                              json_ld=len(pages_with_json_ld,
                               microdata=len(pages_with_microdata),
                               types=', '.join(schema_types.keys())),
-                recommendation=self.t("analyzers.schema.has_structured_data_recommendation"),
+                recommendation=self.t("analyzer_content.schema.issues.has_structured_data_recommendation",
                 count=num_pages_with,
             ))
 
@@ -120,12 +120,12 @@ class SchemaAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="no_structured_data",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.schema.no_structured_data", count=len(pages_without_schema)),
-                details=self.t("analyzers.schema.no_structured_data_details",
+                message=self.t("analyzer_content.schema.issues.no_structured_data", count=len(pages_without_schema),
+                details=self.t("analyzer_content.schema.issues.no_structured_data_details",
                               total=total_pages,
-                              without=len(pages_without_schema)),
+                              without=len(pages_without_schema),
                 affected_urls=pages_without_schema[:20],
-                recommendation=self.t("analyzers.schema.no_structured_data_recommendation"),
+                recommendation=self.t("analyzer_content.schema.issues.no_structured_data_recommendation",
                 count=len(pages_without_schema),
             ))
 
@@ -135,10 +135,10 @@ class SchemaAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_organization",
                 severity=SeverityLevel.INFO,
-                message=self.t("analyzers.schema.missing_organization"),
-                details=self.t("analyzers.schema.missing_organization_details"),
+                message=self.t("analyzer_content.schema.issues.missing_organization",
+                details=self.t("analyzer_content.schema.issues.missing_organization_details",
                 affected_urls=[base_url],
-                recommendation=self.t("analyzers.schema.missing_organization_recommendation"),
+                recommendation=self.t("analyzer_content.schema.issues.missing_organization_recommendation",
             ))
 
         # Check for BreadcrumbList
@@ -146,9 +146,9 @@ class SchemaAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_breadcrumbs",
                 severity=SeverityLevel.INFO,
-                message=self.t("analyzers.schema.missing_breadcrumbs"),
-                details=self.t("analyzers.schema.missing_breadcrumbs_details"),
-                recommendation=self.t("analyzers.schema.missing_breadcrumbs_recommendation"),
+                message=self.t("analyzer_content.schema.issues.missing_breadcrumbs",
+                details=self.t("analyzer_content.schema.issues.missing_breadcrumbs_details",
+                recommendation=self.t("analyzer_content.schema.issues.missing_breadcrumbs_recommendation",
             ))
 
         # JSON-LD parsing errors
@@ -157,18 +157,18 @@ class SchemaAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="json_ld_errors",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.schema.json_ld_errors", count=len(error_urls)),
-                details=self.t("analyzers.schema.json_ld_errors_details", blocks=len(json_ld_errors)),
+                message=self.t("analyzer_content.schema.issues.json_ld_errors", count=len(error_urls),
+                details=self.t("analyzer_content.schema.issues.json_ld_errors_details", blocks=len(json_ld_errors),
                 affected_urls=error_urls[:20],
-                recommendation=self.t("analyzers.schema.json_ld_errors_recommendation"),
+                recommendation=self.t("analyzer_content.schema.issues.json_ld_errors_recommendation",
                 count=len(json_ld_errors),
             ))
 
         # Create table with schema types
         if schema_types:
-            h_type = self.t("table.schema_type")
-            h_count = self.t("table.page_count")
-            h_example = self.t("table.example_url")
+            h_type = self.t("tables.schema_type")
+            h_count = self.t("tables.page_count")
+            h_example = self.t("tables.example_url")
 
             table_rows = []
             for type_name, count in schema_types.most_common(10):
@@ -180,16 +180,16 @@ class SchemaAnalyzer(BaseAnalyzer):
                 })
 
             tables.append({
-                "title": self.t("analyzers.schema.table_title"),
+                "title": self.t("analyzer_content.schema.issues.table_title",
                 "headers": [h_type, h_count, h_example],
                 "rows": table_rows[:10],
             })
 
         # Summary
         if num_pages_with > 0:
-            summary = self.t("analyzers.schema.summary_found", types=num_types, pages=num_pages_with)
+            summary = self.t("analyzer_content.schema.summary.found", types=num_types, pages=num_pages_with)
         else:
-            summary = self.t("analyzers.schema.summary_none")
+            summary = self.t("analyzer_content.schema.summary.none")
 
         severity = self._determine_overall_severity(issues)
 

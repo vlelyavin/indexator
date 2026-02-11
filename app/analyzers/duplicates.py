@@ -28,7 +28,7 @@ class DuplicatesAnalyzer(BaseAnalyzer):
 
     @property
     def theory(self) -> str:
-        return self.t("analyzers.duplicates.theory")
+        return self.t("analyzer_content.duplicates.theory")
 
     def _extract_text(self, html_content: str) -> str:
         """Extract and normalize text from HTML."""
@@ -163,9 +163,9 @@ class DuplicatesAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="no_duplicates",
                 severity=SeverityLevel.SUCCESS,
-                message=self.t("analyzers.duplicates.no_duplicates"),
-                details=self.t("analyzers.duplicates.no_duplicates_details", count=len(signatures)),
-                recommendation=self.t("analyzers.duplicates.no_duplicates_recommendation"),
+                message=self.t("analyzer_content.duplicates.issues.no_duplicates",
+                details=self.t("analyzer_content.duplicates.issues.no_duplicates_details", count=len(signatures),
+                recommendation=self.t("analyzer_content.duplicates.issues.no_duplicates_recommendation",
             ))
 
         if exact_groups:
@@ -175,10 +175,10 @@ class DuplicatesAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="exact_duplicates",
                 severity=SeverityLevel.ERROR,
-                message=self.t("analyzers.duplicates.exact_duplicates", count=len(exact_groups)),
-                details=self.t("analyzers.duplicates.exact_duplicates_details"),
+                message=self.t("analyzer_content.duplicates.issues.exact_duplicates", count=len(exact_groups),
+                details=self.t("analyzer_content.duplicates.issues.exact_duplicates_details",
                 affected_urls=list(set(affected))[:20],
-                recommendation=self.t("analyzers.duplicates.exact_duplicates_recommendation"),
+                recommendation=self.t("analyzer_content.duplicates.issues.exact_duplicates_recommendation",
                 count=len(exact_groups),
             ))
 
@@ -189,24 +189,24 @@ class DuplicatesAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="near_duplicates",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.duplicates.near_duplicates", count=len(near_groups)),
-                details=self.t("analyzers.duplicates.near_duplicates_details"),
+                message=self.t("analyzer_content.duplicates.issues.near_duplicates", count=len(near_groups),
+                details=self.t("analyzer_content.duplicates.issues.near_duplicates_details",
                 affected_urls=list(set(affected))[:20],
-                recommendation=self.t("analyzers.duplicates.near_duplicates_recommendation"),
+                recommendation=self.t("analyzer_content.duplicates.issues.near_duplicates_recommendation",
                 count=len(near_groups),
             ))
 
         # Step 5: Create table
         table_data = []
         all_pairs = (
-            [(a, b, sim, self.t("analyzers.duplicates.type_exact")) for a, b, sim in exact_duplicate_pairs]
-            + [(a, b, sim, self.t("analyzers.duplicates.type_near")) for a, b, sim in near_duplicate_pairs]
+            [(a, b, sim, self.t("analyzer_content.duplicates.issues.type_exact") for a, b, sim in exact_duplicate_pairs]
+            + [(a, b, sim, self.t("analyzer_content.duplicates.issues.type_near") for a, b, sim in near_duplicate_pairs]
         )
         all_pairs.sort(key=lambda x: x[2], reverse=True)
 
-        h_url1 = self.t("table.url1")
-        h_url2 = self.t("table.url2")
-        h_similarity = self.t("table.similarity")
+        h_url1 = self.t("tables.url1")
+        h_url2 = self.t("tables.url2")
+        h_similarity = self.t("tables.similarity")
 
         for url_a, url_b, similarity, dup_type in all_pairs[:10]:
             table_data.append({
@@ -217,7 +217,7 @@ class DuplicatesAnalyzer(BaseAnalyzer):
 
         if table_data:
             tables.append({
-                "title": self.t("analyzers.duplicates.table_title"),
+                "title": self.t("analyzer_content.duplicates.issues.table_title",
                 "headers": [h_url1, h_url2, h_similarity],
                 "rows": table_data,
             })
@@ -225,9 +225,9 @@ class DuplicatesAnalyzer(BaseAnalyzer):
         # Step 6: Summary
         total_groups = len(exact_groups) + len(near_groups)
         if total_groups > 0:
-            summary = self.t("analyzers.duplicates.summary_found", count=total_groups)
+            summary = self.t("analyzer_content.duplicates.summary.found", count=total_groups)
         else:
-            summary = self.t("analyzers.duplicates.summary_none")
+            summary = self.t("analyzer_content.duplicates.summary.none")
 
         severity = self._determine_overall_severity(issues)
 

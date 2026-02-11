@@ -18,10 +18,10 @@ export function Header({ onMenuToggle }: HeaderProps) {
   const { data: session } = useSession();
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-white/80 px-4 backdrop-blur-sm dark:border-gray-800 dark:bg-gray-950/80 lg:px-6">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-white/80 px-4 backdrop-blur-sm dark:border-[#1a1a1a] dark:bg-black/80 lg:px-6">
       <button
         onClick={onMenuToggle}
-        className="lg:hidden rounded-md p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+        className="lg:hidden rounded-md p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-[#0a0a0a]"
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -44,12 +44,12 @@ export function Header({ onMenuToggle }: HeaderProps) {
 
         {session?.user ? (
           <div className="flex items-center gap-2">
-            <span className="hidden sm:inline text-sm text-gray-600 dark:text-gray-300">
+            <span className="hidden sm:inline text-sm text-gray-600 dark:text-gray-400">
               {session.user.name || session.user.email}
             </span>
             <button
               onClick={() => signOut({ callbackUrl: `/${locale}/login` })}
-              className="rounded-md p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="rounded-md p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-[#0a0a0a]"
               title={t("logout")}
             >
               <LogOut className="h-4 w-4" />

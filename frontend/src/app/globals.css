@@ -3,4 +3,54 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Pure Black & White Dark Theme */
+  /* Light mode - keep default */
+  --color-background: white;
+  --color-foreground: rgb(17 24 39);
+  --color-card: white;
+  --color-card-foreground: rgb(17 24 39);
+  --color-border: rgb(229 231 235);
+  --color-input: rgb(229 231 235);
+  --color-ring: rgb(59 130 246);
+
+  /* Semantic colors - preserved in both modes */
+  --color-success: rgb(16 185 129);
+  --color-warning: rgb(245 158 11);
+  --color-error: rgb(239 68 68);
+  --color-info: rgb(59 130 246);
+  --color-critical: rgb(220 38 38);
+
+  /* Dark mode - pure black & white */
+  @media (prefers-color-scheme: dark) {
+    --color-background: rgb(0 0 0);           /* Pure black #000000 */
+    --color-foreground: rgb(255 255 255);      /* Pure white #ffffff */
+    --color-card: rgb(10 10 10);              /* Very dark gray #0a0a0a */
+    --color-card-foreground: rgb(255 255 255); /* Pure white */
+    --color-border: rgb(26 26 26);            /* Dark gray #1a1a1a */
+    --color-input: rgb(26 26 26);             /* Dark gray */
+    --color-ring: rgb(59 130 246);            /* Blue accent */
+    --color-accent: rgb(20 20 20);            /* Slightly lighter #141414 */
+    --color-accent-foreground: rgb(255 255 255);
+    --color-muted: rgb(26 26 26);
+    --color-muted-foreground: rgb(160 160 160); /* Light gray #a0a0a0 */
+    --color-secondary: rgb(26 26 26);
+    --color-secondary-foreground: rgb(255 255 255);
+  }
+
+  .dark {
+    --color-background: rgb(0 0 0);           /* Pure black #000000 */
+    --color-foreground: rgb(255 255 255);      /* Pure white #ffffff */
+    --color-card: rgb(10 10 10);              /* Very dark gray #0a0a0a */
+    --color-card-foreground: rgb(255 255 255); /* Pure white */
+    --color-border: rgb(26 26 26);            /* Dark gray #1a1a1a */
+    --color-input: rgb(26 26 26);             /* Dark gray */
+    --color-ring: rgb(59 130 246);            /* Blue accent */
+    --color-accent: rgb(20 20 20);            /* Slightly lighter #141414 */
+    --color-accent-foreground: rgb(255 255 255);
+    --color-muted: rgb(26 26 26);
+    --color-muted-foreground: rgb(160 160 160); /* Light gray #a0a0a0 */
+    --color-secondary: rgb(26 26 26);
+    --color-secondary-foreground: rgb(255 255 255);
+  }
 }

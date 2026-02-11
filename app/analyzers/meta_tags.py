@@ -27,7 +27,7 @@ class MetaTagsAnalyzer(BaseAnalyzer):
 
     @property
     def theory(self) -> str:
-        return self.t("analyzers.meta_tags.theory")
+        return self.t("analyzer_content.meta_tags.theory")
 
     async def analyze(
         self,
@@ -86,10 +86,10 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_title",
                 severity=SeverityLevel.ERROR,
-                message=self.t("analyzers.meta_tags.missing_title", count=len(missing_titles)),
-                details=self.t("analyzers.meta_tags.missing_title_details"),
+                message=self.t("analyzer_content.meta_tags.issues.missing_title", count=len(missing_titles),
+                details=self.t("analyzer_content.meta_tags.issues.missing_title_details",
                 affected_urls=missing_titles[:20],
-                recommendation=self.t("analyzers.meta_tags.missing_title_recommendation"),
+                recommendation=self.t("analyzer_content.meta_tags.issues.missing_title_recommendation",
                 count=len(missing_titles),
             ))
 
@@ -98,10 +98,10 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="missing_description",
                 severity=SeverityLevel.ERROR,
-                message=self.t("analyzers.meta_tags.missing_description", count=len(missing_descriptions)),
-                details=self.t("analyzers.meta_tags.missing_description_details"),
+                message=self.t("analyzer_content.meta_tags.issues.missing_description", count=len(missing_descriptions),
+                details=self.t("analyzer_content.meta_tags.issues.missing_description_details",
                 affected_urls=missing_descriptions[:20],
-                recommendation=self.t("analyzers.meta_tags.missing_description_recommendation"),
+                recommendation=self.t("analyzer_content.meta_tags.issues.missing_description_recommendation",
                 count=len(missing_descriptions),
             ))
 
@@ -110,10 +110,10 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="short_title",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.meta_tags.short_title", count=len(short_titles)),
-                details=self.t("analyzers.meta_tags.short_title_details", min=settings.TITLE_MIN_LENGTH, max=settings.TITLE_MAX_LENGTH),
+                message=self.t("analyzer_content.meta_tags.issues.short_title", count=len(short_titles),
+                details=self.t("analyzer_content.meta_tags.issues.short_title_details", min=settings.TITLE_MIN_LENGTH, max=settings.TITLE_MAX_LENGTH,
                 affected_urls=[url for url, _, _ in short_titles[:20]],
-                recommendation=self.t("analyzers.meta_tags.short_title_recommendation"),
+                recommendation=self.t("analyzer_content.meta_tags.issues.short_title_recommendation",
                 count=len(short_titles),
             ))
 
@@ -122,10 +122,10 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="long_title",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.meta_tags.long_title", count=len(long_titles)),
-                details=self.t("analyzers.meta_tags.long_title_details", min=settings.TITLE_MIN_LENGTH, max=settings.TITLE_MAX_LENGTH),
+                message=self.t("analyzer_content.meta_tags.issues.long_title", count=len(long_titles),
+                details=self.t("analyzer_content.meta_tags.issues.long_title_details", min=settings.TITLE_MIN_LENGTH, max=settings.TITLE_MAX_LENGTH,
                 affected_urls=[url for url, _, _ in long_titles[:20]],
-                recommendation=self.t("analyzers.meta_tags.long_title_recommendation"),
+                recommendation=self.t("analyzer_content.meta_tags.issues.long_title_recommendation",
                 count=len(long_titles),
             ))
 
@@ -134,10 +134,10 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="short_description",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.meta_tags.short_description", count=len(short_descriptions)),
-                details=self.t("analyzers.meta_tags.short_description_details", min=settings.DESCRIPTION_MIN_LENGTH, max=settings.DESCRIPTION_MAX_LENGTH),
+                message=self.t("analyzer_content.meta_tags.issues.short_description", count=len(short_descriptions),
+                details=self.t("analyzer_content.meta_tags.issues.short_description_details", min=settings.DESCRIPTION_MIN_LENGTH, max=settings.DESCRIPTION_MAX_LENGTH,
                 affected_urls=[url for url, _, _ in short_descriptions[:20]],
-                recommendation=self.t("analyzers.meta_tags.short_description_recommendation"),
+                recommendation=self.t("analyzer_content.meta_tags.issues.short_description_recommendation",
                 count=len(short_descriptions),
             ))
 
@@ -146,10 +146,10 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="long_description",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.meta_tags.long_description", count=len(long_descriptions)),
-                details=self.t("analyzers.meta_tags.long_description_details", min=settings.DESCRIPTION_MIN_LENGTH, max=settings.DESCRIPTION_MAX_LENGTH),
+                message=self.t("analyzer_content.meta_tags.issues.long_description", count=len(long_descriptions),
+                details=self.t("analyzer_content.meta_tags.issues.long_description_details", min=settings.DESCRIPTION_MIN_LENGTH, max=settings.DESCRIPTION_MAX_LENGTH,
                 affected_urls=[url for url, _, _ in long_descriptions[:20]],
-                recommendation=self.t("analyzers.meta_tags.long_description_recommendation"),
+                recommendation=self.t("analyzer_content.meta_tags.issues.long_description_recommendation",
                 count=len(long_descriptions),
             ))
 
@@ -163,10 +163,10 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="duplicate_title",
                 severity=SeverityLevel.ERROR,
-                message=self.t("analyzers.meta_tags.duplicate_title", count=len(duplicate_titles)),
-                details=self.t("analyzers.meta_tags.duplicate_title_details"),
+                message=self.t("analyzer_content.meta_tags.issues.duplicate_title", count=len(duplicate_titles),
+                details=self.t("analyzer_content.meta_tags.issues.duplicate_title_details",
                 affected_urls=dup_urls[:20],
-                recommendation=self.t("analyzers.meta_tags.duplicate_title_recommendation"),
+                recommendation=self.t("analyzer_content.meta_tags.issues.duplicate_title_recommendation",
                 count=sum(duplicate_titles.values()),
             ))
 
@@ -180,17 +180,17 @@ class MetaTagsAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="duplicate_description",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.meta_tags.duplicate_description", count=len(duplicate_descriptions)),
-                details=self.t("analyzers.meta_tags.duplicate_description_details"),
+                message=self.t("analyzer_content.meta_tags.issues.duplicate_description", count=len(duplicate_descriptions),
+                details=self.t("analyzer_content.meta_tags.issues.duplicate_description_details",
                 affected_urls=dup_urls[:20],
-                recommendation=self.t("analyzers.meta_tags.duplicate_description_recommendation"),
+                recommendation=self.t("analyzer_content.meta_tags.issues.duplicate_description_recommendation",
                 count=sum(duplicate_descriptions.values()),
             ))
 
         # Create table with problematic pages
         if missing_titles or missing_descriptions or short_titles or long_titles:
-            h_url = self.t("table.url")
-            h_problem = self.t("table.problem")
+            h_url = self.t("tables.url")
+            h_problem = self.t("tables.problem")
             h_title = "Title"
             h_description = "Description"
 
@@ -201,7 +201,7 @@ class MetaTagsAnalyzer(BaseAnalyzer):
                 if url not in seen_urls:
                     table_data.append({
                         h_url: url,
-                        h_problem: self.t("analyzers.meta_tags.problem_missing_title"),
+                        h_problem: self.t("analyzer_content.meta_tags.issues.problem_missing_title",
                         h_title: "-",
                         h_description: pages[url].meta_description[:50] + "..." if pages[url].meta_description else "-",
                     })
@@ -211,7 +211,7 @@ class MetaTagsAnalyzer(BaseAnalyzer):
                 if url not in seen_urls:
                     table_data.append({
                         h_url: url,
-                        h_problem: self.t("analyzers.meta_tags.problem_missing_description"),
+                        h_problem: self.t("analyzer_content.meta_tags.issues.problem_missing_description",
                         h_title: pages[url].title[:50] + "..." if pages[url].title else "-",
                         h_description: "-",
                     })
@@ -219,7 +219,7 @@ class MetaTagsAnalyzer(BaseAnalyzer):
 
             if table_data:
                 tables.append({
-                    "title": self.t("analyzers.meta_tags.table_title"),
+                    "title": self.t("analyzer_content.meta_tags.issues.table_title",
                     "headers": [h_url, h_problem, h_title, h_description],
                     "rows": table_data,
                 })
@@ -231,11 +231,11 @@ class MetaTagsAnalyzer(BaseAnalyzer):
 
         summary_parts = []
         if missing_titles or missing_descriptions:
-            summary_parts.append(self.t("analyzers.meta_tags.summary_missing", titles=len(missing_titles), descriptions=len(missing_descriptions)))
+            summary_parts.append(self.t("analyzer_content.meta_tags.summary.missing", titles=len(missing_titles), descriptions=len(missing_descriptions)))
         if duplicate_titles or duplicate_descriptions:
-            summary_parts.append(self.t("analyzers.meta_tags.summary_duplicates", titles=len(duplicate_titles), descriptions=len(duplicate_descriptions)))
+            summary_parts.append(self.t("analyzer_content.meta_tags.summary.duplicates", titles=len(duplicate_titles), descriptions=len(duplicate_descriptions)))
         if not summary_parts:
-            summary_parts.append(self.t("analyzers.meta_tags.summary_ok", pages=total_pages))
+            summary_parts.append(self.t("analyzer_content.meta_tags.summary.ok", pages=total_pages))
 
         severity = self._determine_overall_severity(issues)
 

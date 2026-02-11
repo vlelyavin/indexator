@@ -27,7 +27,7 @@ class CMSAnalyzer(BaseAnalyzer):
 
     @property
     def theory(self) -> str:
-        return self.t("analyzers.cms.theory")
+        return self.t("analyzer_content.cms.theory")
 
     # CMS detection signatures
     CMS_SIGNATURES: Dict[str, Dict[str, Any]] = {
@@ -253,8 +253,8 @@ class CMSAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="cms_detected",
                 severity=SeverityLevel.SUCCESS,
-                message=self.t("analyzers.cms.detected", cms=cms_name),
-                details=self.t("analyzers.cms.detected_details", evidence=", ".join(evidence[:3])),
+                message=self.t("analyzer_content.cms.issues.detected", cms=cms_name,
+                details=self.t("analyzer_content.cms.details.detected", evidence=", ".join(evidence[:3])),
                 recommendation=self._get_cms_recommendation(cms_name),
             ))
 
@@ -264,23 +264,23 @@ class CMSAnalyzer(BaseAnalyzer):
                 issues.append(self.create_issue(
                     category="multiple_cms",
                     severity=SeverityLevel.INFO,
-                    message=self.t("analyzers.cms.multiple_detected", cms=", ".join(other_cms)),
-                    details=self.t("analyzers.cms.multiple_detected_details"),
+                    message=self.t("analyzer_content.cms.issues.multiple_detected", cms=", ".join(other_cms),
+                    details=self.t("analyzer_content.cms.issues.multiple_detected_details",
                 ))
         else:
             issues.append(self.create_issue(
                 category="cms_unknown",
                 severity=SeverityLevel.INFO,
-                message=self.t("analyzers.cms.unknown"),
-                details=self.t("analyzers.cms.unknown_details"),
+                message=self.t("analyzer_content.cms.issues.unknown",
+                details=self.t("analyzer_content.cms.details.unknown"),
             ))
 
         # Summary
         if detected_cms:
             primary = detected_cms[0]
-            summary = self.t("analyzers.cms.summary_detected", cms=primary[0])
+            summary = self.t("analyzer_content.cms.summary.detected", cms=primary[0])
         else:
-            summary = self.t("analyzers.cms.summary_unknown")
+            summary = self.t("analyzer_content.cms.summary.unknown")
 
         return self.create_result(
             severity=SeverityLevel.SUCCESS if detected_cms else SeverityLevel.INFO,
@@ -312,4 +312,4 @@ class CMSAnalyzer(BaseAnalyzer):
         cms_key = cms_key_map.get(cms_name)
         if cms_key:
             return self.t(f"analyzers.cms.recommendation_{cms_key}")
-        return self.t("analyzers.cms.recommendation_default")
+        return self.t("analyzer_content.cms.issues.recommendation_default"

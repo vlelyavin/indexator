@@ -26,7 +26,7 @@ class ContentAnalyzer(BaseAnalyzer):
 
     @property
     def theory(self) -> str:
-        return self.t("analyzers.content.theory")
+        return self.t("analyzer_content.content.theory")
 
     async def analyze(
         self,
@@ -63,10 +63,10 @@ class ContentAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="empty_pages",
                 severity=SeverityLevel.ERROR,
-                message=self.t("analyzers.content.empty_pages", count=len(empty_pages)),
-                details=self.t("analyzers.content.empty_pages_details"),
+                message=self.t("analyzer_content.content.issues.empty_pages", count=len(empty_pages),
+                details=self.t("analyzer_content.content.issues.empty_pages_details",
                 affected_urls=empty_pages[:20],
-                recommendation=self.t("analyzers.content.empty_pages_recommendation"),
+                recommendation=self.t("analyzer_content.content.issues.empty_pages_recommendation",
                 count=len(empty_pages),
             ))
 
@@ -74,17 +74,17 @@ class ContentAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="thin_content",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzers.content.thin_content", count=len(thin_content)),
-                details=self.t("analyzers.content.thin_content_details", min_words=settings.MIN_CONTENT_WORDS),
+                message=self.t("analyzer_content.content.issues.thin_content", count=len(thin_content),
+                details=self.t("analyzer_content.content.issues.thin_content_details", min_words=settings.MIN_CONTENT_WORDS,
                 affected_urls=[url for url, _ in thin_content[:20]],
-                recommendation=self.t("analyzers.content.thin_content_recommendation"),
+                recommendation=self.t("analyzer_content.content.issues.thin_content_recommendation",
                 count=len(thin_content),
             ))
 
         # Create table with thin content pages
-        h_url = self.t("table.url")
-        h_word_count = self.t("table.word_count")
-        h_status = self.t("table.status")
+        h_url = self.t("tables.url")
+        h_word_count = self.t("tables.word_count")
+        h_status = self.t("tables.status")
 
         table_data = []
 
@@ -92,19 +92,19 @@ class ContentAnalyzer(BaseAnalyzer):
             table_data.append({
                 h_url: url[:70] + "..." if len(url) > 70 else url,
                 h_word_count: 0,
-                h_status: self.t("analyzers.content.status_empty"),
+                h_status: self.t("analyzer_content.content.issues.status_empty",
             })
 
         for url, count in thin_content[:15]:
             table_data.append({
                 h_url: url[:70] + "..." if len(url) > 70 else url,
                 h_word_count: count,
-                h_status: self.t("analyzers.content.status_thin"),
+                h_status: self.t("analyzer_content.content.issues.status_thin",
             })
 
         if table_data:
             tables.append({
-                "title": self.t("analyzers.content.table_title"),
+                "title": self.t("analyzer_content.content.issues.table_title",
                 "headers": [h_url, h_word_count, h_status],
                 "rows": table_data,
             })
@@ -123,14 +123,14 @@ class ContentAnalyzer(BaseAnalyzer):
         ok_pages = total_pages - len(empty_pages) - len(thin_content)
 
         if not issues:
-            summary = self.t("analyzers.content.summary_ok", pages=total_pages, avg_words=avg_words)
+            summary = self.t("analyzer_content.content.summary.ok", pages=total_pages, avg_words=avg_words)
         else:
             parts = []
             if empty_pages:
-                parts.append(self.t("analyzers.content.summary_empty", count=len(empty_pages)))
+                parts.append(self.t("analyzer_content.content.summary.empty", count=len(empty_pages)))
             if thin_content:
-                parts.append(self.t("analyzers.content.summary_thin", count=len(thin_content)))
-            summary = self.t("analyzers.content.summary_issues", issues=", ".join(parts), avg_words=avg_words)
+                parts.append(self.t("analyzer_content.content.summary.thin", count=len(thin_content)))
+            summary = self.t("analyzer_content.content.summary.issues", issues=", ".join(parts), avg_words=avg_words)
 
         severity = self._determine_overall_severity(issues)
 

@@ -209,6 +209,21 @@ class WebCrawler:
 
                 load_time = time.time() - start_time
 
+                # Save response headers
+                response_headers = dict(response.headers) if response else {}
+
+                # Track redirect chain
+                redirect_chain = []
+                final_url = str(page.url)
+                req = response.request
+                chain_urls = []
+                while req.redirected_from:
+                    chain_urls.append(req.redirected_from.url)
+                    req = req.redirected_from
+                chain_urls.reverse()
+                if chain_urls:
+                    redirect_chain = chain_urls + [response.url]
+
                 # Check content type
                 content_type = response.headers.get('content-type', '')
                 if 'text/html' not in content_type.lower():
@@ -238,6 +253,10 @@ class WebCrawler:
                 # Extract headings
                 h1_tags = [h.get_text(strip=True) for h in soup.find_all('h1') if h.get_text(strip=True)]
                 h2_tags = [h.get_text(strip=True) for h in soup.find_all('h2') if h.get_text(strip=True)]
+                h3_tags = [h.get_text(strip=True) for h in soup.find_all('h3') if h.get_text(strip=True)]
+                h4_tags = [h.get_text(strip=True) for h in soup.find_all('h4') if h.get_text(strip=True)]
+                h5_tags = [h.get_text(strip=True) for h in soup.find_all('h5') if h.get_text(strip=True)]
+                h6_tags = [h.get_text(strip=True) for h in soup.find_all('h6') if h.get_text(strip=True)]
 
                 # Extract text content and count words
                 text_content = self._extract_text_content(BeautifulSoup(html, 'lxml'))
@@ -258,6 +277,10 @@ class WebCrawler:
                     canonical=canonical,
                     h1_tags=h1_tags,
                     h2_tags=h2_tags,
+                    h3_tags=h3_tags,
+                    h4_tags=h4_tags,
+                    h5_tags=h5_tags,
+                    h6_tags=h6_tags,
                     word_count=word_count,
                     images=images,
                     internal_links=internal_links,
@@ -266,6 +289,9 @@ class WebCrawler:
                     load_time=load_time,
                     html_content=html,
                     has_noindex=has_noindex,
+                    response_headers=response_headers,
+                    redirect_chain=redirect_chain,
+                    final_url=final_url,
                 )
 
             except Exception as e:

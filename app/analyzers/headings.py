@@ -1,4 +1,4 @@
-"""Headings (H1) analyzer."""
+"""Headings (H1-H6) analyzer."""
 
 from collections import Counter
 from typing import Any, Dict, List
@@ -8,30 +8,19 @@ from .base import BaseAnalyzer
 
 
 class HeadingsAnalyzer(BaseAnalyzer):
-    """Analyzer for H1 headings."""
+    """Analyzer for H1-H6 headings hierarchy."""
 
     name = "headings"
-    display_name = "Заголовки H1"
-    description = "Заголовок H1 є важливим елементом для SEO. Кожна сторінка повинна мати один унікальний H1."
-    icon = "📝"
-    theory = """<strong>Заголовок H1</strong> — це головний заголовок сторінки в HTML-розмітці. Пошукові системи використовують H1 для розуміння основної теми сторінки.
+    display_name = "Заголовки H1-H6"
+    description = "Аналіз заголовків H1-H6: наявність, унікальність та правильна ієрархія."
+    icon = ""
+    theory = """<strong>Заголовки H1-H6</strong> — ієрархія заголовків для структурування контенту сторінки.
 
-<strong>Правила оптимізації:</strong>
-• Кожна сторінка повинна мати <strong>рівно один H1</strong>
-• H1 повинен бути унікальним для кожної сторінки сайту
-• Включайте основне ключове слово в H1
-• H1 має відповідати змісту сторінки та бути схожим на Title
-
-<strong>Чому це важливо:</strong>
-• Google використовує H1 як сигнал релевантності
-• Відсутність H1 ускладнює розуміння теми сторінки
-• Кілька H1 на сторінці розмивають тематичний фокус
-• Дублі H1 на різних сторінках можуть призвести до канібалізації ключових слів
-
-<strong>Рекомендації:</strong>
-• Структуруйте контент ієрархічно: H1 → H2 → H3
-• Не використовуйте H1 для логотипу чи слогану
-• H1 має бути видимим для користувачів (не прихованим CSS)"""
+<strong>Правила:</strong>
+• <strong>Рівно один H1</strong> на сторінку (кілька — розмивають фокус)
+• H1 унікальний для кожної сторінки, 20-70 символів
+• <strong>Ієрархія H1 → H2 → H3</strong> — не пропускайте рівні (H1 → H3 без H2 — порушення)
+• H2 використовуйте для основних розділів, H3 для підрозділів"""
 
     async def analyze(
         self,
@@ -120,6 +109,39 @@ class HeadingsAnalyzer(BaseAnalyzer):
                 count=sum(duplicate_h1s.values()),
             ))
 
+        # Check heading hierarchy (H1-H6)
+        hierarchy_violations = []
+        for url, page in pages.items():
+            if page.status_code != 200:
+                continue
+            headings_by_level = {
+                1: page.h1_tags,
+                2: page.h2_tags,
+                3: page.h3_tags,
+                4: page.h4_tags,
+                5: page.h5_tags,
+                6: page.h6_tags,
+            }
+            present_levels = sorted([lvl for lvl, tags in headings_by_level.items() if tags])
+            if len(present_levels) >= 2:
+                for i in range(len(present_levels) - 1):
+                    if present_levels[i + 1] - present_levels[i] > 1:
+                        hierarchy_violations.append(
+                            (url, present_levels[i], present_levels[i + 1])
+                        )
+                        break
+
+        if hierarchy_violations:
+            issues.append(self.create_issue(
+                category="hierarchy_violation",
+                severity=SeverityLevel.WARNING,
+                message=f"Порушення ієрархії заголовків: {len(hierarchy_violations)} сторінок",
+                details="Пропуск рівнів заголовків (наприклад, H1 → H3 без H2) порушує семантику.",
+                affected_urls=[url for url, _, _ in hierarchy_violations[:20]],
+                recommendation="Дотримуйтесь послідовної ієрархії: H1 → H2 → H3 → H4.",
+                count=len(hierarchy_violations),
+            ))
+
         # Create table with problematic pages
         table_data = []
 
@@ -144,6 +166,13 @@ class HeadingsAnalyzer(BaseAnalyzer):
                 "H1": "(порожньо)",
             })
 
+        for url, from_lvl, to_lvl in hierarchy_violations[:10]:
+            table_data.append({
+                "URL": url,
+                "Проблема": f"H{from_lvl} → H{to_lvl} (пропуск)",
+                "H1": page.h1_tags[0] if pages.get(url) and pages[url].h1_tags else "-",
+            })
+
         if table_data:
             tables.append({
                 "title": "Проблемні сторінки",
@@ -162,6 +191,8 @@ class HeadingsAnalyzer(BaseAnalyzer):
             summary_parts.append(f"декілька H1: {len(multiple_h1)}")
         if duplicate_h1s:
             summary_parts.append(f"дублів H1: {len(duplicate_h1s)}")
+        if hierarchy_violations:
+            summary_parts.append(f"порушень ієрархії: {len(hierarchy_violations)}")
 
         if summary_parts:
             summary = f"Знайдено проблеми: {', '.join(summary_parts)}"
@@ -180,6 +211,7 @@ class HeadingsAnalyzer(BaseAnalyzer):
                 "multiple_h1": len(multiple_h1),
                 "empty_h1": len(empty_h1),
                 "duplicate_h1": len(duplicate_h1s),
+                "hierarchy_violations": len(hierarchy_violations),
                 "ok_pages": ok_pages,
             },
             tables=tables,

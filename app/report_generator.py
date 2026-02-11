@@ -281,12 +281,130 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                 if translated_summary:
                     translated.summary = translated_summary
 
+        elif name == "schema":
+            if "Знайдено" in result.summary and "типів" in result.summary:
+                match = re.search(r'Знайдено (\d+) типів Schema\.org на (\d+) сторінках', result.summary)
+                if match:
+                    summary_key = f"analyzer_content.{name}.summary.found"
+                    translated_summary = translator.get(summary_key, "")
+                    if translated_summary:
+                        translated.summary = translated_summary.format(types=match.group(1), pages=match.group(2))
+            elif "відсутні" in result.summary:
+                summary_key = f"analyzer_content.{name}.summary.missing"
+                translated_summary = translator.get(summary_key, "")
+                if translated_summary:
+                    translated.summary = translated_summary
+
+        elif name == "social_tags":
+            if "OG теги:" in result.summary:
+                match = re.search(r'OG теги: (\d+)/(\d+).*Twitter Cards: (\d+)/(\d+)', result.summary)
+                if match:
+                    summary_key = f"analyzer_content.{name}.summary.stats"
+                    translated_summary = translator.get(summary_key, "")
+                    if translated_summary:
+                        translated.summary = translated_summary.format(
+                            og=match.group(1), total=match.group(2),
+                            twitter=match.group(3), total2=match.group(4))
+            elif "Немає сторінок" in result.summary:
+                summary_key = f"analyzer_content.{name}.summary.no_pages"
+                translated_summary = translator.get(summary_key, "")
+                if translated_summary:
+                    translated.summary = translated_summary
+
+        elif name == "security":
+            if "в нормі" in result.summary:
+                summary_key = f"analyzer_content.{name}.summary.ok"
+                translated_summary = translator.get(summary_key, "")
+                if translated_summary:
+                    translated.summary = translated_summary
+            elif "Знайдено проблем:" in result.summary:
+                match = re.search(r'Знайдено проблем: (.+)$', result.summary)
+                if match:
+                    summary_key = f"analyzer_content.{name}.summary.problems"
+                    translated_summary = translator.get(summary_key, "")
+                    if translated_summary:
+                        translated.summary = translated_summary.format(problems=match.group(1))
+
+        elif name == "mobile":
+            if "мають viewport" in result.summary:
+                match = re.search(r'Всі (\d+) сторінок', result.summary)
+                if match:
+                    summary_key = f"analyzer_content.{name}.summary.ok"
+                    translated_summary = translator.get(summary_key, "")
+                    if translated_summary:
+                        translated.summary = translated_summary.format(count=match.group(1))
+            elif "Проблеми:" in result.summary:
+                match = re.search(r'Проблеми: (.+)$', result.summary)
+                if match:
+                    summary_key = f"analyzer_content.{name}.summary.problems"
+                    translated_summary = translator.get(summary_key, "")
+                    if translated_summary:
+                        translated.summary = translated_summary.format(problems=match.group(1))
+
+        elif name == "url_quality":
+            if "Всі URL якісні" in result.summary:
+                summary_key = f"analyzer_content.{name}.summary.ok"
+                translated_summary = translator.get(summary_key, "")
+                if translated_summary:
+                    translated.summary = translated_summary
+            elif "Знайдено проблем:" in result.summary:
+                match = re.search(r'Знайдено проблем: (.+)$', result.summary)
+                if match:
+                    summary_key = f"analyzer_content.{name}.summary.problems"
+                    translated_summary = translator.get(summary_key, "")
+                    if translated_summary:
+                        translated.summary = translated_summary.format(problems=match.group(1))
+
+        elif name == "hreflang":
+            if "відсутні" in result.summary:
+                summary_key = f"analyzer_content.{name}.summary.missing"
+                translated_summary = translator.get(summary_key, "")
+                if translated_summary:
+                    translated.summary = translated_summary
+            elif "Знайдено" in result.summary:
+                match = re.search(r'Знайдено (\d+) мовних версій на (\d+) сторінках', result.summary)
+                if match:
+                    summary_key = f"analyzer_content.{name}.summary.found"
+                    translated_summary = translator.get(summary_key, "")
+                    if translated_summary:
+                        translated.summary = translated_summary.format(langs=match.group(1), pages=match.group(2))
+
+        elif name == "duplicates":
+            if "Знайдено" in result.summary and "груп" in result.summary:
+                match = re.search(r'Знайдено (\d+) груп', result.summary)
+                if match:
+                    summary_key = f"analyzer_content.{name}.summary.found"
+                    translated_summary = translator.get(summary_key, "")
+                    if translated_summary:
+                        translated.summary = translated_summary.format(count=match.group(1))
+            elif "не виявлено" in result.summary:
+                summary_key = f"analyzer_content.{name}.summary.ok"
+                translated_summary = translator.get(summary_key, "")
+                if translated_summary:
+                    translated.summary = translated_summary
+
+        elif name == "redirects":
+            if "Знайдено" in result.summary and "ланцюжків" in result.summary:
+                match = re.search(r'Знайдено (\d+) ланцюжків', result.summary)
+                if match:
+                    summary_key = f"analyzer_content.{name}.summary.found"
+                    translated_summary = translator.get(summary_key, "")
+                    if translated_summary:
+                        translated.summary = translated_summary.format(count=match.group(1))
+            elif "не знайдено" in result.summary:
+                summary_key = f"analyzer_content.{name}.summary.ok"
+                translated_summary = translator.get(summary_key, "")
+                if translated_summary:
+                    translated.summary = translated_summary
+
         # Post-process: replace remaining Ukrainian words in summary
         # (injected via {problems}, {broken}, {sections} placeholders)
         if lang == 'ru' and translated.summary:
             _summary_word_map = {
                 'декілька H1': 'несколько H1',
                 'дублів H1': 'дублей H1',
+                'порушень ієрархії': 'нарушений иерархии',
+                'без H1': 'без H1',
                 'завеликі': 'слишком большие',
                 'застарілий формат': 'устаревший формат',
                 'порожніх': 'пустых',
@@ -297,6 +415,15 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                 'сирітських': 'сиротских',
                 'помилок': 'ошибок',
                 'попереджень': 'предупреждений',
+                'без viewport': 'без viewport',
+                'Flash-контент': 'Flash-контент',
+                'некоректний viewport': 'некорректный viewport',
+                'довгих URL': 'длинных URL',
+                'великі літери': 'заглавные буквы',
+                'спецсимволи': 'спецсимволы',
+                'підкреслення': 'подчёркивания',
+                'подвійні слеші': 'двойные слэши',
+                'параметри': 'параметры',
             }
             for ukr, rus in _summary_word_map.items():
                 if ukr in translated.summary:
@@ -495,22 +622,14 @@ class ReportGenerator:
         # Prepare sections for navigation with translated names
         sections = []
         section_order = [
-            ("cms", "🔧"),
-            ("meta_tags", "🏷️"),
-            ("headings", "📝"),
-            ("page_404", "🚫"),
-            ("speed", "⚡"),
-            ("images", "🖼️"),
-            ("content", "📄"),
-            ("links", "🔗"),
-            ("favicon", "🌟"),
-            ("external_links", "🔗"),
-            ("robots", "🤖"),
-            ("structure", "🏗️"),
-            ("content_sections", "📰"),
+            "cms", "meta_tags", "headings", "page_404", "speed",
+            "images", "content", "links", "favicon", "external_links",
+            "robots", "structure", "content_sections",
+            "schema", "social_tags", "security", "mobile",
+            "url_quality", "hreflang", "duplicates", "redirects",
         ]
 
-        for name, icon in section_order:
+        for name in section_order:
             if name in audit.results:
                 result = audit.results[name]
 
@@ -526,7 +645,7 @@ class ReportGenerator:
                 sections.append({
                     "id": name,
                     "title": title,
-                    "icon": icon,
+                    "icon": "",
                     "severity": result.severity,
                     "result": result,
                 })
@@ -549,6 +668,7 @@ class ReportGenerator:
             "expand_more": t("common.expand_more"),
             "collapse": t("common.collapse"),
             "pagespeed_screenshots": t("report.pagespeed_screenshots"),
+            "homepage_screenshot_title": t("report.homepage_screenshot_title"),
         }
 
         # Render template
@@ -850,7 +970,7 @@ class ReportGenerator:
             p.paragraph_format.space_before = Pt(4)
             p.paragraph_format.space_after = Pt(2)
             rec_label = t_labels.get("recommendation", "Рекомендація")
-            run = p.add_run(f"💡 {rec_label}: ")
+            run = p.add_run(f"{rec_label}: ")
             self._docx_set_font(run, size_pt=9, bold=True, color_rgb=(55, 65, 81))
             run = p.add_run(issue.recommendation)
             self._docx_set_font(run, size_pt=9, color_rgb=(55, 65, 81))
@@ -896,6 +1016,7 @@ class ReportGenerator:
             "recommendation": t("report.recommendation"),
             "no_issues": t("report.no_issues"),
             "pagespeed_screenshots": t("report.pagespeed_screenshots"),
+            "homepage_screenshot_title": t("report.homepage_screenshot_title"),
         }
 
         # Extract domain
@@ -951,7 +1072,7 @@ class ReportGenerator:
         doc.add_paragraph()
 
         # --- Summary Section ---
-        overview_heading = doc.add_heading(f"📊 {t_labels['overview']}", level=1)
+        overview_heading = doc.add_heading(t_labels['overview'], level=1)
         overview_heading.paragraph_format.space_after = Pt(16)
 
         summary_table = doc.add_table(rows=2, cols=4)
@@ -985,21 +1106,28 @@ class ReportGenerator:
 
         doc.add_paragraph()
 
+        # --- Homepage Screenshot ---
+        if audit.homepage_screenshot:
+            import base64 as b64
+            from io import BytesIO
+            hp_title = t_labels.get("homepage_screenshot_title", "Homepage")
+            hp_heading = doc.add_heading(hp_title, level=1)
+            hp_heading.paragraph_format.space_after = Pt(12)
+            try:
+                img_bytes = b64.b64decode(audit.homepage_screenshot)
+                img_stream = BytesIO(img_bytes)
+                doc.add_picture(img_stream, width=Inches(6.0))
+            except Exception:
+                pass
+            doc.add_paragraph()
+
         # --- Results Sections ---
         section_order = [
-            ("cms", "🔧"),
-            ("meta_tags", "🏷️"),
-            ("headings", "📝"),
-            ("page_404", "🚫"),
-            ("speed", "⚡"),
-            ("images", "🖼️"),
-            ("content", "📄"),
-            ("links", "🔗"),
-            ("favicon", "🌟"),
-            ("external_links", "🔗"),
-            ("robots", "🤖"),
-            ("structure", "🏗️"),
-            ("content_sections", "📰"),
+            "cms", "meta_tags", "headings", "page_404", "speed",
+            "images", "content", "links", "favicon", "external_links",
+            "robots", "structure", "content_sections",
+            "schema", "social_tags", "security", "mobile",
+            "url_quality", "hreflang", "duplicates", "redirects",
         ]
 
         severity_badge_text = {
@@ -1009,7 +1137,7 @@ class ReportGenerator:
             SeverityLevel.INFO: ("ℹ", (59, 130, 246)),
         }
 
-        for name, icon in section_order:
+        for name in section_order:
             if name not in audit.results:
                 continue
 
@@ -1024,8 +1152,8 @@ class ReportGenerator:
             if section_title == f"analyzers.{name}.name":
                 section_title = result.display_name
 
-            # Section heading with emoji
-            heading = doc.add_heading(f"{icon} {section_title}", level=1)
+            # Section heading
+            heading = doc.add_heading(section_title, level=1)
             heading.paragraph_format.keep_with_next = True
 
             # Add severity badge after heading
@@ -1048,7 +1176,7 @@ class ReportGenerator:
                 p = doc.add_paragraph()
                 p.paragraph_format.space_after = Pt(4)
                 p.paragraph_format.keep_with_next = True
-                run = p.add_run(f"📖 {t_labels['theory_title']}")
+                run = p.add_run(t_labels['theory_title'])
                 self._docx_set_font(run, size_pt=10, bold=True, color_rgb=(75, 85, 99))
                 self._docx_parse_theory(doc, result.theory)
                 doc.add_paragraph()  # spacing after theory
@@ -1063,7 +1191,7 @@ class ReportGenerator:
                     spacer.paragraph_format.space_after = Pt(2)
             elif not result.tables:
                 p = doc.add_paragraph()
-                run = p.add_run(f"✅ {t_labels['no_issues']}")
+                run = p.add_run(f"✓ {t_labels['no_issues']}")
                 self._docx_set_font(run, size_pt=10, color_rgb=(16, 185, 129))
 
             # Tables
@@ -1125,16 +1253,19 @@ class ReportGenerator:
                     run = p.add_run(t_labels.get("pagespeed_screenshots", "PageSpeed Screenshots"))
                     self._docx_set_font(run, size_pt=10, bold=True)
 
-                    for label, ss_data in [("📱 Mobile", mobile_ss), ("🖥️ Desktop", desktop_ss)]:
+                    for label, ss_data in [("Mobile", mobile_ss), ("Desktop", desktop_ss)]:
                         if ss_data:
                             p = doc.add_paragraph()
                             p.paragraph_format.space_before = Pt(4)
                             run = p.add_run(label)
                             self._docx_set_font(run, size_pt=9, bold=True, color_rgb=(75, 85, 99))
 
-                            img_bytes = b64.b64decode(ss_data)
-                            img_stream = BytesIO(img_bytes)
-                            doc.add_picture(img_stream, width=Inches(6.0))
+                            try:
+                                img_bytes = b64.b64decode(ss_data)
+                                img_stream = BytesIO(img_bytes)
+                                doc.add_picture(img_stream, width=Inches(6.0))
+                            except Exception:
+                                pass
 
             doc.add_paragraph()  # spacing between sections
 

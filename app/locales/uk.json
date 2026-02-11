@@ -54,12 +54,13 @@
       "duplicate_descriptions": "Дублікати description"
     },
     "headings": {
-      "name": "Заголовки H1",
-      "description": "Заголовок H1 — головний заголовок сторінки для SEO.",
+      "name": "Заголовки H1-H6",
+      "description": "Аналіз заголовків H1-H6: наявність, унікальність та правильна ієрархія.",
       "missing_h1": "Відсутній H1",
       "multiple_h1": "Декілька H1",
       "duplicate_h1": "Дублікати H1",
-      "h1_too_long": "H1 занадто довгий"
+      "h1_too_long": "H1 занадто довгий",
+      "hierarchy_violation": "Порушення ієрархії заголовків"
     },
     "page_404": {
       "name": "Сторінка 404",
@@ -137,6 +138,38 @@
       "no_blog": "Блог/новини не виявлено",
       "no_faq": "FAQ не виявлено",
       "faq_no_schema": "FAQ без Schema.org розмітки"
+    },
+    "schema": {
+      "name": "Структуровані дані",
+      "description": "Аналіз розмітки Schema.org та структурованих даних."
+    },
+    "social_tags": {
+      "name": "Соціальні мета-теги",
+      "description": "Аналіз Open Graph та Twitter Card тегів."
+    },
+    "security": {
+      "name": "HTTPS та безпека",
+      "description": "Перевірка HTTPS, заголовків безпеки та змішаного контенту."
+    },
+    "mobile": {
+      "name": "Мобільна адаптивність",
+      "description": "Перевірка базових вимог до мобільної версії сайту."
+    },
+    "url_quality": {
+      "name": "Якість URL",
+      "description": "Аналіз структури та якості URL-адрес."
+    },
+    "hreflang": {
+      "name": "Hreflang",
+      "description": "Аналіз мультимовних та регіональних версій сторінок."
+    },
+    "duplicates": {
+      "name": "Дублікати контенту",
+      "description": "Виявлення сторінок зі схожим або ідентичним контентом."
+    },
+    "redirects": {
+      "name": "Редиректи",
+      "description": "Аналіз перенаправлень та ланцюжків редиректів."
     }
   },
   "status": {

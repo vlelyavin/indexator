@@ -36,7 +36,40 @@ from .analyzers import (
     ExternalLinksAnalyzer,
     CMSAnalyzer,
     ContentSectionsAnalyzer,
+    SchemaAnalyzer,
+    SocialTagsAnalyzer,
+    MobileAnalyzer,
+    URLQualityAnalyzer,
+    DuplicatesAnalyzer,
+    RedirectsAnalyzer,
+    SecurityAnalyzer,
+    HreflangAnalyzer,
 )
+
+# Registry of all available analyzers
+ALL_ANALYZERS = {
+    "cms": CMSAnalyzer,
+    "meta_tags": MetaTagsAnalyzer,
+    "headings": HeadingsAnalyzer,
+    "page_404": Page404Analyzer,
+    "speed": SpeedAnalyzer,
+    "images": ImagesAnalyzer,
+    "content": ContentAnalyzer,
+    "links": LinksAnalyzer,
+    "favicon": FaviconAnalyzer,
+    "external_links": ExternalLinksAnalyzer,
+    "robots": RobotsAnalyzer,
+    "structure": StructureAnalyzer,
+    "content_sections": ContentSectionsAnalyzer,
+    "schema": SchemaAnalyzer,
+    "social_tags": SocialTagsAnalyzer,
+    "security": SecurityAnalyzer,
+    "mobile": MobileAnalyzer,
+    "url_quality": URLQualityAnalyzer,
+    "hreflang": HreflangAnalyzer,
+    "duplicates": DuplicatesAnalyzer,
+    "redirects": RedirectsAnalyzer,
+}
 from .report_generator import ReportGenerator
 
 # Ensure directories exist
@@ -78,7 +111,6 @@ async def start_audit(request: AuditRequest, background_tasks: BackgroundTasks):
     audit = AuditResult(
         id=audit_id,
         url=str(request.url),
-        competitors=[str(c) for c in request.competitors],
         status=AuditStatus.PENDING,
         started_at=datetime.utcnow(),
         language=request.language if request.language in ["uk", "ru"] else "uk",
@@ -255,6 +287,18 @@ async def run_audit(audit_id: str, request: AuditRequest):
             stage="crawling",
         ))
 
+        # Capture homepage screenshot
+        try:
+            from .screenshots import screenshot_capture
+            audit.homepage_screenshot = await screenshot_capture.capture_page(
+                str(request.url),
+                viewport=screenshot_capture.DESKTOP_VIEWPORT,
+                full_page=False,
+                filename=f"homepage_{audit_id}.png",
+            )
+        except Exception as e:
+            print(f"Homepage screenshot failed (non-fatal): {e}")
+
         # Phase 2: Analysis
         audit.status = AuditStatus.ANALYZING
         await queue.put(ProgressEvent(
@@ -265,21 +309,9 @@ async def run_audit(audit_id: str, request: AuditRequest):
             stage="analyzing",
         ))
 
-        analyzers = [
-            CMSAnalyzer(),
-            MetaTagsAnalyzer(),
-            HeadingsAnalyzer(),
-            Page404Analyzer(),
-            SpeedAnalyzer(),
-            ImagesAnalyzer(),
-            ContentAnalyzer(),
-            LinksAnalyzer(),
-            FaviconAnalyzer(),
-            ExternalLinksAnalyzer(),
-            RobotsAnalyzer(),
-            StructureAnalyzer(),
-            ContentSectionsAnalyzer(),
-        ]
+        # Filter analyzers by request selection (None = all)
+        selected = request.analyzers if request.analyzers else list(ALL_ANALYZERS.keys())
+        analyzers = [ALL_ANALYZERS[name]() for name in selected if name in ALL_ANALYZERS]
 
         results = {}
         for i, analyzer in enumerate(analyzers):

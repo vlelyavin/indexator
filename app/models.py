@@ -29,9 +29,9 @@ class SeverityLevel(str, Enum):
 class AuditRequest(BaseModel):
     """Request to start a new audit."""
     url: HttpUrl
-    competitors: List[HttpUrl] = Field(default_factory=list, max_length=3)
     include_screenshots: bool = True
     language: str = "uk"  # Report language: uk (Ukrainian), ru (Russian)
+    analyzers: Optional[List[str]] = None  # None = all analyzers
 
 
 class ImageData(BaseModel):
@@ -63,6 +63,10 @@ class PageData(BaseModel):
     canonical: Optional[str] = None
     h1_tags: List[str] = Field(default_factory=list)
     h2_tags: List[str] = Field(default_factory=list)
+    h3_tags: List[str] = Field(default_factory=list)
+    h4_tags: List[str] = Field(default_factory=list)
+    h5_tags: List[str] = Field(default_factory=list)
+    h6_tags: List[str] = Field(default_factory=list)
     word_count: int = 0
     images: List[ImageData] = Field(default_factory=list)
     internal_links: List[str] = Field(default_factory=list)
@@ -71,6 +75,9 @@ class PageData(BaseModel):
     load_time: float = 0.0
     html_content: Optional[str] = None
     has_noindex: bool = False
+    response_headers: Dict[str, str] = Field(default_factory=dict)
+    redirect_chain: List[str] = Field(default_factory=list)
+    final_url: Optional[str] = None
 
 
 class AuditIssue(BaseModel):
@@ -103,7 +110,6 @@ class AuditResult(BaseModel):
     """Complete audit result."""
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     url: str
-    competitors: List[str] = Field(default_factory=list)
     status: AuditStatus = AuditStatus.PENDING
     started_at: datetime = Field(default_factory=datetime.utcnow)
     completed_at: Optional[datetime] = None
@@ -117,6 +123,7 @@ class AuditResult(BaseModel):
     report_path: Optional[str] = None
     error_message: Optional[str] = None
     language: str = "uk"  # Report language: uk, ru
+    homepage_screenshot: Optional[str] = None  # base64 homepage screenshot
 
 
 class ProgressEvent(BaseModel):

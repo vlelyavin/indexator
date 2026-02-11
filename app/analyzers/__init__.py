@@ -14,6 +14,14 @@ from .page_404 import Page404Analyzer
 from .external_links import ExternalLinksAnalyzer
 from .cms import CMSAnalyzer
 from .content_sections import ContentSectionsAnalyzer
+from .schema import SchemaAnalyzer
+from .social_tags import SocialTagsAnalyzer
+from .mobile import MobileAnalyzer
+from .url_quality import URLQualityAnalyzer
+from .duplicates import DuplicatesAnalyzer
+from .redirects import RedirectsAnalyzer
+from .security import SecurityAnalyzer
+from .hreflang import HreflangAnalyzer
 
 __all__ = [
     "BaseAnalyzer",
@@ -30,4 +38,12 @@ __all__ = [
     "ExternalLinksAnalyzer",
     "CMSAnalyzer",
     "ContentSectionsAnalyzer",
+    "SchemaAnalyzer",
+    "SocialTagsAnalyzer",
+    "MobileAnalyzer",
+    "URLQualityAnalyzer",
+    "DuplicatesAnalyzer",
+    "RedirectsAnalyzer",
+    "SecurityAnalyzer",
+    "HreflangAnalyzer",
 ]

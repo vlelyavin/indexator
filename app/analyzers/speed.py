@@ -20,26 +20,15 @@ class SpeedAnalyzer(BaseAnalyzer):
     name = "speed"
     display_name = "Швидкість завантаження"
     description = "Швидкість завантаження впливає на ранжування та користувацький досвід."
-    icon = "⚡"
-    theory = """<strong>Core Web Vitals</strong> — це набір метрик від Google, що вимірюють реальний користувацький досвід на сайті.
+    icon = ""
+    theory = """<strong>Core Web Vitals</strong> — метрики Google для оцінки користувацького досвіду. Офіційний фактор ранжування з 2021 року.
 
 <strong>Основні метрики:</strong>
-• <strong>LCP (Largest Contentful Paint)</strong> — час до відображення найбільшого елемента. Ціль: ≤2.5с
-• <strong>FID/TBT (First Input Delay / Total Blocking Time)</strong> — затримка до першої взаємодії. Ціль: ≤100мс / ≤300мс
-• <strong>CLS (Cumulative Layout Shift)</strong> — візуальна стабільність, зсуви елементів. Ціль: ≤0.1
+• <strong>LCP (Largest Contentful Paint)</strong> — час до найбільшого елемента. Ціль: ≤2.5с
+• <strong>FID/TBT (First Input Delay / Total Blocking Time)</strong> — затримка взаємодії. Ціль: ≤100мс / ≤300мс
+• <strong>CLS (Cumulative Layout Shift)</strong> — візуальна стабільність. Ціль: ≤0.1
 
-<strong>Вплив на SEO:</strong>
-• Швидкість — офіційний фактор ранжування Google з 2021 року
-• Повільні сайти мають вищий показник відмов (bounce rate)
-• Кожна секунда затримки знижує конверсію на 7%
-
-<strong>Як покращити:</strong>
-• Оптимізуйте зображення (WebP, lazy loading, responsive images)
-• Мінімізуйте CSS/JS, використовуйте критичний CSS
-• Увімкніть gzip/brotli стиснення
-• Використовуйте CDN для статичних ресурсів
-• Оптимізуйте шрифти (font-display: swap)
-• Зменшіть кількість HTTP-запитів"""
+Кожна секунда затримки знижує конверсію на ~7%."""
 
     # Target metrics (in seconds where applicable)
     MOBILE_TARGETS = {

@@ -251,15 +251,6 @@ class ScreenshotCapture:
             logger.warning(f"Image capture error for {image_url}: {e}")
             return None
 
-    async def capture_competitor(self, url: str, index: int = 0) -> Optional[str]:
-        """Capture competitor homepage."""
-        return await self.capture_page(
-            url,
-            viewport=self.DESKTOP_VIEWPORT,
-            full_page=False,
-            filename=f"competitor_{index}_{self._url_to_filename(url)}.png",
-        )
-
     @staticmethod
     def to_base64(image_bytes: bytes) -> str:
         """Convert image bytes to base64 string."""

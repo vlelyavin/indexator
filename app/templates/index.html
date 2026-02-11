@@ -115,12 +115,6 @@
             gap: 16px;
         }
 
-        .competitors-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
         .btn {
             display: inline-flex;
             align-items: center;
@@ -289,6 +283,86 @@
             margin-top: 16px;
         }
 
+        /* Analyzers Section */
+        .analyzers-section {
+            margin-top: 8px;
+        }
+
+        .analyzers-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 8px 0;
+            user-select: none;
+        }
+
+        .analyzers-toggle-label {
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--color-text);
+        }
+
+        .analyzers-toggle-arrow {
+            font-size: 12px;
+            color: var(--color-text-light);
+            transition: transform 0.2s;
+        }
+
+        .analyzers-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 16px;
+            padding: 8px 0 4px;
+        }
+
+        .analyzer-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .analyzer-checkbox input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: var(--color-primary);
+            flex-shrink: 0;
+        }
+
+        .analyzer-checkbox span {
+            line-height: 1.3;
+        }
+
+        .analyzers-actions {
+            display: flex;
+            gap: 12px;
+            padding: 4px 0 8px;
+            font-size: 13px;
+        }
+
+        .analyzers-actions button {
+            background: none;
+            border: none;
+            color: var(--color-primary);
+            cursor: pointer;
+            font-size: 13px;
+            padding: 0;
+        }
+
+        .analyzers-actions button:hover {
+            text-decoration: underline;
+        }
+
+        .analyzer-separator {
+            grid-column: 1 / -1;
+            border-top: 1px solid var(--color-border);
+            margin: 4px 0;
+        }
+
         /* Hide/Show */
         [x-cloak] { display: none !important; }
     </style>
@@ -296,7 +370,7 @@
 <body x-data="auditApp()">
     <div class="container">
         <header class="header">
-            <h1>🔍 SEO Аудит</h1>
+            <h1>SEO Аудит</h1>
             <p>Автоматичний аналіз вашого сайту</p>
         </header>
 
@@ -316,28 +390,6 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Конкуренти (необов'язково)</label>
-                    <div class="competitors-list">
-                        <template x-for="(comp, index) in competitors" :key="index">
-                            <input
-                                type="url"
-                                class="form-input"
-                                x-model="competitors[index]"
-                                :placeholder="'https://competitor' + (index + 1) + '.com'"
-                            >
-                        </template>
-                    </div>
-                    <button
-                        type="button"
-                        class="btn btn-link"
-                        @click="addCompetitor"
-                        x-show="competitors.length < 3"
-                    >
-                        + Додати конкурента
-                    </button>
-                </div>
-
-                <div class="form-group">
                     <label class="form-label">Мова звіту</label>
                     <select class="form-select" x-model="language">
                         <option value="uk">🇺🇦 Українська</option>
@@ -345,7 +397,36 @@
                     </select>
                 </div>
 
-                <button type="submit" class="btn btn-primary" :disabled="!url">
+                <!-- Analyzer Selection -->
+                <div class="form-group">
+                    <div class="analyzers-section">
+                        <div class="analyzers-toggle" @click="showAnalyzers = !showAnalyzers">
+                            <span class="analyzers-toggle-label">Параметри аналізу</span>
+                            <span class="analyzers-toggle-arrow" :style="showAnalyzers ? 'transform: rotate(180deg)' : ''">&#9660;</span>
+                        </div>
+
+                        <div x-show="showAnalyzers" x-cloak>
+                            <div class="analyzers-actions">
+                                <button type="button" @click="toggleAllAnalyzers(true)">Обрати всі</button>
+                                <button type="button" @click="toggleAllAnalyzers(false)">Скасувати всі</button>
+                            </div>
+
+                            <div class="analyzers-grid">
+                                <template x-for="item in analyzerList" :key="item.key">
+                                    <div>
+                                        <div x-show="item.separator" class="analyzer-separator"></div>
+                                        <label class="analyzer-checkbox" x-show="!item.separator">
+                                            <input type="checkbox" x-model="analyzers[item.key]">
+                                            <span x-text="item.label"></span>
+                                        </label>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" :disabled="!url || !hasSelectedAnalyzers()">
                     Розпочати аудит
                 </button>
             </form>
@@ -405,15 +486,15 @@
                     <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
                         <a :href="'/api/audit/' + auditId + '/download?format=html'"
                            class="btn btn-success" style="text-decoration: none; min-width: 100px;">
-                            📄 HTML
+                            HTML
                         </a>
                         <a :href="'/api/audit/' + auditId + '/download?format=pdf'"
                            class="btn btn-success" style="text-decoration: none; min-width: 100px;">
-                            📕 PDF
+                            PDF
                         </a>
                         <a :href="'/api/audit/' + auditId + '/download?format=docx'"
                            class="btn btn-success" style="text-decoration: none; min-width: 100px;">
-                            📘 Word
+                            Word
                         </a>
                     </div>
                 </div>
@@ -432,8 +513,57 @@
         function auditApp() {
             return {
                 url: '',
-                competitors: [''],
                 language: 'uk',
+                showAnalyzers: false,
+                analyzers: {
+                    // Existing analyzers (default: checked)
+                    cms: true,
+                    meta_tags: true,
+                    headings: true,
+                    page_404: true,
+                    speed: true,
+                    images: true,
+                    content: true,
+                    links: true,
+                    favicon: true,
+                    external_links: true,
+                    robots: true,
+                    structure: true,
+                    content_sections: true,
+                    // New analyzers (default: unchecked)
+                    schema: false,
+                    social_tags: false,
+                    security: false,
+                    mobile: false,
+                    url_quality: false,
+                    hreflang: false,
+                    duplicates: false,
+                    redirects: false,
+                },
+                analyzerList: [
+                    { key: 'cms', label: 'CMS / Платформа' },
+                    { key: 'meta_tags', label: 'Мета-теги' },
+                    { key: 'headings', label: 'Заголовки H1-H6' },
+                    { key: 'page_404', label: 'Сторінка 404' },
+                    { key: 'speed', label: 'Швидкість' },
+                    { key: 'images', label: 'Зображення' },
+                    { key: 'content', label: 'Контент' },
+                    { key: 'links', label: 'Биті посилання' },
+                    { key: 'favicon', label: 'Фавікон' },
+                    { key: 'external_links', label: 'Зовнішні посилання' },
+                    { key: 'robots', label: 'Індексація' },
+                    { key: 'structure', label: 'Структура сайту' },
+                    { key: 'content_sections', label: 'Інформаційні розділи' },
+                    { key: '_sep', separator: true, label: '' },
+                    { key: 'schema', label: 'Структуровані дані' },
+                    { key: 'social_tags', label: 'Соціальні мета-теги' },
+                    { key: 'security', label: 'HTTPS та безпека' },
+                    { key: 'mobile', label: 'Мобільна адаптивність' },
+                    { key: 'url_quality', label: 'Якість URL' },
+                    { key: 'hreflang', label: 'Hreflang' },
+                    { key: 'duplicates', label: 'Дублікати контенту' },
+                    { key: 'redirects', label: 'Редиректи' },
+                ],
                 isRunning: false,
                 isCompleted: false,
                 auditId: null,
@@ -444,14 +574,18 @@
                 currentStage: '',
                 completedStages: [],
 
-                addCompetitor() {
-                    if (this.competitors.length < 3) {
-                        this.competitors.push('');
-                    }
-                },
-
                 stageCompleted(stage) {
                     return this.completedStages.includes(stage);
+                },
+
+                hasSelectedAnalyzers() {
+                    return Object.values(this.analyzers).some(v => v);
+                },
+
+                toggleAllAnalyzers(state) {
+                    for (const key in this.analyzers) {
+                        this.analyzers[key] = state;
+                    }
                 },
 
                 reset() {
@@ -473,6 +607,8 @@
                     this.errorMessage = '';
                     this.completedStages = [];
 
+                    const selectedAnalyzers = Object.keys(this.analyzers).filter(k => this.analyzers[k]);
+
                     try {
                         // Start audit
                         const response = await fetch('/api/audit', {
@@ -480,8 +616,8 @@
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 url: this.url,
-                                competitors: this.competitors.filter(c => c.trim()),
-                                language: this.language
+                                language: this.language,
+                                analyzers: selectedAnalyzers
                             })
                         });
 

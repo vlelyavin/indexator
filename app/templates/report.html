@@ -423,9 +423,15 @@
 
         <div class="sidebar-nav">
             <a href="#summary">
-                <span class="icon">📊</span>
+                <span class="icon"></span>
                 {{ t.overview if t else 'Загальний огляд' }}
             </a>
+            {% if audit.homepage_screenshot %}
+            <a href="#homepage-screenshot">
+                <span class="icon"></span>
+                {{ t.homepage_screenshot_title if t.homepage_screenshot_title != 'report.homepage_screenshot_title' else 'Скріншот' }}
+            </a>
+            {% endif %}
             {% for section in sections %}
             <a href="#{{ section.id }}">
                 <span class="icon">{{ section.icon }}</span>
@@ -465,6 +471,19 @@
             </div>
         </section>
 
+        {% if audit.homepage_screenshot %}
+        <section class="section" id="homepage-screenshot">
+            <div class="section-header">
+                <h2>{{ t.homepage_screenshot_title if t.homepage_screenshot_title != 'report.homepage_screenshot_title' else 'Скріншот головної сторінки' }}</h2>
+            </div>
+            <div class="section-content">
+                <div style="text-align: center;">
+                    <img src="data:image/png;base64,{{ audit.homepage_screenshot }}" alt="Homepage" style="max-width: 100%; border: 1px solid var(--color-border); border-radius: 8px;">
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
         <!-- Analyzer Sections -->
         {% for section in sections %}
         <section class="section" id="{{ section.id }}">
@@ -492,7 +511,7 @@
                 <!-- Theory -->
                 {% if section.result.theory %}
                 <details class="theory-block">
-                    <summary>📚 {{ t.theory_title if t else 'Теоретична довідка' }}</summary>
+                    <summary>{{ t.theory_title if t else 'Теоретична довідка' }}</summary>
                     <div class="theory-content">{{ section.result.theory | replace('\n', '<br>') | safe }}</div>
                 </details>
                 {% endif %}
@@ -532,7 +551,7 @@
 
                     {% if issue.recommendation %}
                     <div class="issue-recommendation">
-                        <strong>💡 {{ t.recommendation if t else 'Рекомендація' }}:</strong>
+                        <strong>{{ t.recommendation if t else 'Рекомендація' }}:</strong>
                         {{ issue.recommendation }}
                     </div>
                     {% endif %}
@@ -578,13 +597,13 @@
                     <div class="screenshots-grid">
                         {% if section.result.data.mobile_screenshot %}
                         <div class="screenshot-card">
-                            <h4>📱 Mobile</h4>
+                            <h4>Mobile</h4>
                             <img src="data:image/png;base64,{{ section.result.data.mobile_screenshot }}" alt="PageSpeed Mobile">
                         </div>
                         {% endif %}
                         {% if section.result.data.desktop_screenshot %}
                         <div class="screenshot-card">
-                            <h4>🖥️ Desktop</h4>
+                            <h4>Desktop</h4>
                             <img src="data:image/png;base64,{{ section.result.data.desktop_screenshot }}" alt="PageSpeed Desktop">
                         </div>
                         {% endif %}

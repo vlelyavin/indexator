@@ -44,11 +44,10 @@ export default function AuditPage({
           const audit = await res.json();
           console.log('[Audit] Status check:', { status: audit.status, fastApiId: audit.fastApiId, startedAt: audit.startedAt });
 
-          // Redirect if in progress OR recently started (within last hour)
+          // Redirect only if audit is truly in progress (not completed)
           const isInProgress = ['crawling', 'analyzing', 'generating_report', 'screenshots'].includes(audit.status);
-          const isRecent = audit.startedAt && (Date.now() - new Date(audit.startedAt).getTime()) < 3600000; // 1 hour
 
-          if (audit.fastApiId && (isInProgress || isRecent)) {
+          if (audit.fastApiId && isInProgress) {
             console.log('[Audit] Redirecting to progress view');
             router.push(`/${locale}/dashboard/audit/${auditId}?fastApiId=${audit.fastApiId}`);
           }
@@ -99,7 +98,13 @@ export default function AuditPage({
 
   // Also try to load cached results on mount (for revisiting completed audits)
   useEffect(() => {
-    if (!auditId || fastApiId) return; // don't fetch if we're tracking live progress
+    if (!auditId) return;
+
+    // Skip loading cached results if tracking live progress via fastApiId
+    if (fastApiId) {
+      setLoading(false); // Still set loading to false to prevent infinite loader
+      return;
+    }
 
     async function loadCached() {
       try {
@@ -118,10 +123,8 @@ export default function AuditPage({
     loadCached();
   }, [auditId, locale, fastApiId]);
 
-  // Still in progress - show progress if we have fastApiId and either:
-  // - audit is not done yet, OR
-  // - we're still connected to SSE (handles brief disconnect during language switch)
-  if (fastApiId && (!done || connected)) {
+  // Still in progress - show progress if we have fastApiId and audit is not done yet
+  if (fastApiId && !done) {
     return <AuditProgressView progress={progress} />;
   }
 

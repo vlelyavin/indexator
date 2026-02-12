@@ -2,7 +2,7 @@
 
 import { Loader2, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { ProgressEvent } from "@/types/audit";
 
 interface AuditProgressViewProps {
@@ -12,15 +12,16 @@ interface AuditProgressViewProps {
 export function AuditProgressView({ progress }: AuditProgressViewProps) {
   const router = useRouter();
   const locale = useLocale();
+  const t = useTranslations("audit");
   const pct = progress?.progress || 0;
   const message = progress?.message || "Connecting...";
   const stage = progress?.stage || "crawling";
   const pagesCrawled = progress?.pages_crawled || 0;
 
   const stages = [
-    { key: "crawling", label: "Crawling" },
-    { key: "analyzing", label: "Analyzing" },
-    { key: "report", label: "Generating Report" },
+    { key: "crawling", label: t("stageCrawling") },
+    { key: "analyzing", label: t("stageAnalyzing") },
+    { key: "report", label: t("stageGeneratingReport") },
   ];
 
   return (
@@ -30,7 +31,7 @@ export function AuditProgressView({ progress }: AuditProgressViewProps) {
         className="mb-4 flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Dashboard
+        {t("backToDashboard")}
       </button>
       <div className="rounded-xl border bg-white p-8 dark:border-gray-800 dark:bg-gray-900">
         <div className="mb-6 flex items-center justify-center">
@@ -38,7 +39,7 @@ export function AuditProgressView({ progress }: AuditProgressViewProps) {
         </div>
 
         <h2 className="mb-2 text-center text-lg font-semibold text-gray-900 dark:text-white">
-          Audit in Progress
+          {t("auditInProgress")}
         </h2>
 
         <p className="mb-6 text-center text-sm text-gray-500 dark:text-gray-400">

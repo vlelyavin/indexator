@@ -84,7 +84,14 @@
     "filterAll": "Усі",
     "filterErrors": "Помилки",
     "filterWarnings": "Попередження",
-    "filterPassed": "Пройдено"
+    "filterPassed": "Пройдено",
+    "backToDashboard": "Назад до панелі",
+    "auditInProgress": "Аудит виконується",
+    "currentAudit": "Поточний аудит",
+    "audits": "Аудити",
+    "stageCrawling": "Сканування",
+    "stageAnalyzing": "Аналіз",
+    "stageGeneratingReport": "Генерація звіту"
   },
   "settings": {
     "title": "Налаштування",

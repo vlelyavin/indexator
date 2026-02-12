@@ -84,7 +84,14 @@
     "filterAll": "Все",
     "filterErrors": "Ошибки",
     "filterWarnings": "Предупреждения",
-    "filterPassed": "Пройдено"
+    "filterPassed": "Пройдено",
+    "backToDashboard": "Назад к панели",
+    "auditInProgress": "Аудит выполняется",
+    "currentAudit": "Текущий аудит",
+    "audits": "Аудиты",
+    "stageCrawling": "Сканирование",
+    "stageAnalyzing": "Анализ",
+    "stageGeneratingReport": "Генерация отчёта"
   },
   "settings": {
     "title": "Настройки",

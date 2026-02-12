@@ -253,9 +253,9 @@ class CMSAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="cms_detected",
                 severity=SeverityLevel.SUCCESS,
-                message=self.t("analyzer_content.cms.issues.detected", cms=cms_name),
-                details=self.t("analyzer_content.cms.details.detected", evidence=", ".join(evidence[:3])),
-                recommendation=self._get_cms_recommendation(cms_name),
+                message=self.t("analyzer_content.cms.issues.cms_detected", cms=cms_name),
+                details=self.t("analyzer_content.cms.details.cms_detected", evidence=", ".join(evidence[:3])),
+                recommendation=self.t("analyzer_content.cms.recommendations.cms_detected"),
             ))
 
             # If multiple CMS detected, mention it
@@ -264,23 +264,23 @@ class CMSAnalyzer(BaseAnalyzer):
                 issues.append(self.create_issue(
                     category="multiple_cms",
                     severity=SeverityLevel.INFO,
-                    message=self.t("analyzer_content.cms.issues.multiple_detected", cms=", ".join(other_cms)),
-                    details=self.t("analyzer_content.cms.issues.multiple_detected_details"),
+                    message=self.t("analyzer_content.cms.issues.multiple_cms", cms_list=", ".join(other_cms)),
+                    details=self.t("analyzer_content.cms.details.multiple_cms"),
                 ))
         else:
             issues.append(self.create_issue(
                 category="cms_unknown",
                 severity=SeverityLevel.INFO,
-                message=self.t("analyzer_content.cms.issues.unknown"),
-                details=self.t("analyzer_content.cms.details.unknown"),
+                message=self.t("analyzer_content.cms.issues.cms_unknown"),
+                details=self.t("analyzer_content.cms.details.cms_unknown"),
             ))
 
         # Summary
         if detected_cms:
             primary = detected_cms[0]
-            summary = self.t("analyzer_content.cms.summary.detected", cms=primary[0])
+            summary = self.t("analyzer_content.cms.summary.cms_detected", cms=primary[0])
         else:
-            summary = self.t("analyzer_content.cms.summary.unknown")
+            summary = self.t("analyzer_content.cms.summary.cms_unknown")
 
         return self.create_result(
             severity=SeverityLevel.SUCCESS if detected_cms else SeverityLevel.INFO,
@@ -295,21 +295,4 @@ class CMSAnalyzer(BaseAnalyzer):
 
     def _get_cms_recommendation(self, cms_name: str) -> str:
         """Get SEO recommendations for specific CMS."""
-        # Map CMS names to translation keys
-        cms_key_map = {
-            "WordPress": "wordpress",
-            "Shopify": "shopify",
-            "Joomla": "joomla",
-            "Drupal": "drupal",
-            "Tilda": "tilda",
-            "1C-Bitrix": "bitrix",
-            "OpenCart": "opencart",
-            "Wix": "wix",
-            "Magento": "magento",
-            "Next.js": "nextjs",
-        }
-
-        cms_key = cms_key_map.get(cms_name)
-        if cms_key:
-            return self.t(f"analyzers.cms.recommendation_{cms_key}")
-        return self.t("analyzer_content.cms.issues.recommendation_default")
+        return self.t("analyzer_content.cms.recommendations.cms_detected")

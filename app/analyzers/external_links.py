@@ -98,9 +98,9 @@ class ExternalLinksAnalyzer(BaseAnalyzer):
                 category="commercial_no_nofollow",
                 severity=SeverityLevel.WARNING,
                 message=self.t("analyzer_content.external_links.issues.commercial_no_nofollow", count=len(commercial_domains)),
-                details=self.t("analyzer_content.external_links.issues.commercial_no_nofollow_details"),
+                details=self.t("analyzer_content.external_links.details.commercial_no_nofollow"),
                 affected_urls=[link['href'] for link in commercial_domains[:20]],
-                recommendation=self.t("analyzer_content.external_links.issues.commercial_no_nofollow_recommendation"),
+                recommendation=self.t("analyzer_content.external_links.recommendations.commercial_no_nofollow"),
                 count=len(commercial_domains),
             ))
 
@@ -110,9 +110,9 @@ class ExternalLinksAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="many_dofollow",
                 severity=SeverityLevel.INFO,
-                message=self.t("analyzer_content.external_links.issues.many_dofollow", dofollow=dofollow_count, total=total_external),
-                details=self.t("analyzer_content.external_links.issues.many_dofollow_details"),
-                recommendation=self.t("analyzer_content.external_links.issues.many_dofollow_recommendation"),
+                message=self.t("analyzer_content.external_links.issues.many_dofollow", count=dofollow_count),
+                details=self.t("analyzer_content.external_links.details.many_dofollow"),
+                recommendation=self.t("analyzer_content.external_links.recommendations.many_dofollow"),
             ))
 
         # Check for suspicious/many links to same domain
@@ -122,16 +122,16 @@ class ExternalLinksAnalyzer(BaseAnalyzer):
                     category="many_links_same_domain",
                     severity=SeverityLevel.INFO,
                     message=self.t("analyzer_content.external_links.issues.many_links_same_domain", domain=domain, count=count),
-                    details=self.t("analyzer_content.external_links.issues.many_links_same_domain_details", count=count),
-                    recommendation=self.t("analyzer_content.external_links.issues.many_links_same_domain_recommendation"),
+                    details=self.t("analyzer_content.external_links.details.many_links_same_domain"),
+                    recommendation=self.t("analyzer_content.external_links.recommendations.many_links_same_domain"),
                 ))
 
         # Create table with top domains
         if domains_count:
             top_domains = domains_count.most_common(10)
-            h_domain = self.t("tables.domain")
-            h_count = self.t("tables.link_count")
-            h_nofollow = self.t("tables.with_nofollow")
+            h_domain = self.t("table_translations.headers.Домен")
+            h_count = self.t("table_translations.headers.Кількість посилань")
+            h_nofollow = self.t("table_translations.headers.З nofollow")
             table_data = []
 
             for domain, count in top_domains:
@@ -146,19 +146,19 @@ class ExternalLinksAnalyzer(BaseAnalyzer):
                 })
 
             tables.append({
-                "title": self.t("analyzer_content.external_links.issues.table_title"),
+                "title": self.t("table_translations.titles.Топ-10 доменів за кількістю посилань"),
                 "headers": [h_domain, h_count, h_nofollow],
                 "rows": table_data,
             })
 
         # Summary
         if not issues:
-            summary = self.t("analyzer_content.external_links.summary.ok", total=total_external, domains=unique_domains)
+            summary = self.t("analyzer_content.external_links.summary.ok", count=total_external, domains=unique_domains)
             severity = SeverityLevel.SUCCESS
         else:
             warning_count = sum(1 for i in issues if i.severity == SeverityLevel.WARNING)
             info_count = sum(1 for i in issues if i.severity == SeverityLevel.INFO)
-            summary = self.t("analyzer_content.external_links.summary.issues", total=total_external, warnings=warning_count, info=info_count)
+            summary = self.t("analyzer_content.external_links.summary.with_warnings", count=total_external, warnings=warning_count, info=info_count)
             severity = self._determine_overall_severity(issues)
 
         return self.create_result(

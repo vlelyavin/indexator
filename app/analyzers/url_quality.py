@@ -63,35 +63,35 @@ class URLQualityAnalyzer(BaseAnalyzer):
             # Check path length
             if path_length > 120:
                 long_urls_error.append(url)
-                problems.append(self.t("analyzer_content.url_quality.issues.problem_very_long"))
+                problems.append("very long")
             elif path_length > 75:
                 long_urls_warn.append(url)
-                problems.append(self.t("analyzer_content.url_quality.issues.problem_long"))
+                problems.append("long")
 
             # Check uppercase
             if any(c.isupper() for c in path):
                 uppercase_urls.append(url)
-                problems.append(self.t("analyzer_content.url_quality.issues.problem_uppercase"))
+                problems.append("uppercase")
 
             # Check non-ASCII characters
             if any(ord(c) > 127 for c in path):
                 special_chars_urls.append(url)
-                problems.append(self.t("analyzer_content.url_quality.issues.problem_special_chars"))
+                problems.append("special chars")
 
             # Check underscores
             if '_' in path:
                 underscore_urls.append(url)
-                problems.append(self.t("analyzer_content.url_quality.issues.problem_underscores"))
+                problems.append("underscores")
 
             # Check dynamic parameters (more than 1 param)
             if parsed.query and len(parsed.query.split('&')) > 1:
                 dynamic_urls.append(url)
-                problems.append(self.t("analyzer_content.url_quality.issues.problem_params"))
+                problems.append("params")
 
             # Check double slashes in path
             if '//' in path:
                 double_slash_urls.append(url)
-                problems.append(self.t("analyzer_content.url_quality.issues.problem_double_slashes"))
+                problems.append("double slashes")
 
             if problems:
                 table_data.append({
@@ -106,9 +106,9 @@ class URLQualityAnalyzer(BaseAnalyzer):
                 category="long_urls",
                 severity=SeverityLevel.WARNING,
                 message=self.t("analyzer_content.url_quality.issues.long_urls", count=len(long_urls_warn)),
-                details=self.t("analyzer_content.url_quality.issues.long_urls_details"),
+                details=self.t("analyzer_content.url_quality.details.long_urls"),
                 affected_urls=long_urls_warn[:20],
-                recommendation=self.t("analyzer_content.url_quality.issues.long_urls_recommendation"),
+                recommendation=self.t("analyzer_content.url_quality.recommendations.long_urls"),
                 count=len(long_urls_warn),
             ))
 
@@ -116,10 +116,10 @@ class URLQualityAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="long_urls",
                 severity=SeverityLevel.ERROR,
-                message=self.t("analyzer_content.url_quality.issues.very_long_urls", count=len(long_urls_error)),
-                details=self.t("analyzer_content.url_quality.issues.very_long_urls_details"),
+                message=self.t("analyzer_content.url_quality.issues.long_urls", count=len(long_urls_error)),
+                details=self.t("analyzer_content.url_quality.details.long_urls"),
                 affected_urls=long_urls_error[:20],
-                recommendation=self.t("analyzer_content.url_quality.issues.very_long_urls_recommendation"),
+                recommendation=self.t("analyzer_content.url_quality.recommendations.long_urls"),
                 count=len(long_urls_error),
             ))
 
@@ -128,9 +128,9 @@ class URLQualityAnalyzer(BaseAnalyzer):
                 category="uppercase_urls",
                 severity=SeverityLevel.WARNING,
                 message=self.t("analyzer_content.url_quality.issues.uppercase_urls", count=len(uppercase_urls)),
-                details=self.t("analyzer_content.url_quality.issues.uppercase_urls_details"),
+                details=self.t("analyzer_content.url_quality.details.uppercase_urls"),
                 affected_urls=uppercase_urls[:20],
-                recommendation=self.t("analyzer_content.url_quality.issues.uppercase_urls_recommendation"),
+                recommendation=self.t("analyzer_content.url_quality.recommendations.uppercase_urls"),
                 count=len(uppercase_urls),
             ))
 
@@ -139,9 +139,9 @@ class URLQualityAnalyzer(BaseAnalyzer):
                 category="special_chars",
                 severity=SeverityLevel.WARNING,
                 message=self.t("analyzer_content.url_quality.issues.special_chars", count=len(special_chars_urls)),
-                details=self.t("analyzer_content.url_quality.issues.special_chars_details"),
+                details=self.t("analyzer_content.url_quality.details.special_chars"),
                 affected_urls=special_chars_urls[:20],
-                recommendation=self.t("analyzer_content.url_quality.issues.special_chars_recommendation"),
+                recommendation=self.t("analyzer_content.url_quality.recommendations.special_chars"),
                 count=len(special_chars_urls),
             ))
 
@@ -161,9 +161,9 @@ class URLQualityAnalyzer(BaseAnalyzer):
                 category="dynamic_params",
                 severity=SeverityLevel.INFO,
                 message=self.t("analyzer_content.url_quality.issues.dynamic_params", count=len(dynamic_urls)),
-                details=self.t("analyzer_content.url_quality.issues.dynamic_params_details"),
+                details=self.t("analyzer_content.url_quality.details.dynamic_params"),
                 affected_urls=dynamic_urls[:20],
-                recommendation=self.t("analyzer_content.url_quality.issues.dynamic_params_recommendation"),
+                recommendation=self.t("analyzer_content.url_quality.recommendations.dynamic_params"),
                 count=len(dynamic_urls),
             ))
 
@@ -172,9 +172,9 @@ class URLQualityAnalyzer(BaseAnalyzer):
                 category="double_slashes",
                 severity=SeverityLevel.ERROR,
                 message=self.t("analyzer_content.url_quality.issues.double_slashes", count=len(double_slash_urls)),
-                details=self.t("analyzer_content.url_quality.issues.double_slashes_details"),
+                details=self.t("analyzer_content.url_quality.details.double_slashes"),
                 affected_urls=double_slash_urls[:20],
-                recommendation=self.t("analyzer_content.url_quality.issues.double_slashes_recommendation"),
+                recommendation=self.t("analyzer_content.url_quality.recommendations.double_slashes"),
                 count=len(double_slash_urls),
             ))
 
@@ -187,13 +187,13 @@ class URLQualityAnalyzer(BaseAnalyzer):
                 category="urls_ok",
                 severity=SeverityLevel.SUCCESS,
                 message=self.t("analyzer_content.url_quality.issues.urls_ok"),
-                details=self.t("analyzer_content.url_quality.issues.urls_ok_details"),
+                details=self.t("analyzer_content.url_quality.details.urls_ok"),
             ))
 
         # Create table with problematic URLs
         if table_data:
             tables.append({
-                "title": self.t("analyzer_content.url_quality.issues.table_title"),
+                "title": self.t("table_translations.titles.Проблемні URL"),
                 "headers": [h_url, h_problem, h_length],
                 "rows": table_data[:10],
             })
@@ -207,17 +207,17 @@ class URLQualityAnalyzer(BaseAnalyzer):
         else:
             parts = []
             if long_urls_warn or long_urls_error:
-                parts.append(self.t("analyzer_content.url_quality.summary.long", count=len(long_urls_warn) + len(long_urls_error)))
+                parts.append(f"long URLs: {len(long_urls_warn) + len(long_urls_error)}")
             if uppercase_urls:
-                parts.append(self.t("analyzer_content.url_quality.summary.uppercase", count=len(uppercase_urls)))
+                parts.append(f"uppercase: {len(uppercase_urls)}")
             if special_chars_urls:
-                parts.append(self.t("analyzer_content.url_quality.summary.special_chars", count=len(special_chars_urls)))
+                parts.append(f"special chars: {len(special_chars_urls)}")
             if underscore_urls:
-                parts.append(self.t("analyzer_content.url_quality.summary.underscores", count=len(underscore_urls)))
+                parts.append(f"underscores: {len(underscore_urls)}")
             if dynamic_urls:
-                parts.append(self.t("analyzer_content.url_quality.summary.params", count=len(dynamic_urls)))
+                parts.append(f"params: {len(dynamic_urls)}")
             if double_slash_urls:
-                parts.append(self.t("analyzer_content.url_quality.summary.double_slashes", count=len(double_slash_urls)))
+                parts.append(f"double slashes: {len(double_slash_urls)}")
             summary = self.t("analyzer_content.url_quality.summary.problems", problems=", ".join(parts))
             severity = self._determine_overall_severity(issues)
 

@@ -229,17 +229,9 @@ class SecurityAnalyzer(BaseAnalyzer):
         if severity == SeverityLevel.SUCCESS:
             summary = self.t("analyzer_content.security.summary.ok")
         else:
-            error_count = sum(1 for i in issues if i.severity == SeverityLevel.ERROR)
-            warning_count = sum(1 for i in issues if i.severity == SeverityLevel.WARNING)
-            info_count = sum(1 for i in issues if i.severity == SeverityLevel.INFO)
-            parts = []
-            if error_count:
-                parts.append(self.t("analyzer_content.security.summary.errors", count=error_count))
-            if warning_count:
-                parts.append(self.t("analyzer_content.security.summary.warnings", count=warning_count))
-            if info_count:
-                parts.append(self.t("analyzer_content.security.summary.info", count=info_count))
-            summary = self.t("analyzer_content.security.summary.issues", issues=", ".join(parts))
+            # Build summary from issue messages
+            issue_messages = [issue.message for issue in issues[:3]]
+            summary = self.t("analyzer_content.security.summary.problems", problems=", ".join(issue_messages))
 
         return self.create_result(
             severity=severity,

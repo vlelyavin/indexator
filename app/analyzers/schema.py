@@ -107,12 +107,9 @@ class SchemaAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="has_structured_data",
                 severity=SeverityLevel.SUCCESS,
-                message=self.t("analyzer_content.schema.issues.has_structured_data", types=num_types, pages=num_pages_with),
-                details=self.t("analyzer_content.schema.issues.has_structured_data_details"),
-                              json_ld=len(pages_with_json_ld,
-                              microdata=len(pages_with_microdata),
-                              types=', '.join(schema_types.keys())),
-                recommendation=self.t("analyzer_content.schema.issues.has_structured_data_recommendation"),
+                message=self.t("analyzer_content.schema.issues.has_structured_data", count=num_types),
+                details=self.t("analyzer_content.schema.details.has_structured_data"),
+                recommendation=self.t("analyzer_content.schema.recommendations.has_structured_data"),
                 count=num_pages_with,
             ))
 
@@ -121,11 +118,9 @@ class SchemaAnalyzer(BaseAnalyzer):
                 category="no_structured_data",
                 severity=SeverityLevel.WARNING,
                 message=self.t("analyzer_content.schema.issues.no_structured_data", count=len(pages_without_schema)),
-                details=self.t("analyzer_content.schema.issues.no_structured_data_details"),
-                              total=total_pages,
-                              without=len(pages_without_schema),
+                details=self.t("analyzer_content.schema.details.no_structured_data"),
                 affected_urls=pages_without_schema[:20],
-                recommendation=self.t("analyzer_content.schema.issues.no_structured_data_recommendation"),
+                recommendation=self.t("analyzer_content.schema.recommendations.no_structured_data"),
                 count=len(pages_without_schema),
             ))
 
@@ -136,9 +131,9 @@ class SchemaAnalyzer(BaseAnalyzer):
                 category="missing_organization",
                 severity=SeverityLevel.INFO,
                 message=self.t("analyzer_content.schema.issues.missing_organization"),
-                details=self.t("analyzer_content.schema.issues.missing_organization_details"),
+                details=self.t("analyzer_content.schema.details.missing_organization"),
                 affected_urls=[base_url],
-                recommendation=self.t("analyzer_content.schema.issues.missing_organization_recommendation"),
+                recommendation=self.t("analyzer_content.schema.recommendations.missing_organization"),
             ))
 
         # Check for BreadcrumbList
@@ -147,8 +142,8 @@ class SchemaAnalyzer(BaseAnalyzer):
                 category="missing_breadcrumbs",
                 severity=SeverityLevel.INFO,
                 message=self.t("analyzer_content.schema.issues.missing_breadcrumbs"),
-                details=self.t("analyzer_content.schema.issues.missing_breadcrumbs_details"),
-                recommendation=self.t("analyzer_content.schema.issues.missing_breadcrumbs_recommendation"),
+                details=self.t("analyzer_content.schema.details.missing_breadcrumbs"),
+                recommendation=self.t("analyzer_content.schema.recommendations.missing_breadcrumbs"),
             ))
 
         # JSON-LD parsing errors
@@ -158,17 +153,17 @@ class SchemaAnalyzer(BaseAnalyzer):
                 category="json_ld_errors",
                 severity=SeverityLevel.WARNING,
                 message=self.t("analyzer_content.schema.issues.json_ld_errors", count=len(error_urls)),
-                details=self.t("analyzer_content.schema.issues.json_ld_errors_details", blocks=len(json_ld_errors)),
+                details=self.t("analyzer_content.schema.details.json_ld_errors"),
                 affected_urls=error_urls[:20],
-                recommendation=self.t("analyzer_content.schema.issues.json_ld_errors_recommendation"),
+                recommendation=self.t("analyzer_content.schema.recommendations.json_ld_errors"),
                 count=len(json_ld_errors),
             ))
 
         # Create table with schema types
         if schema_types:
-            h_type = self.t("tables.schema_type")
-            h_count = self.t("tables.page_count")
-            h_example = self.t("tables.example_url")
+            h_type = self.t("table_translations.headers.Тип Schema")
+            h_count = self.t("table_translations.headers.Кількість")
+            h_example = self.t("table_translations.headers.Приклад URL")
 
             table_rows = []
             for type_name, count in schema_types.most_common(10):
@@ -180,7 +175,7 @@ class SchemaAnalyzer(BaseAnalyzer):
                 })
 
             tables.append({
-                "title": self.t("analyzer_content.schema.issues.table_title"),
+                "title": self.t("table_translations.titles.Типи структурованих даних"),
                 "headers": [h_type, h_count, h_example],
                 "rows": table_rows[:10],
             })
@@ -189,7 +184,7 @@ class SchemaAnalyzer(BaseAnalyzer):
         if num_pages_with > 0:
             summary = self.t("analyzer_content.schema.summary.found", types=num_types, pages=num_pages_with)
         else:
-            summary = self.t("analyzer_content.schema.summary.none")
+            summary = self.t("analyzer_content.schema.summary.missing")
 
         severity = self._determine_overall_severity(issues)
 

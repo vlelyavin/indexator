@@ -142,7 +142,7 @@ class ContentSectionsAnalyzer(BaseAnalyzer):
                 category="blog_detected",
                 severity=SeverityLevel.SUCCESS,
                 message=self.t("analyzer_content.content_sections.issues.blog_detected", count=len(blog_pages)),
-                details=self.t("analyzer_content.content_sections.issues.blog_detected_details"),
+                details=self.t("analyzer_content.content_sections.details.blog_detected"),
                 affected_urls=blog_pages[:10],
                 count=len(blog_pages),
             ))
@@ -150,27 +150,27 @@ class ContentSectionsAnalyzer(BaseAnalyzer):
             # Check blog quality indicators
             missing_features = []
             if not blog_indicators['has_dates']:
-                missing_features.append(self.t("analyzer_content.content_sections.issues.feature_dates"))
+                missing_features.append("dates")
             if not blog_indicators['has_categories']:
-                missing_features.append(self.t("analyzer_content.content_sections.issues.feature_categories"))
+                missing_features.append("categories")
             if not blog_indicators['has_author']:
-                missing_features.append(self.t("analyzer_content.content_sections.issues.feature_author"))
+                missing_features.append("author")
 
             if missing_features:
                 issues.append(self.create_issue(
                     category="blog_missing_features",
                     severity=SeverityLevel.INFO,
-                    message=self.t("analyzer_content.content_sections.issues.blog_missing_features", features=", ".join(missing_features)),
-                    details=self.t("analyzer_content.content_sections.issues.blog_missing_features_details"),
-                    recommendation=self.t("analyzer_content.content_sections.issues.blog_missing_features_recommendation"),
+                    message=self.t("analyzer_content.content_sections.issues.blog_missing_features"),
+                    details=self.t("analyzer_content.content_sections.details.blog_missing_features"),
+                    recommendation=self.t("analyzer_content.content_sections.recommendations.blog_missing_features"),
                 ))
         else:
             issues.append(self.create_issue(
                 category="no_blog",
                 severity=SeverityLevel.INFO,
                 message=self.t("analyzer_content.content_sections.issues.no_blog"),
-                details=self.t("analyzer_content.content_sections.issues.no_blog_details"),
-                recommendation=self.t("analyzer_content.content_sections.issues.no_blog_recommendation"),
+                details=self.t("analyzer_content.content_sections.details.no_blog"),
+                recommendation=self.t("analyzer_content.content_sections.recommendations.no_blog"),
             ))
 
         if has_faq:
@@ -179,7 +179,7 @@ class ContentSectionsAnalyzer(BaseAnalyzer):
                 category="faq_detected",
                 severity=SeverityLevel.SUCCESS,
                 message=self.t("analyzer_content.content_sections.issues.faq_detected", count=faq_count),
-                details=self.t("analyzer_content.content_sections.issues.faq_detected_details"),
+                details=self.t("analyzer_content.content_sections.details.faq_detected"),
                 affected_urls=list(set(faq_pages + pages_with_faq_structure))[:10],
                 count=faq_count,
             ))
@@ -190,15 +190,15 @@ class ContentSectionsAnalyzer(BaseAnalyzer):
                     category="faq_no_schema",
                     severity=SeverityLevel.WARNING,
                     message=self.t("analyzer_content.content_sections.issues.faq_no_schema"),
-                    details=self.t("analyzer_content.content_sections.issues.faq_no_schema_details"),
-                    recommendation=self.t("analyzer_content.content_sections.issues.faq_no_schema_recommendation"),
+                    details=self.t("analyzer_content.content_sections.details.faq_no_schema"),
+                    recommendation=self.t("analyzer_content.content_sections.recommendations.faq_no_schema"),
                 ))
             else:
                 issues.append(self.create_issue(
                     category="faq_has_schema",
                     severity=SeverityLevel.SUCCESS,
                     message=self.t("analyzer_content.content_sections.issues.faq_has_schema", count=len(pages_with_schema_faq)),
-                    details=self.t("analyzer_content.content_sections.issues.faq_has_schema_details"),
+                    details=self.t("analyzer_content.content_sections.details.faq_has_schema"),
                     affected_urls=pages_with_schema_faq[:5],
                 ))
         else:
@@ -206,35 +206,35 @@ class ContentSectionsAnalyzer(BaseAnalyzer):
                 category="no_faq",
                 severity=SeverityLevel.INFO,
                 message=self.t("analyzer_content.content_sections.issues.no_faq"),
-                details=self.t("analyzer_content.content_sections.issues.no_faq_details"),
-                recommendation=self.t("analyzer_content.content_sections.issues.no_faq_recommendation"),
+                details=self.t("analyzer_content.content_sections.details.no_faq"),
+                recommendation=self.t("analyzer_content.content_sections.recommendations.no_faq"),
             ))
 
         # Create summary table
-        h_section = self.t("tables.section")
+        h_section = self.t("tables.element")
         h_status = self.t("tables.status")
         h_count = self.t("tables.count")
 
         table_data = [
             {
-                h_section: self.t("analyzer_content.content_sections.issues.section_blog"),
-                h_status: self.t("analyzer_content.content_sections.issues.status_present" if has_blog else self.t("analyzer_content.content_sections.issues.status_absent")),
+                h_section: "Blog/News",
+                h_status: "✓" if has_blog else "✗",
                 h_count: len(blog_pages) if has_blog else 0,
             },
             {
-                h_section: self.t("analyzer_content.content_sections.issues.section_faq"),
-                h_status: self.t("analyzer_content.content_sections.issues.status_present" if has_faq else self.t("analyzer_content.content_sections.issues.status_absent")),
+                h_section: "FAQ",
+                h_status: "✓" if has_faq else "✗",
                 h_count: len(set(faq_pages + pages_with_faq_structure)) if has_faq else 0,
             },
             {
-                h_section: self.t("analyzer_content.content_sections.issues.section_faq_schema"),
-                h_status: self.t("analyzer_content.content_sections.issues.status_present" if pages_with_schema_faq else self.t("analyzer_content.content_sections.issues.status_absent")),
+                h_section: "FAQ Schema",
+                h_status: "✓" if pages_with_schema_faq else "✗",
                 h_count: len(pages_with_schema_faq),
             },
         ]
 
         tables.append({
-            "title": self.t("analyzer_content.content_sections.issues.table_title"),
+            "title": self.t("table_translations.titles.Інформаційні розділи"),
             "headers": [h_section, h_status, h_count],
             "rows": table_data,
         })
@@ -242,15 +242,15 @@ class ContentSectionsAnalyzer(BaseAnalyzer):
         # Summary
         found_sections = []
         if has_blog:
-            found_sections.append(self.t("analyzer_content.content_sections.summary.blog", count=len(blog_pages)))
+            found_sections.append(f"Blog ({len(blog_pages)} pages)")
         if has_faq:
-            found_sections.append(self.t("analyzer_content.content_sections.summary.faq", count=len(set(faq_pages + pages_with_faq_structure))))
+            found_sections.append(f"FAQ ({len(set(faq_pages + pages_with_faq_structure))} pages)")
 
         if found_sections:
-            summary = self.t("analyzer_content.content_sections.summary.found", sections=", ".join(found_sections))
+            summary = self.t("analyzer_content.content_sections.summary.detected", sections=", ".join(found_sections))
             severity = SeverityLevel.SUCCESS
         else:
-            summary = self.t("analyzer_content.content_sections.summary.not_found")
+            summary = self.t("analyzer_content.content_sections.summary.not_detected")
             severity = SeverityLevel.INFO
 
         return self.create_result(

@@ -102,13 +102,13 @@ class Page404Analyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="404_check_failed",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzer_content.page_404.issues.check_failed"),
-                details=self.t("analyzer_content.page_404.issues.check_failed_details", error=str(e)),
-                recommendation=self.t("analyzer_content.page_404.issues.check_failed_recommendation"),
+                message=self.t("analyzer_content.page_404.issues.404_check_failed"),
+                details=self.t("analyzer_content.page_404.details.404_check_failed"),
+                recommendation=self.t("analyzer_content.page_404.recommendations.404_check_failed"),
             ))
             return self.create_result(
                 severity=SeverityLevel.WARNING,
-                summary=self.t("analyzer_content.page_404.issues.check_failed_summary"),
+                summary=self.t("analyzer_content.page_404.summary.check_failed"),
                 issues=issues,
             )
 
@@ -117,45 +117,45 @@ class Page404Analyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="wrong_404_status",
                 severity=SeverityLevel.ERROR,
-                message=self.t("analyzer_content.page_404.issues.wrong_status"),
-                details=self.t("analyzer_content.page_404.issues.wrong_status_details", status=status_code),
-                recommendation=self.t("analyzer_content.page_404.issues.wrong_status_recommendation"),
+                message=self.t("analyzer_content.page_404.issues.wrong_404_status"),
+                details=self.t("analyzer_content.page_404.details.wrong_404_status"),
+                recommendation=self.t("analyzer_content.page_404.recommendations.wrong_404_status"),
             ))
 
         if not has_custom_404:
             issues.append(self.create_issue(
                 category="no_custom_404",
                 severity=SeverityLevel.ERROR,
-                message=self.t("analyzer_content.page_404.issues.no_custom"),
-                details=self.t("analyzer_content.page_404.issues.no_custom_details"),
-                recommendation=self.t("analyzer_content.page_404.issues.no_custom_recommendation"),
+                message=self.t("analyzer_content.page_404.issues.no_custom_404"),
+                details=self.t("analyzer_content.page_404.details.no_custom_404"),
+                recommendation=self.t("analyzer_content.page_404.recommendations.no_custom_404"),
             ))
 
         if has_custom_404 and not has_navigation:
             issues.append(self.create_issue(
                 category="404_no_navigation",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzer_content.page_404.issues.no_navigation"),
-                details=self.t("analyzer_content.page_404.issues.no_navigation_details"),
-                recommendation=self.t("analyzer_content.page_404.issues.no_navigation_recommendation"),
+                message=self.t("analyzer_content.page_404.issues.404_no_navigation"),
+                details=self.t("analyzer_content.page_404.details.404_no_navigation"),
+                recommendation=self.t("analyzer_content.page_404.recommendations.404_no_navigation"),
             ))
 
         if has_custom_404 and not has_home_link:
             issues.append(self.create_issue(
                 category="404_no_home_link",
                 severity=SeverityLevel.WARNING,
-                message=self.t("analyzer_content.page_404.issues.no_home_link"),
-                details=self.t("analyzer_content.page_404.issues.no_home_link_details"),
-                recommendation=self.t("analyzer_content.page_404.issues.no_home_link_recommendation"),
+                message=self.t("analyzer_content.page_404.issues.404_no_home_link"),
+                details=self.t("analyzer_content.page_404.details.404_no_home_link"),
+                recommendation=self.t("analyzer_content.page_404.recommendations.404_no_home_link"),
             ))
 
         if has_custom_404 and not has_search:
             issues.append(self.create_issue(
                 category="404_no_search",
                 severity=SeverityLevel.INFO,
-                message=self.t("analyzer_content.page_404.issues.no_search"),
-                details=self.t("analyzer_content.page_404.issues.no_search_details"),
-                recommendation=self.t("analyzer_content.page_404.issues.no_search_recommendation"),
+                message=self.t("analyzer_content.page_404.issues.404_no_search"),
+                details=self.t("analyzer_content.page_404.details.404_no_search"),
+                recommendation=self.t("analyzer_content.page_404.recommendations.404_no_search"),
             ))
 
         # Summary
@@ -163,7 +163,7 @@ class Page404Analyzer(BaseAnalyzer):
             summary = self.t("analyzer_content.page_404.summary.ok")
             severity = SeverityLevel.SUCCESS
         elif not returns_404_status or not has_custom_404:
-            summary = self.t("analyzer_content.page_404.summary.needs_fix")
+            summary = self.t("analyzer_content.page_404.summary.missing")
             severity = SeverityLevel.ERROR
         else:
             summary = self.t("analyzer_content.page_404.summary.needs_improvement")

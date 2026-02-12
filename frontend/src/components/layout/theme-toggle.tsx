@@ -6,27 +6,10 @@ import { Moon, Sun, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
-
-  // Force theme application if needed
-  useEffect(() => {
-    if (!mounted || !resolvedTheme) return;
-
-    const html = document.documentElement;
-    const shouldBeDark = resolvedTheme === 'dark';
-    const isDark = html.classList.contains('dark');
-
-    if (shouldBeDark && !isDark) {
-      console.log('[Theme] Forcing dark mode application');
-      html.classList.add('dark');
-    } else if (!shouldBeDark && isDark) {
-      console.log('[Theme] Forcing light mode application');
-      html.classList.remove('dark');
-    }
-  }, [resolvedTheme, mounted]);
 
   if (!mounted) return <div className="w-9 h-9" />;
 

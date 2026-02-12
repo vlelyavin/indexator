@@ -42,13 +42,19 @@ export default function AuditPage({
         const res = await fetch(`/api/audit/${auditId}`);
         if (res.ok) {
           const audit = await res.json();
-          // If audit is still in progress, redirect with fastApiId to show progress
-          if (audit.fastApiId && ['crawling', 'analyzing', 'generating_report'].includes(audit.status)) {
+          console.log('[Audit] Status check:', { status: audit.status, fastApiId: audit.fastApiId, startedAt: audit.startedAt });
+
+          // Redirect if in progress OR recently started (within last hour)
+          const isInProgress = ['crawling', 'analyzing', 'generating_report', 'screenshots'].includes(audit.status);
+          const isRecent = audit.startedAt && (Date.now() - new Date(audit.startedAt).getTime()) < 3600000; // 1 hour
+
+          if (audit.fastApiId && (isInProgress || isRecent)) {
+            console.log('[Audit] Redirecting to progress view');
             router.push(`/${locale}/dashboard/audit/${auditId}?fastApiId=${audit.fastApiId}`);
           }
         }
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error('[Audit] Status check failed:', err);
       }
     }
 

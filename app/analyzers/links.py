@@ -167,14 +167,14 @@ class LinksAnalyzer(BaseAnalyzer):
         total_external = len(external_links)
 
         if not issues:
-            summary = self.t("analyzer_content.links.summary.ok", internal=total_internal, external=total_external)
+            summary = self.t("analyzer_content.links.summary.no_broken", internal=total_internal, external=total_external)
         else:
             parts = []
             if broken_internal:
-                parts.append(self.t("analyzer_content.links.issues.internal_count", count=len(broken_internal)))
+                parts.append(self.t("analyzer_content.links.issues.broken_internal", count=len(broken_internal)))
             if broken_external:
-                parts.append(self.t("analyzer_content.links.issues.external_count", count=len(broken_external)))
-            summary = self.t("analyzer_content.links.summary.issues", issues=', '.join(parts))
+                parts.append(self.t("analyzer_content.links.issues.broken_external", count=len(broken_external)))
+            summary = self.t("analyzer_content.links.summary.broken_found", broken=', '.join(parts))
 
         severity = self._determine_overall_severity(issues)
 

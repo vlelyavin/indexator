@@ -288,7 +288,7 @@ class WebCrawler:
                     external_links=external_links,
                     depth=depth,
                     load_time=load_time,
-                    # html_content removed to reduce memory usage
+                    html_content=html,  # Re-added to fix analyzer crashes
                     has_noindex=has_noindex,
                     response_headers=response_headers,
                     redirect_chain=redirect_chain,

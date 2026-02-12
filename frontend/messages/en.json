@@ -84,7 +84,14 @@
     "filterAll": "All",
     "filterErrors": "Errors",
     "filterWarnings": "Warnings",
-    "filterPassed": "Passed"
+    "filterPassed": "Passed",
+    "backToDashboard": "Back to Dashboard",
+    "auditInProgress": "Audit in Progress",
+    "currentAudit": "Current Audit",
+    "audits": "Audits",
+    "stageCrawling": "Crawling",
+    "stageAnalyzing": "Analyzing",
+    "stageGeneratingReport": "Generating Report"
   },
   "settings": {
     "title": "Settings",

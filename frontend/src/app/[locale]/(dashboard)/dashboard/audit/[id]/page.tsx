@@ -34,6 +34,7 @@ export default function AuditPage({
   }, [params, searchParams]);
 
   const { progress, connected, done, error, isStalled } = useAuditProgress(fastApiId, auditId);
+  const tAudit = useTranslations("audit");
 
   // Check if audit is in progress when opening without fastApiId
   useEffect(() => {
@@ -161,14 +162,10 @@ export default function AuditPage({
   const Breadcrumbs = () => (
     <nav className="mb-6 flex items-center gap-2 text-sm">
       <Link href={`/${locale}/dashboard`} className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-        Dashboard
+        {tAudit("audits")}
       </Link>
       <span className="text-gray-400">/</span>
-      <Link href={`/${locale}/dashboard`} className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-        Audits
-      </Link>
-      <span className="text-gray-400">/</span>
-      <span className="font-medium text-gray-900 dark:text-white">Current Audit</span>
+      <span className="font-medium text-gray-900 dark:text-white">{tAudit("currentAudit")}</span>
     </nav>
   );
 

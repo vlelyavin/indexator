@@ -440,146 +440,134 @@ async def run_audit(audit_id: str, request: AuditRequest):
         audit_progress_history[audit_id] = history[-50:]
 
     try:
-        async with asyncio.timeout(settings.TOTAL_TIMEOUT):  # Requires Python 3.11+
-            # Phase 1: Crawling
-            audit.status = AuditStatus.CRAWLING
+        # Phase 1: Crawling (no timeout - page limit controls audit scope)
+        audit.status = AuditStatus.CRAWLING
+        await emit_progress(ProgressEvent(
+            status=AuditStatus.CRAWLING,
+            progress=0,
+            message=t("progress.crawling_start", lang),
+            stage="crawling",
+        ))
+
+        pages: Dict[str, PageData] = {}
+        max_pages = request.max_pages or settings.MAX_PAGES
+
+        async def progress_callback(page: PageData):
+            progress = min(len(pages) / max_pages * 40, 40)
             await emit_progress(ProgressEvent(
                 status=AuditStatus.CRAWLING,
-                progress=0,
-                message=t("progress.crawling_start", lang),
-                stage="crawling",
-            ))
-
-            pages: Dict[str, PageData] = {}
-            max_pages = request.max_pages or settings.MAX_PAGES
-
-            async def progress_callback(page: PageData):
-                progress = min(len(pages) / max_pages * 40, 40)
-                await emit_progress(ProgressEvent(
-                    status=AuditStatus.CRAWLING,
-                    progress=progress,
-                    message=t("progress.crawling_pages", lang, count=len(pages)),
-                    current_url=page.url,
-                    pages_crawled=len(pages),
-                    stage="crawling",
-                ))
-
-            crawler = WebCrawler(
-                str(request.url),
-                max_pages=max_pages,
-                progress_callback=progress_callback,
-            )
-
-            async for page in crawler.crawl():
-                pages[page.url] = page
-
-            audit.pages_crawled = len(pages)
-            audit.pages = pages
-
-            await emit_progress(ProgressEvent(
-                status=AuditStatus.CRAWLING,
-                progress=40,
-                message=t("progress.crawling_complete", lang, count=len(pages)),
+                progress=progress,
+                message=t("progress.crawling_pages", lang, count=len(pages)),
+                current_url=page.url,
                 pages_crawled=len(pages),
                 stage="crawling",
             ))
 
-            # Capture homepage screenshot
-            try:
-                from .screenshots import screenshot_capture
-                audit.homepage_screenshot = await screenshot_capture.capture_page(
-                    str(request.url),
-                    viewport=screenshot_capture.DESKTOP_VIEWPORT,
-                    full_page=False,
-                    filename=f"homepage_{audit_id}.png",
-                )
-            except Exception as e:
-                print(f"Homepage screenshot failed (non-fatal): {e}")
+        crawler = WebCrawler(
+            str(request.url),
+            max_pages=max_pages,
+            progress_callback=progress_callback,
+        )
 
-            # Phase 2: Analysis
-            audit.status = AuditStatus.ANALYZING
+        async for page in crawler.crawl():
+            pages[page.url] = page
+
+        audit.pages_crawled = len(pages)
+        audit.pages = pages
+
+        await emit_progress(ProgressEvent(
+            status=AuditStatus.CRAWLING,
+            progress=40,
+            message=t("progress.crawling_complete", lang, count=len(pages)),
+            pages_crawled=len(pages),
+            stage="crawling",
+        ))
+
+        # Capture homepage screenshot
+        try:
+            from .screenshots import screenshot_capture
+            audit.homepage_screenshot = await screenshot_capture.capture_page(
+                str(request.url),
+                viewport=screenshot_capture.DESKTOP_VIEWPORT,
+                full_page=False,
+                filename=f"homepage_{audit_id}.png",
+            )
+        except Exception as e:
+            print(f"Homepage screenshot failed (non-fatal): {e}")
+
+        # Phase 2: Analysis
+        audit.status = AuditStatus.ANALYZING
+        await emit_progress(ProgressEvent(
+            status=AuditStatus.ANALYZING,
+            progress=40,
+            message=t("progress.analyzing_start", lang),
+            pages_crawled=len(pages),
+            stage="analyzing",
+        ))
+
+        # Filter analyzers by request selection (None = all)
+        selected = request.analyzers if request.analyzers else list(ALL_ANALYZERS.keys())
+        analyzers = [ALL_ANALYZERS[name]() for name in selected if name in ALL_ANALYZERS]
+
+        results = {}
+        for i, analyzer in enumerate(analyzers):
+            # Set analyzer language before execution
+            analyzer.set_language(lang)
+
             await emit_progress(ProgressEvent(
                 status=AuditStatus.ANALYZING,
-                progress=40,
-                message=t("progress.analyzing_start", lang),
+                progress=40 + ((i + 1) / len(analyzers) * 40),
+                message=t("progress.analyzing_analyzer", lang, name=analyzer.display_name),
                 pages_crawled=len(pages),
                 stage="analyzing",
             ))
 
-            # Filter analyzers by request selection (None = all)
-            selected = request.analyzers if request.analyzers else list(ALL_ANALYZERS.keys())
-            analyzers = [ALL_ANALYZERS[name]() for name in selected if name in ALL_ANALYZERS]
+            try:
+                result = await analyzer.analyze(pages, str(request.url))
+                results[analyzer.name] = result
+            except Exception as e:
+                # Log error but continue with other analyzers
+                print(f"Error in {analyzer.name}: {e}")
 
-            results = {}
-            for i, analyzer in enumerate(analyzers):
-                # Set analyzer language before execution
-                analyzer.set_language(lang)
+        audit.results = results
 
-                await emit_progress(ProgressEvent(
-                    status=AuditStatus.ANALYZING,
-                    progress=40 + ((i + 1) / len(analyzers) * 40),
-                    message=t("progress.analyzing_analyzer", lang, name=analyzer.display_name),
-                    pages_crawled=len(pages),
-                    stage="analyzing",
-                ))
+        # Calculate totals
+        for result in results.values():
+            for issue in result.issues:
+                if issue.severity == SeverityLevel.ERROR:
+                    audit.critical_issues += issue.count
+                elif issue.severity == SeverityLevel.WARNING:
+                    audit.warnings += issue.count
+                audit.total_issues += issue.count
 
-                try:
-                    result = await analyzer.analyze(pages, str(request.url))
-                    results[analyzer.name] = result
-                except Exception as e:
-                    # Log error but continue with other analyzers
-                    print(f"Error in {analyzer.name}: {e}")
+        audit.passed_checks = len(analyzers) - sum(
+            1 for r in results.values() if r.severity in [SeverityLevel.ERROR, SeverityLevel.WARNING]
+        )
 
-            audit.results = results
+        # Phase 3: Generate Report
+        audit.status = AuditStatus.GENERATING_REPORT
+        await emit_progress(ProgressEvent(
+            status=AuditStatus.GENERATING_REPORT,
+            progress=85,
+            message=t("progress.generating_report", lang),
+            pages_crawled=len(pages),
+            stage="report",
+        ))
 
-            # Calculate totals
-            for result in results.values():
-                for issue in result.issues:
-                    if issue.severity == SeverityLevel.ERROR:
-                        audit.critical_issues += issue.count
-                    elif issue.severity == SeverityLevel.WARNING:
-                        audit.warnings += issue.count
-                    audit.total_issues += issue.count
+        generator = ReportGenerator()
+        report_path = await generator.generate(audit)
+        audit.report_path = report_path
 
-            audit.passed_checks = len(analyzers) - sum(
-                1 for r in results.values() if r.severity in [SeverityLevel.ERROR, SeverityLevel.WARNING]
-            )
-
-            # Phase 3: Generate Report
-            audit.status = AuditStatus.GENERATING_REPORT
-            await emit_progress(ProgressEvent(
-                status=AuditStatus.GENERATING_REPORT,
-                progress=85,
-                message=t("progress.generating_report", lang),
-                pages_crawled=len(pages),
-                stage="report",
-            ))
-
-            generator = ReportGenerator()
-            report_path = await generator.generate(audit)
-            audit.report_path = report_path
-
-            # Complete
-            audit.status = AuditStatus.COMPLETED
-            audit.completed_at = datetime.utcnow()
-
-            await emit_progress(ProgressEvent(
-                status=AuditStatus.COMPLETED,
-                progress=100,
-                message=t("progress.completed", lang),
-                pages_crawled=len(pages),
-                stage="complete",
-            ))
-
-    except asyncio.TimeoutError:
-        audit.status = AuditStatus.FAILED
-        audit.error_message = "Audit timed out after 10 minutes"
+        # Complete
+        audit.status = AuditStatus.COMPLETED
+        audit.completed_at = datetime.utcnow()
 
         await emit_progress(ProgressEvent(
-            status=AuditStatus.FAILED,
-            progress=0,
-            message=t("progress.failed", lang, error="Audit timed out after 10 minutes"),
-            stage="error",
+            status=AuditStatus.COMPLETED,
+            progress=100,
+            message=t("progress.completed", lang),
+            pages_crawled=len(pages),
+            stage="complete",
         ))
 
     except Exception as e:

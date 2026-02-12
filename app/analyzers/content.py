@@ -123,14 +123,14 @@ class ContentAnalyzer(BaseAnalyzer):
         ok_pages = total_pages - len(empty_pages) - len(thin_content)
 
         if not issues:
-            summary = self.t("analyzer_content.content.summary.ok", pages=total_pages, avg_words=avg_words)
+            summary = self.t("analyzer_content.content.summary.all_ok", total_pages=total_pages, avg_words=avg_words)
         else:
             parts = []
             if empty_pages:
-                parts.append(self.t("analyzer_content.content.summary.empty", count=len(empty_pages)))
+                parts.append(self.t("analyzer_content.content.issues.empty_pages", count=len(empty_pages)))
             if thin_content:
-                parts.append(self.t("analyzer_content.content.summary.thin", count=len(thin_content)))
-            summary = self.t("analyzer_content.content.summary.issues", issues=", ".join(parts), avg_words=avg_words)
+                parts.append(self.t("analyzer_content.content.issues.thin_content", count=len(thin_content)))
+            summary = self.t("analyzer_content.content.summary.problems", problems=", ".join(parts), avg_words=avg_words)
 
         severity = self._determine_overall_severity(issues)
 

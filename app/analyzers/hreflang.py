@@ -91,15 +91,15 @@ class HreflangAnalyzer(BaseAnalyzer):
                 category="no_hreflang",
                 severity=SeverityLevel.INFO,
                 message=self.t("analyzer_content.hreflang.issues.no_hreflang"),
-                details=self.t("analyzer_content.hreflang.issues.no_hreflang_details"),
-                recommendation=self.t("analyzer_content.hreflang.issues.no_hreflang_recommendation"),
+                details=self.t("analyzer_content.hreflang.details.no_hreflang"),
+                recommendation=self.t("analyzer_content.hreflang.recommendations.no_hreflang"),
             ))
 
             severity = self._determine_overall_severity(issues)
 
             return self.create_result(
                 severity=severity,
-                summary=self.t("analyzer_content.hreflang.issues.no_hreflang_summary"),
+                summary=self.t("analyzer_content.hreflang.summary.missing"),
                 issues=issues,
                 data={
                     "has_hreflang": False,
@@ -115,8 +115,8 @@ class HreflangAnalyzer(BaseAnalyzer):
         issues.append(self.create_issue(
             category="hreflang_found",
             severity=SeverityLevel.SUCCESS,
-            message=self.t("analyzer_content.hreflang.issues.hreflang_found", languages=len(display_languages, pages=len(pages_with_hreflang))),
-            details=self.t("analyzer_content.hreflang.issues.languages_list", langs=', '.join(sorted(display_languages))),
+            message=self.t("analyzer_content.hreflang.issues.hreflang_found"),
+            details=self.t("analyzer_content.hreflang.details.hreflang_found"),
         ))
 
         # 3. Check self-referencing
@@ -135,9 +135,9 @@ class HreflangAnalyzer(BaseAnalyzer):
                 category="missing_self_reference",
                 severity=SeverityLevel.WARNING,
                 message=self.t("analyzer_content.hreflang.issues.missing_self_reference", count=len(missing_self_ref)),
-                details=self.t("analyzer_content.hreflang.issues.missing_self_reference_details"),
+                details=self.t("analyzer_content.hreflang.details.missing_self_reference"),
                 affected_urls=missing_self_ref[:20],
-                recommendation=self.t("analyzer_content.hreflang.issues.missing_self_reference_recommendation"),
+                recommendation=self.t("analyzer_content.hreflang.recommendations.missing_self_reference"),
                 count=len(missing_self_ref),
             ))
 
@@ -177,9 +177,9 @@ class HreflangAnalyzer(BaseAnalyzer):
                 category="missing_return_tags",
                 severity=SeverityLevel.WARNING,
                 message=self.t("analyzer_content.hreflang.issues.missing_return_tags", count=len(missing_return_tags)),
-                details=self.t("analyzer_content.hreflang.issues.missing_return_tags_details"),
+                details=self.t("analyzer_content.hreflang.details.missing_return_tags"),
                 affected_urls=missing_return_tags[:20],
-                recommendation=self.t("analyzer_content.hreflang.issues.missing_return_tags_recommendation"),
+                recommendation=self.t("analyzer_content.hreflang.recommendations.missing_return_tags"),
                 count=len(missing_return_tags),
             ))
 
@@ -195,9 +195,9 @@ class HreflangAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="invalid_lang_codes",
                 severity=SeverityLevel.ERROR,
-                message=self.t("analyzer_content.hreflang.issues.invalid_lang_codes", codes=', '.join(sorted(invalid_codes))),
-                details=self.t("analyzer_content.hreflang.issues.invalid_lang_codes_details"),
-                recommendation=self.t("analyzer_content.hreflang.issues.invalid_lang_codes_recommendation"),
+                message=self.t("analyzer_content.hreflang.issues.invalid_lang_codes"),
+                details=self.t("analyzer_content.hreflang.details.invalid_lang_codes"),
+                recommendation=self.t("analyzer_content.hreflang.recommendations.invalid_lang_codes"),
             ))
 
         # 6. Check x-default presence
@@ -207,8 +207,8 @@ class HreflangAnalyzer(BaseAnalyzer):
                 category="missing_x_default",
                 severity=SeverityLevel.INFO,
                 message=self.t("analyzer_content.hreflang.issues.missing_x_default"),
-                details=self.t("analyzer_content.hreflang.issues.missing_x_default_details"),
-                recommendation=self.t("analyzer_content.hreflang.issues.missing_x_default_recommendation"),
+                details=self.t("analyzer_content.hreflang.details.missing_x_default"),
+                recommendation=self.t("analyzer_content.hreflang.recommendations.missing_x_default"),
             ))
 
         # 7. Build language table
@@ -219,18 +219,18 @@ class HreflangAnalyzer(BaseAnalyzer):
                     lang_stats[lang_code] = 0
                 lang_stats[lang_code] += 1
 
-        h_lang = self.t("tables.language")
-        h_page_count = self.t("tables.page_count")
+        h_lang = self.t("table_translations.headers.Мова")
+        h_page_count = self.t("table_translations.headers.Кількість сторінок")
         h_status = self.t("tables.status")
 
         table_rows = []
         for lang_code in sorted(lang_stats.keys()):
-            status = self.t("analyzer_content.hreflang.issues.status_correct")
+            status = self.t("table_translations.values.Коректний")
             base_lang = lang_code.split("-")[0] if "-" in lang_code else lang_code
             if base_lang not in VALID_LANG_CODES:
-                status = self.t("analyzer_content.hreflang.issues.status_invalid")
+                status = self.t("table_translations.values.Некоректний код")
             elif lang_code == "x-default":
-                status = self.t("analyzer_content.hreflang.issues.status_default")
+                status = "x-default"
 
             table_rows.append({
                 h_lang: lang_code,
@@ -239,14 +239,14 @@ class HreflangAnalyzer(BaseAnalyzer):
             })
 
         tables.append({
-            "title": self.t("analyzer_content.hreflang.issues.table_title"),
+            "title": self.t("table_translations.titles.Мовні версії"),
             "headers": [h_lang, h_page_count, h_status],
             "rows": table_rows[:10],
         })
 
         # 8. Summary and result
         severity = self._determine_overall_severity(issues)
-        summary = self.t("analyzer_content.hreflang.issues.summary", languages=len(display_languages, pages=len(pages_with_hreflang)))
+        summary = self.t("analyzer_content.hreflang.summary.found", langs=len(display_languages), pages=len(pages_with_hreflang))
 
         return self.create_result(
             severity=severity,

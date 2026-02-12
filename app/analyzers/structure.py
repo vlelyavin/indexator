@@ -97,9 +97,9 @@ class StructureAnalyzer(BaseAnalyzer):
                 category="deep_pages",
                 severity=SeverityLevel.WARNING,
                 message=self.t("analyzer_content.structure.issues.deep_pages", count=len(deep_pages)),
-                details=self.t("analyzer_content.structure.issues.deep_pages_details", max_depth=settings.MAX_CLICK_DEPTH),
+                details=self.t("analyzer_content.structure.details.deep_pages"),
                 affected_urls=[url for url, _ in deep_pages[:20]],
-                recommendation=self.t("analyzer_content.structure.issues.deep_pages_recommendation"),
+                recommendation=self.t("analyzer_content.structure.recommendations.deep_pages"),
                 count=len(deep_pages),
             ))
 
@@ -108,9 +108,9 @@ class StructureAnalyzer(BaseAnalyzer):
                 category="orphan_pages",
                 severity=SeverityLevel.WARNING,
                 message=self.t("analyzer_content.structure.issues.orphan_pages", count=len(orphan_pages)),
-                details=self.t("analyzer_content.structure.issues.orphan_pages_details"),
+                details=self.t("analyzer_content.structure.details.orphan_pages"),
                 affected_urls=orphan_pages[:20],
-                recommendation=self.t("analyzer_content.structure.issues.orphan_pages_recommendation"),
+                recommendation=self.t("analyzer_content.structure.recommendations.orphan_pages"),
                 count=len(orphan_pages),
             ))
 
@@ -119,9 +119,9 @@ class StructureAnalyzer(BaseAnalyzer):
                 category="few_internal_links",
                 severity=SeverityLevel.INFO,
                 message=self.t("analyzer_content.structure.issues.few_internal_links", count=len(pages_with_few_links)),
-                details=self.t("analyzer_content.structure.issues.few_internal_links_details"),
+                details=self.t("analyzer_content.structure.details.few_internal_links"),
                 affected_urls=[url for url, _ in pages_with_few_links[:20]],
-                recommendation=self.t("analyzer_content.structure.issues.few_internal_links_recommendation"),
+                recommendation=self.t("analyzer_content.structure.recommendations.few_internal_links"),
                 count=len(pages_with_few_links),
             ))
 
@@ -129,15 +129,15 @@ class StructureAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="very_deep_structure",
                 severity=SeverityLevel.ERROR,
-                message=self.t("analyzer_content.structure.issues.very_deep_structure", max_depth=max_depth),
-                details=self.t("analyzer_content.structure.issues.very_deep_structure_details"),
-                recommendation=self.t("analyzer_content.structure.issues.very_deep_structure_recommendation"),
+                message=self.t("analyzer_content.structure.issues.very_deep_structure"),
+                details=self.t("analyzer_content.structure.details.very_deep_structure"),
+                recommendation=self.t("analyzer_content.structure.recommendations.very_deep_structure"),
             ))
 
         # Create table with depth distribution
-        h_depth = self.t("tables.depth")
-        h_page_count = self.t("tables.page_count")
-        h_example = self.t("tables.example")
+        h_depth = self.t("table_translations.headers.Глибина")
+        h_page_count = self.t("table_translations.headers.Кількість сторінок")
+        h_example = self.t("table_translations.headers.Приклад")
 
         table_data = []
 
@@ -152,7 +152,7 @@ class StructureAnalyzer(BaseAnalyzer):
 
         if table_data:
             tables.append({
-                "title": self.t("analyzer_content.structure.issues.table_depth_title"),
+                "title": self.t("table_translations.titles.Розподіл сторінок за глибиною"),
                 "headers": [h_depth, h_page_count, h_example],
                 "rows": table_data,
             })
@@ -171,21 +171,21 @@ class StructureAnalyzer(BaseAnalyzer):
                     h_title: title,
                 })
             tables.append({
-                "title": self.t("analyzer_content.structure.issues.table_orphan_title"),
+                "title": self.t("table_translations.titles.Сирітські сторінки"),
                 "headers": [h_url, h_title],
                 "rows": orphan_table,
             })
 
         # Summary
         if not issues:
-            summary = self.t("analyzer_content.structure.summary.ok", max_depth=max_depth)
+            summary = self.t("analyzer_content.structure.summary.ok", depth=max_depth)
         else:
             parts = []
             if deep_pages:
-                parts.append(self.t("analyzer_content.structure.summary.deep", count=len(deep_pages)))
+                parts.append(f"deep pages: {len(deep_pages)}")
             if orphan_pages:
-                parts.append(self.t("analyzer_content.structure.summary.orphan", count=len(orphan_pages)))
-            summary = self.t("analyzer_content.structure.summary.issues", max_depth=max_depth, issues=", ".join(parts))
+                parts.append(f"orphan pages: {len(orphan_pages)}")
+            summary = self.t("analyzer_content.structure.summary.problems", depth=max_depth, problems=", ".join(parts))
 
         severity = self._determine_overall_severity(issues)
 

@@ -142,12 +142,12 @@ class MobileAnalyzer(BaseAnalyzer):
         else:
             parts = []
             if pages_no_viewport:
-                parts.append(self.t("analyzer_content.mobile.summary.no_viewport", count=len(pages_no_viewport)))
+                parts.append(self.t("analyzer_content.mobile.issues.missing_viewport", count=len(pages_no_viewport)))
             if pages_bad_viewport:
-                parts.append(self.t("analyzer_content.mobile.summary.bad_viewport", count=len(pages_bad_viewport)))
+                parts.append(self.t("analyzer_content.mobile.issues.bad_viewport", count=len(pages_bad_viewport)))
             if pages_with_flash:
-                parts.append(self.t("analyzer_content.mobile.summary.flash", count=len(pages_with_flash)))
-            summary = self.t("analyzer_content.mobile.summary.issues", issues=", ".join(parts))
+                parts.append(self.t("analyzer_content.mobile.issues.flash_content", count=len(pages_with_flash)))
+            summary = self.t("analyzer_content.mobile.summary.problems", problems=", ".join(parts))
             severity = self._determine_overall_severity(issues)
 
         return self.create_result(

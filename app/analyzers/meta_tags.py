@@ -231,11 +231,11 @@ class MetaTagsAnalyzer(BaseAnalyzer):
 
         summary_parts = []
         if missing_titles or missing_descriptions:
-            summary_parts.append(self.t("analyzer_content.meta_tags.summary.missing", titles=len(missing_titles), descriptions=len(missing_descriptions)))
+            summary_parts.append(self.t("analyzer_content.meta_tags.summary.missing", missing_titles=len(missing_titles), missing_descriptions=len(missing_descriptions)))
         if duplicate_titles or duplicate_descriptions:
-            summary_parts.append(self.t("analyzer_content.meta_tags.summary.duplicates", titles=len(duplicate_titles), descriptions=len(duplicate_descriptions)))
+            summary_parts.append(self.t("analyzer_content.meta_tags.summary.duplicates", duplicate_titles=len(duplicate_titles), duplicate_descriptions=len(duplicate_descriptions)))
         if not summary_parts:
-            summary_parts.append(self.t("analyzer_content.meta_tags.summary.ok", pages=total_pages))
+            summary_parts.append(self.t("analyzer_content.meta_tags.summary.all_ok", total_pages=total_pages))
 
         severity = self._determine_overall_severity(issues)
 

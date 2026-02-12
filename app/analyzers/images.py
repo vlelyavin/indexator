@@ -233,16 +233,18 @@ class ImagesAnalyzer(BaseAnalyzer):
         problems_count = len(missing_alt) + len(critical_images) + len(large_images)
 
         if not issues:
-            summary = self.t("analyzer_content.images.summary.ok", count=total_images)
+            summary = self.t("analyzer_content.images.summary.all_ok", count=total_images)
         else:
             parts = []
             if missing_alt:
-                parts.append(self.t("analyzer_content.images.summary.no_alt", count=len(missing_alt)))
-            if critical_images or large_images:
-                parts.append(self.t("analyzer_content.images.summary.too_large", count=len(critical_images) + len(large_images)))
+                parts.append(self.t("analyzer_content.images.issues.missing_alt", count=len(missing_alt)))
+            if critical_images:
+                parts.append(self.t("analyzer_content.images.issues.critical_size", count=len(critical_images)))
+            elif large_images:
+                parts.append(self.t("analyzer_content.images.issues.large_size", count=len(large_images)))
             if legacy_format:
-                parts.append(self.t("analyzer_content.images.summary.legacy_format", count=len(legacy_format)))
-            summary = self.t("analyzer_content.images.summary.issues", total=total_images, issues=", ".join(parts))
+                parts.append(self.t("analyzer_content.images.issues.legacy_format", count=len(legacy_format)))
+            summary = self.t("analyzer_content.images.summary.problems", count=total_images, problems=", ".join(parts))
 
         severity = self._determine_overall_severity(issues)
 

@@ -257,14 +257,9 @@ class RobotsAnalyzer(BaseAnalyzer):
         if not issues:
             summary = self.t("analyzer_content.robots.summary.ok")
         else:
-            error_count = sum(1 for i in issues if i.severity == SeverityLevel.ERROR)
-            warning_count = sum(1 for i in issues if i.severity == SeverityLevel.WARNING)
-            parts = []
-            if error_count:
-                parts.append(self.t("analyzer_content.robots.issues.errors_count", count=error_count))
-            if warning_count:
-                parts.append(self.t("analyzer_content.robots.issues.warnings_count", count=warning_count))
-            summary = self.t("analyzer_content.robots.summary.issues", issues=', '.join(parts))
+            # Build summary from issue messages
+            issue_messages = [issue.message for issue in issues[:3]]
+            summary = self.t("analyzer_content.robots.summary.problems", problems=', '.join(issue_messages))
 
         severity = self._determine_overall_severity(issues)
 

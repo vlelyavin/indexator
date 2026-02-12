@@ -196,18 +196,18 @@ class HeadingsAnalyzer(BaseAnalyzer):
 
         summary_parts = []
         if missing_h1:
-            summary_parts.append(self.t("analyzer_content.headings.summary.missing", count=len(missing_h1)))
+            summary_parts.append(self.t("analyzer_content.headings.issues.missing_h1", count=len(missing_h1)))
         if multiple_h1:
-            summary_parts.append(self.t("analyzer_content.headings.summary.multiple", count=len(multiple_h1)))
+            summary_parts.append(self.t("analyzer_content.headings.issues.multiple_h1", count=len(multiple_h1)))
         if duplicate_h1s:
-            summary_parts.append(self.t("analyzer_content.headings.summary.duplicates", count=len(duplicate_h1s)))
+            summary_parts.append(self.t("analyzer_content.headings.issues.duplicate_h1", count=len(duplicate_h1s)))
         if hierarchy_violations:
-            summary_parts.append(self.t("analyzer_content.headings.summary.hierarchy", count=len(hierarchy_violations)))
+            summary_parts.append(self.t("analyzer_content.headings.issues.hierarchy_violation", count=len(hierarchy_violations)))
 
         if summary_parts:
-            summary = self.t("analyzer_content.headings.summary.issues", issues=", ".join(summary_parts))
+            summary = self.t("analyzer_content.headings.summary.problems_found", problems=", ".join(summary_parts))
         else:
-            summary = self.t("analyzer_content.headings.summary.ok", pages=total_pages)
+            summary = self.t("analyzer_content.headings.summary.all_ok", total_pages=total_pages)
 
         severity = self._determine_overall_severity(issues)
 

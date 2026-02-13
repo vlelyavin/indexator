@@ -29,6 +29,7 @@ from .config import settings
 from .crawler import WebCrawler
 from .i18n import t
 from .models import (
+    AnalyzerResult,
     AuditRequest,
     AuditResult,
     AuditStatus,
@@ -468,6 +469,65 @@ async def download_report(
 
     else:
         raise HTTPException(status_code=400, detail=f"Unsupported format: {format}. Use html, pdf, or docx.")
+
+
+@app.post("/api/report/generate")
+async def generate_report_from_data(request: Request):
+    """Generate report from cached audit data (for expired/restarted audits)."""
+    body = await request.json()
+    format_type = body.get("format", "html").lower()
+    audit_data = body.get("audit")
+
+    if not audit_data:
+        raise HTTPException(status_code=400, detail="Missing audit data")
+
+    # Reconstruct AuditResult from cached JSON
+    results = {}
+    for name, result_dict in audit_data.get("results", {}).items():
+        results[name] = AnalyzerResult(**result_dict)
+
+    audit = AuditResult(
+        id=audit_data.get("id", str(uuid.uuid4())[:8]),
+        url=audit_data.get("url", ""),
+        status=AuditStatus.COMPLETED,
+        pages_crawled=audit_data.get("pages_crawled", 0),
+        total_issues=audit_data.get("total_issues", 0),
+        critical_issues=audit_data.get("critical_issues", 0),
+        warnings=audit_data.get("warnings", 0),
+        passed_checks=audit_data.get("passed_checks", 0),
+        results=results,
+        homepage_screenshot=audit_data.get("homepage_screenshot"),
+        language=audit_data.get("language", "uk"),
+    )
+
+    generator = get_report_generator()
+    domain = extract_domain(audit.url)
+    date_str = datetime.now().strftime("%Y-%m-%d")
+
+    if format_type == "html":
+        report_path = await generator.generate(audit)
+        filename = f"seo-audit_{domain}_{date_str}.html"
+        return FileResponse(report_path, filename=filename, media_type="text/html")
+    elif format_type == "pdf":
+        try:
+            pdf_path = await generator.generate_pdf(audit)
+        except ImportError as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        filename = f"seo-audit_{domain}_{date_str}.pdf"
+        return FileResponse(pdf_path, filename=filename, media_type="application/pdf")
+    elif format_type == "docx":
+        try:
+            docx_path = await generator.generate_docx(audit)
+        except ImportError as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        filename = f"seo-audit_{domain}_{date_str}.docx"
+        return FileResponse(
+            docx_path,
+            filename=filename,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported format: {format_type}")
 
 
 async def run_audit(audit_id: str, request: AuditRequest):

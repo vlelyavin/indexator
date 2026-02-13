@@ -36,6 +36,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
   const [search, setSearch] = useState("");
   const [exportOpen, setExportOpen] = useState(false);
   const [exportingFormat, setExportingFormat] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const pagesCrawled = (meta.pages_crawled as number) || 0;
@@ -78,13 +79,16 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
   async function handleExport(format: string) {
     setExportOpen(false);
     setExportingFormat(format);
+    setExportError(null);
 
     try {
       const url = `/api/audit/${auditId}/export?format=${format}`;
 
-      // Fetch to monitor completion
       const response = await fetch(url);
-      if (!response.ok) throw new Error('Export failed');
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || "Export failed");
+      }
 
       // Create download link
       const blob = await response.blob();
@@ -100,7 +104,10 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
       a.click();
       window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
-      console.error('Export failed:', error);
+      console.error("Export failed:", error);
+      setExportError(
+        error instanceof Error ? error.message : "Export failed"
+      );
     } finally {
       setExportingFormat(null);
     }
@@ -164,7 +171,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
 
         {/* Filter bar */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-100 p-1 dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-100 p-1 dark:border-gray-800 dark:bg-gray-900">
             {filterButtons.map((fb) => (
               <button
                 key={fb.key}
@@ -172,7 +179,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
                 className={cn(
                   "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
                   filter === fb.key
-                    ? "border border-gray-300 bg-white text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    ? "border border-gray-300 bg-white text-gray-900 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                     : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
                 )}
               >
@@ -189,7 +196,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("searchIssues")}
-              className="w-full rounded-lg border py-1.5 pl-8 pr-3 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-400/30 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-white dark:focus:ring-white/20"
+              className="w-full rounded-lg border py-1.5 pl-8 pr-3 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-400/30 dark:border-gray-800 dark:bg-gray-900 dark:text-white dark:focus:border-white dark:focus:ring-white/20"
             />
           </div>
 
@@ -203,7 +210,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
                 "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium",
                 exportingFormat
                   ? "cursor-not-allowed opacity-50 border-gray-300 text-gray-500 dark:border-gray-600 dark:text-gray-500"
-                  : "text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                  : "text-gray-700 hover:bg-gray-100 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
               )}
             >
               {exportingFormat ? (
@@ -220,7 +227,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
               )}
             </button>
             {exportOpen && !exportingFormat && (
-              <div className="absolute right-0 top-full z-10 mt-1 w-40 rounded-lg border border-gray-200 bg-gray-50 py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+              <div className="absolute right-0 top-full z-10 mt-1 w-40 rounded-lg border border-gray-200 bg-gray-50 py-1 shadow-lg dark:border-gray-800 dark:bg-gray-900">
                 {["html", "pdf", "docx"].map((fmt) => (
                   <button
                     key={fmt}
@@ -234,6 +241,19 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
             )}
           </div>
         </div>
+
+        {/* Export error */}
+        {exportError && (
+          <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300">
+            <span>{exportError}</span>
+            <button
+              onClick={() => setExportError(null)}
+              className="ml-4 text-red-500 hover:text-red-700 dark:hover:text-red-200"
+            >
+              &times;
+            </button>
+          </div>
+        )}
 
         {/* Analyzer sections */}
         {analyzerEntries.length === 0 ? (

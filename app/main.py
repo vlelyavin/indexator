@@ -555,8 +555,16 @@ async def run_audit(audit_id: str, request: AuditRequest):
             ))
 
             try:
-                result = await analyzer.analyze(pages, url)
+                # Wrap analyzer call with 60-second timeout to prevent hanging audits
+                result = await asyncio.wait_for(
+                    analyzer.analyze(pages, url),
+                    timeout=60
+                )
                 return analyzer.name, result
+            except asyncio.TimeoutError:
+                # Analyzer exceeded timeout
+                logger.error(f"Analyzer {analyzer.name} timed out after 60 seconds")
+                return analyzer.name, None
             except Exception as e:
                 # Log error but don't break other analyzers
                 logger.error(f"Error in {analyzer.name}: {e}", exc_info=e)

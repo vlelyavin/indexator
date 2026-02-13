@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     PAGE_TIMEOUT: int = 10  # seconds per page
     TOTAL_TIMEOUT: int = 600  # 10 minutes total
     MAX_EXTERNAL_LINKS: int = 500
-    PARALLEL_REQUESTS: int = 5
+    PARALLEL_REQUESTS: int = 8  # Increased from 5 for faster crawling
 
     # Performance Optimizations
     ENABLE_PARALLEL_ANALYZERS: bool = True

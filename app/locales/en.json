@@ -142,7 +142,11 @@
     "no_issues": "No issues found",
     "pagespeed_screenshots": "PageSpeed Insights Screenshots",
     "express_title": "Express Website Audit",
-    "homepage_screenshot_title": "Homepage Screenshot"
+    "homepage_screenshot_title": "Homepage Screenshot",
+    "badge_ok": "OK",
+    "badge_warning": "Warning",
+    "badge_error": "Error",
+    "badge_info": "Info"
   },
   "analyzers": {
     "cms": {
@@ -742,7 +746,12 @@
         "sitemap_urls_not_found_recommendation": "URLs in sitemap not found on the website: {count}",
         "status_exists": "Exists",
         "status_missing": "Missing",
-        "table_title": "Indexation Status"
+        "table_title": "Indexation Status",
+        "canonical_offsite": "Canonical points to an off-site or non-existent page",
+        "unknown_directive": "Line {line}: unknown directive '{directive}'",
+        "invalid_syntax": "Line {line}: invalid syntax",
+        "fetch_failed": "Failed to fetch: {url}",
+        "parse_error": "Parse error {url}: {error}"
       },
       "details": {
         "no_robots_txt": "Without robots.txt, search crawlers will index all accessible pages.",

@@ -69,7 +69,7 @@ class RobotsAnalyzer(BaseAnalyzer):
                         canonical_issues.append({
                             'url': url,
                             'canonical': page.canonical,
-                            'issue': 'Canonical вказує на сторінку поза сайтом або неіснуючу',
+                            'issue': self.t("analyzer_content.robots.issues.canonical_offsite"),
                         })
 
         # Create issues for robots.txt
@@ -316,10 +316,10 @@ class RobotsAnalyzer(BaseAnalyzer):
                     if value:
                         disallowed.append(value)
                 elif directive not in ['user-agent', 'allow', 'crawl-delay', 'host']:
-                    errors.append(f"Рядок {i}: невідома директива '{directive}'")
+                    errors.append(self.t("analyzer_content.robots.issues.unknown_directive", line=i, directive=directive))
             else:
                 if line and not line.startswith('#'):
-                    errors.append(f"Рядок {i}: неправильний синтаксис")
+                    errors.append(self.t("analyzer_content.robots.issues.invalid_syntax", line=i))
 
         return RobotsTxtData(
             exists=True,
@@ -357,7 +357,7 @@ class RobotsAnalyzer(BaseAnalyzer):
 
             if status != 200 or not content:
                 if depth == 0:
-                    all_errors.append(f"Не вдалося завантажити: {url}")
+                    all_errors.append(self.t("analyzer_content.robots.issues.fetch_failed", url=url))
                 return
 
             exists = True
@@ -395,7 +395,7 @@ class RobotsAnalyzer(BaseAnalyzer):
                             total_urls += 1
 
             except Exception as e:
-                all_errors.append(f"Помилка парсингу {url}: {str(e)}")
+                all_errors.append(self.t("analyzer_content.robots.issues.parse_error", url=url, error=str(e)))
 
         # Process all sitemap URLs
         for sitemap_url in sitemap_urls[:10]:  # Limit to 10 sitemaps from robots.txt

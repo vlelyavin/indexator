@@ -9,7 +9,7 @@ from collections import deque
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Tuple, List, Set
+from typing import Dict, Optional, Tuple, List, Set
 from urllib.parse import urlparse
 
 from .utils import extract_domain
@@ -379,13 +379,24 @@ async def get_audit_results(audit_id: str, lang: str = "uk"):
 
 
 @app.get("/api/audit/{audit_id}/download")
-async def download_report(audit_id: str, format: str = "html"):
+async def download_report(
+    audit_id: str,
+    format: str = "html",
+    company_name: Optional[str] = None,
+    primary_color: Optional[str] = None,
+    accent_color: Optional[str] = None,
+    logo_url: Optional[str] = None,
+):
     """
     Download generated report.
 
     Args:
         audit_id: Audit ID
         format: Report format - html, pdf, or docx
+        company_name: Optional brand company name
+        primary_color: Optional brand primary color (hex)
+        accent_color: Optional brand accent color (hex)
+        logo_url: Optional brand logo URL
     """
     if audit_id not in audits:
         raise HTTPException(status_code=404, detail="Audit not found")
@@ -395,6 +406,16 @@ async def download_report(audit_id: str, format: str = "html"):
     if audit.status != AuditStatus.COMPLETED:
         raise HTTPException(status_code=400, detail="Audit not completed yet")
 
+    # Build brand settings dict (only include non-None values)
+    brand = None
+    if any([company_name, primary_color, accent_color, logo_url]):
+        brand = {
+            "company_name": company_name,
+            "primary_color": primary_color,
+            "accent_color": accent_color,
+            "logo_url": logo_url,
+        }
+
     # Extract domain for filename
     domain = extract_domain(audit.url)
     date_str = datetime.now().strftime("%Y-%m-%d")
@@ -402,12 +423,18 @@ async def download_report(audit_id: str, format: str = "html"):
     format = format.lower()
 
     if format == "html":
-        if not audit.report_path or not Path(audit.report_path).exists():
+        # Re-generate HTML with brand settings if provided
+        if brand:
+            generator = get_report_generator()
+            report_path = await generator.generate(audit, brand=brand)
+        elif not audit.report_path or not Path(audit.report_path).exists():
             raise HTTPException(status_code=404, detail="Report not found")
+        else:
+            report_path = audit.report_path
 
         filename = f"seo-audit_{domain}_{date_str}.html"
         return FileResponse(
-            audit.report_path,
+            report_path,
             filename=filename,
             media_type="text/html",
         )
@@ -416,7 +443,7 @@ async def download_report(audit_id: str, format: str = "html"):
         # Generate PDF on demand
         generator = get_report_generator()
         try:
-            pdf_path = await generator.generate_pdf(audit)
+            pdf_path = await generator.generate_pdf(audit, brand=brand)
         except ImportError as e:
             raise HTTPException(status_code=500, detail=str(e))
 
@@ -431,7 +458,7 @@ async def download_report(audit_id: str, format: str = "html"):
         # Generate DOCX on demand
         generator = get_report_generator()
         try:
-            docx_path = await generator.generate_docx(audit)
+            docx_path = await generator.generate_docx(audit, brand=brand)
         except ImportError as e:
             raise HTTPException(status_code=500, detail=str(e))
 

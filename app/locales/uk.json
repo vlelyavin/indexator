@@ -140,7 +140,12 @@
     "recommendation": "Рекомендація",
     "no_issues": "Проблем не знайдено",
     "pagespeed_screenshots": "Скріншоти PageSpeed Insights",
-    "express_title": "Експрес-аудит сайту"
+    "express_title": "Експрес-аудит сайту",
+    "homepage_screenshot_title": "Скріншот головної сторінки",
+    "badge_ok": "OK",
+    "badge_warning": "Попередження",
+    "badge_error": "Помилка",
+    "badge_info": "Інфо"
   },
   "analyzers": {
     "cms": {
@@ -737,6 +742,11 @@
         "status_exists": "Є",
         "status_missing": "Відсутній",
         "table_title": "Статус індексації",
+        "canonical_offsite": "Canonical вказує на сторінку поза сайтом або неіснуючу",
+        "unknown_directive": "Рядок {line}: невідома директива '{directive}'",
+        "invalid_syntax": "Рядок {line}: неправильний синтаксис",
+        "fetch_failed": "Не вдалося завантажити: {url}",
+        "parse_error": "Помилка парсингу {url}: {error}",
         "robots_errors": "Помилки в robots.txt: {count}",
         "robots_errors_recommendation": "Виправте синтаксичні помилки в robots.txt.",
         "noindex_pages_recommendation": "Переконайтеся, що noindex встановлено навмисно. Видаліть noindex для сторінок, які потрібно індексувати.",

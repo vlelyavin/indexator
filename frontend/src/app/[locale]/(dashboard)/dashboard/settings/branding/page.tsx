@@ -22,6 +22,11 @@ export default function BrandingPage() {
 
   const isPro = session?.user?.planId === "pro" || session?.user?.planId === "agency";
 
+  // Reset image error state when logoUrl changes (e.g., after loading from API)
+  useEffect(() => {
+    setImageError(false);
+  }, [logoUrl]);
+
   useEffect(() => {
     async function load() {
       try {

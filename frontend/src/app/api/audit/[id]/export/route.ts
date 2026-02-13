@@ -31,6 +31,7 @@ export async function GET(
   const queryParams = new URLSearchParams({ format });
   if (branding?.companyName) queryParams.set("company_name", branding.companyName);
   if (branding?.primaryColor) queryParams.set("primary_color", branding.primaryColor);
+  if (branding?.accentColor) queryParams.set("accent_color", branding.accentColor);
   if (branding?.logoUrl) queryParams.set("logo_url", branding.logoUrl);
 
   const fastapiRes = await fastapiFetch(

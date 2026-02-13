@@ -138,6 +138,15 @@ async def startup_event():
     asyncio.create_task(cleanup_old_audits())
     print("[Startup] Audit cleanup task started")
 
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up resources on app shutdown."""
+    from .http_client import close_shared_session
+    await close_shared_session()
+    print("[Shutdown] HTTP client session closed")
+
+
 # Broadcast channel for progress events (supports multiple subscribers)
 class BroadcastChannel:
     """Broadcast channel that supports multiple subscribers."""

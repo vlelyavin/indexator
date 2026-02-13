@@ -294,11 +294,12 @@ class SpeedAnalyzer(BaseAnalyzer):
             max_retries = 3
             for attempt in range(max_retries):
                 try:
-                    timeout = aiohttp.ClientTimeout(total=60)
-                    connector = aiohttp.TCPConnector(ssl=False)
+                    from app.http_client import get_shared_session
 
-                    async with aiohttp.ClientSession(connector=connector) as session:
-                        async with session.get(base_api_url, params=params, timeout=timeout) as response:
+                    session = await get_shared_session()
+                    timeout = aiohttp.ClientTimeout(total=60)
+
+                    async with session.get(base_api_url, params=params, timeout=timeout) as response:
                             if response.status != 200:
                                 error_text = await response.text()
                                 logger.error(f"PageSpeed API error for {strategy}: status={response.status}, response={error_text[:500]}")

@@ -180,7 +180,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
                   "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
                   filter === fb.key
                     ? "border border-gray-300 bg-white text-gray-900 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+                    : "border border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 )}
               >
                 {fb.icon}
@@ -196,7 +196,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("searchIssues")}
-              className="w-full rounded-lg border py-1.5 pl-8 pr-3 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-400/30 dark:border-gray-800 dark:bg-gray-900 dark:text-white dark:focus:border-white dark:focus:ring-white/20"
+              className="h-[34px] w-full rounded-lg border py-1.5 pl-8 pr-3 text-sm outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-400/30 dark:border-gray-800 dark:bg-gray-900 dark:text-white dark:focus:border-white dark:focus:ring-white/20"
             />
           </div>
 
@@ -210,7 +210,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
                 "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium",
                 exportingFormat
                   ? "cursor-not-allowed opacity-50 border-gray-300 text-gray-500 dark:border-gray-600 dark:text-gray-500"
-                  : "text-gray-700 hover:bg-gray-100 dark:border-gray-800 dark:text-gray-300 dark:hover:bg-gray-800"
+                  : "text-gray-700 hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
               )}
             >
               {exportingFormat ? (

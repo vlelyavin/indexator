@@ -65,7 +65,7 @@ export async function PUT(req: Request) {
   if (logoUrl !== undefined && logoUrl !== null && logoUrl !== "") {
     try {
       const parsed = new URL(logoUrl, "https://placeholder.local");
-      if (!parsed.pathname.startsWith("/uploads/")) {
+      if (!parsed.pathname.startsWith("/uploads/") && !parsed.pathname.startsWith("/api/upload/logo/")) {
         return NextResponse.json(
           { error: "Invalid logo URL" },
           { status: 400 }

@@ -142,7 +142,11 @@
     "no_issues": "Проблем не обнаружено",
     "pagespeed_screenshots": "Скриншоты PageSpeed Insights",
     "express_title": "Экспресс-аудит сайта",
-    "homepage_screenshot_title": "Скриншот главной страницы"
+    "homepage_screenshot_title": "Скриншот главной страницы",
+    "badge_ok": "OK",
+    "badge_warning": "Предупреждение",
+    "badge_error": "Ошибка",
+    "badge_info": "Инфо"
   },
   "analyzers": {
     "cms": {
@@ -742,7 +746,12 @@
         "sitemap_urls_not_found_recommendation": "URL в sitemap не найдены на сайте: {count} шт.",
         "status_exists": "Есть",
         "status_missing": "Отсутствует",
-        "table_title": "Статус индексации"
+        "table_title": "Статус индексации",
+        "canonical_offsite": "Canonical указывает на страницу вне сайта или несуществующую",
+        "unknown_directive": "Строка {line}: неизвестная директива '{directive}'",
+        "invalid_syntax": "Строка {line}: неправильный синтаксис",
+        "fetch_failed": "Не удалось загрузить: {url}",
+        "parse_error": "Ошибка парсинга {url}: {error}"
       },
       "details": {
         "no_robots_txt": "Без robots.txt поисковые роботы индексируют все доступные страницы.",

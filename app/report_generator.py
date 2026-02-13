@@ -638,12 +638,12 @@ class ReportGenerator:
 
     @staticmethod
     def status_icon(severity: SeverityLevel) -> str:
-        """Convert severity to status icon."""
+        """Convert severity to inline SVG icon."""
         icons = {
-            SeverityLevel.SUCCESS: '✓',
-            SeverityLevel.WARNING: '⚠️',
-            SeverityLevel.ERROR: '✗',
-            SeverityLevel.INFO: 'ℹ️',
+            SeverityLevel.SUCCESS: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+            SeverityLevel.WARNING: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+            SeverityLevel.ERROR: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+            SeverityLevel.INFO: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
         }
         return icons.get(severity, '')
 
@@ -663,7 +663,7 @@ class ReportGenerator:
         """Format number with thousands separator."""
         return f"{value:,}".replace(",", " ")
 
-    async def generate(self, audit: AuditResult) -> str:
+    async def generate(self, audit: AuditResult, brand: dict | None = None) -> str:
         """Generate HTML report and return file path."""
         template = self.env.get_template("report.html")
 
@@ -721,6 +721,10 @@ class ReportGenerator:
             "collapse": t("common.collapse"),
             "pagespeed_screenshots": t("report.pagespeed_screenshots"),
             "homepage_screenshot_title": t("report.homepage_screenshot_title"),
+            "badge_ok": t("report.badge_ok"),
+            "badge_warning": t("report.badge_warning"),
+            "badge_error": t("report.badge_error"),
+            "badge_info": t("report.badge_info"),
         }
 
         # Render template
@@ -732,6 +736,7 @@ class ReportGenerator:
             SeverityLevel=SeverityLevel,
             t=translations,
             lang=lang,
+            brand=brand or {},
         )
 
         # Save report
@@ -743,7 +748,7 @@ class ReportGenerator:
 
         return str(report_path)
 
-    async def generate_pdf(self, audit: AuditResult) -> str:
+    async def generate_pdf(self, audit: AuditResult, brand: dict | None = None) -> str:
         """Generate PDF report and return file path."""
         try:
             from weasyprint import HTML, CSS
@@ -751,7 +756,7 @@ class ReportGenerator:
             raise ImportError("weasyprint is required for PDF export. Install it with: pip install weasyprint")
 
         # First generate HTML
-        html_path = await self.generate(audit)
+        html_path = await self.generate(audit, brand=brand)
 
         # Read the HTML content
         with open(html_path, "r", encoding="utf-8") as f:
@@ -1041,7 +1046,7 @@ class ReportGenerator:
                 run = p.add_run(f"  • {url}")
                 self._docx_set_font(run, size_pt=8, color_rgb=(55, 65, 81))
 
-    async def generate_docx(self, audit: AuditResult) -> str:
+    async def generate_docx(self, audit: AuditResult, brand: dict | None = None) -> str:
         """Generate styled DOCX report and return file path."""
         try:
             from docx import Document
@@ -1102,6 +1107,22 @@ class ReportGenerator:
                 h_style.font.color.rgb = RGBColor(31, 41, 55)
                 _set_style_font(h_style)
 
+        # Resolve brand primary color for DOCX accents (default: blue #3B82F6)
+        brand_primary_hex = '3B82F6'
+        brand_primary_rgb = (59, 130, 246)
+        if brand and brand.get('primary_color'):
+            hex_val = brand['primary_color'].lstrip('#')
+            if len(hex_val) == 6:
+                brand_primary_hex = hex_val.upper()
+                brand_primary_rgb = (int(hex_val[0:2], 16), int(hex_val[2:4], 16), int(hex_val[4:6], 16))
+
+        # --- Company Name (if branded) ---
+        if brand and brand.get('company_name'):
+            company_para = doc.add_paragraph()
+            company_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = company_para.add_run(brand['company_name'])
+            self._docx_set_font(run, size_pt=12, bold=True, color_rgb=brand_primary_rgb)
+
         # --- Title ---
         title_text = f"{t_labels['express_title']}: {domain}"
         title_para = doc.add_heading(title_text, 0)
@@ -1119,7 +1140,7 @@ class ReportGenerator:
         url_para = doc.add_paragraph()
         url_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
         run = url_para.add_run(audit.url)
-        self._docx_set_font(run, size_pt=10, color_rgb=(59, 130, 246))
+        self._docx_set_font(run, size_pt=10, color_rgb=brand_primary_rgb)
 
         doc.add_paragraph()
 
@@ -1131,7 +1152,7 @@ class ReportGenerator:
         summary_table.style = 'Table Grid'
 
         summary_items = [
-            (t_labels['pages_crawled'], str(audit.pages_crawled), '3B82F6'),
+            (t_labels['pages_crawled'], str(audit.pages_crawled), brand_primary_hex),
             (t_labels['passed_checks'], str(audit.passed_checks), '10B981'),
             (t_labels['warnings'], str(audit.warnings), 'F59E0B'),
             (t_labels['critical_issues'], str(audit.critical_issues), 'EF4444'),
@@ -1186,7 +1207,7 @@ class ReportGenerator:
             SeverityLevel.SUCCESS: ("✓", (16, 185, 129)),
             SeverityLevel.WARNING: ("⚠", (245, 158, 11)),
             SeverityLevel.ERROR: ("✗", (239, 68, 68)),
-            SeverityLevel.INFO: ("ℹ", (59, 130, 246)),
+            SeverityLevel.INFO: ("ℹ", brand_primary_rgb),
         }
 
         for name in section_order:

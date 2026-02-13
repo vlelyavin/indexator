@@ -258,8 +258,8 @@ class WebCrawler:
                 h5_tags = [h.get_text(strip=True) for h in soup.find_all('h5') if h.get_text(strip=True)]
                 h6_tags = [h.get_text(strip=True) for h in soup.find_all('h6') if h.get_text(strip=True)]
 
-                # Extract text content and count words (reuse parsed soup)
-                text_content = self._extract_text_content(soup)
+                # Extract text content and count words (use fresh soup to prevent modification)
+                text_content = self._extract_text_content(BeautifulSoup(html, 'lxml'))
                 word_count = self._count_words(text_content)
 
                 # Extract images

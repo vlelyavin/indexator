@@ -457,7 +457,7 @@ async def run_audit(audit_id: str, request: AuditRequest):
         # Store in history (keep last 50 events)
         history = audit_progress_history.get(audit_id, [])
         history.append(event)
-        audit_progress_history[audit_id] = history[-50:]
+        audit_progress_history[audit_id] = history[-20:]  # Reduced from 50 to save memory
 
     try:
         # Phase 1: Crawling (no timeout - page limit controls audit scope)
@@ -627,6 +627,11 @@ async def run_audit(audit_id: str, request: AuditRequest):
             logger.warning(f"Failed analyzers: {', '.join(failed_analyzers)}")
 
         audit.results = results
+
+        # Clear HTML content to free memory (analyzers are done, soup is cached)
+        for page in pages.values():
+            page.html_content = None
+        logger.info(f"Cleared HTML content from {len(pages)} pages, freed ~{len(pages) * 100}KB memory")
 
         # Calculate totals
         for result in results.values():

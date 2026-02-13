@@ -401,10 +401,10 @@ class SpeedAnalyzer(BaseAnalyzer):
 
             return None
 
-        # Fetch mobile and desktop sequentially to avoid quota issues
-        mobile_result = await fetch_strategy("mobile")
-        await asyncio.sleep(2)  # Delay between requests
-        desktop_result = await fetch_strategy("desktop")
+        # Fetch mobile and desktop in parallel (each has its own retry logic)
+        mobile_task = fetch_strategy("mobile")
+        desktop_task = fetch_strategy("desktop")
+        mobile_result, desktop_result = await asyncio.gather(mobile_task, desktop_task)
 
         result.mobile = mobile_result
         result.desktop = desktop_result

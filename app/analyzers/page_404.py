@@ -53,15 +53,13 @@ class Page404Analyzer(BaseAnalyzer):
         page_content = None
 
         try:
-            timeout = aiohttp.ClientTimeout(total=10)
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (compatible; SEOAuditBot/1.0)',
-                'Accept': 'text/html,application/xhtml+xml',
-            }
+            from ..http_client import get_session
 
-            connector = aiohttp.TCPConnector(ssl=False)
-            async with aiohttp.ClientSession(connector=connector) as session:
-                async with session.get(test_url, timeout=timeout, headers=headers, allow_redirects=True) as response:
+            session = await get_session()
+            timeout = aiohttp.ClientTimeout(total=10)
+            headers = {'Accept': 'text/html,application/xhtml+xml'}
+
+            async with session.get(test_url, timeout=timeout, headers=headers, allow_redirects=True) as response:
                     status_code = response.status
                     returns_404_status = status_code == 404
 

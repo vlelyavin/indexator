@@ -369,15 +369,13 @@ class WebCrawler:
 async def check_url_status(url: str, timeout: int = 5) -> int:
     """Check HTTP status of a URL without downloading content."""
     try:
-        connector = aiohttp.TCPConnector(ssl=False)
-        timeout_config = aiohttp.ClientTimeout(total=timeout)
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (compatible; SEOAuditBot/1.0)',
-        }
+        from .http_client import get_session
 
-        async with aiohttp.ClientSession(connector=connector) as session:
-            async with session.head(url, timeout=timeout_config, headers=headers, allow_redirects=True) as response:
-                return response.status
+        session = await get_session()
+        timeout_config = aiohttp.ClientTimeout(total=timeout)
+
+        async with session.head(url, timeout=timeout_config, allow_redirects=True) as response:
+            return response.status
     except asyncio.TimeoutError:
         return 408
     except Exception:
@@ -387,17 +385,15 @@ async def check_url_status(url: str, timeout: int = 5) -> int:
 async def fetch_url_content(url: str, timeout: int = 10) -> tuple[int, Optional[str]]:
     """Fetch URL content and return status code and content."""
     try:
-        connector = aiohttp.TCPConnector(ssl=False)
-        timeout_config = aiohttp.ClientTimeout(total=timeout)
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (compatible; SEOAuditBot/1.0)',
-            'Accept': '*/*',
-        }
+        from .http_client import get_session
 
-        async with aiohttp.ClientSession(connector=connector) as session:
-            async with session.get(url, timeout=timeout_config, headers=headers, allow_redirects=True) as response:
-                content = await response.text()
-                return response.status, content
+        session = await get_session()
+        timeout_config = aiohttp.ClientTimeout(total=timeout)
+        headers = {'Accept': '*/*'}
+
+        async with session.get(url, timeout=timeout_config, headers=headers, allow_redirects=True) as response:
+            content = await response.text()
+            return response.status, content
     except asyncio.TimeoutError:
         return 408, None
     except Exception:
@@ -407,21 +403,19 @@ async def fetch_url_content(url: str, timeout: int = 10) -> tuple[int, Optional[
 async def get_image_size(url: str, timeout: int = 10) -> Optional[int]:
     """Get size of an image in bytes."""
     try:
-        connector = aiohttp.TCPConnector(ssl=False)
+        from .http_client import get_session
+
+        session = await get_session()
         timeout_config = aiohttp.ClientTimeout(total=timeout)
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (compatible; SEOAuditBot/1.0)',
-        }
 
-        async with aiohttp.ClientSession(connector=connector) as session:
-            async with session.head(url, timeout=timeout_config, headers=headers, allow_redirects=True) as response:
-                content_length = response.headers.get('content-length')
-                if content_length:
-                    return int(content_length)
+        async with session.head(url, timeout=timeout_config, allow_redirects=True) as response:
+            content_length = response.headers.get('content-length')
+            if content_length:
+                return int(content_length)
 
-            # If HEAD doesn't return size, try GET
-            async with session.get(url, timeout=timeout_config, headers=headers, allow_redirects=True) as response:
-                content = await response.read()
-                return len(content)
+        # If HEAD doesn't return size, try GET
+        async with session.get(url, timeout=timeout_config, allow_redirects=True) as response:
+            content = await response.read()
+            return len(content)
     except Exception:
         return None

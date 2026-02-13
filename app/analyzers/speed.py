@@ -295,7 +295,12 @@ class SpeedAnalyzer(BaseAnalyzer):
             for attempt in range(max_retries):
                 try:
                     timeout = aiohttp.ClientTimeout(total=60)
-                    connector = aiohttp.TCPConnector(ssl=False)
+                    connector = aiohttp.TCPConnector(
+                        ssl=False,
+                        limit=settings.AIOHTTP_CONNECTION_LIMIT,
+                        limit_per_host=settings.AIOHTTP_LIMIT_PER_HOST,
+                        ttl_dns_cache=300,  # Cache DNS for 5 minutes
+                    )
 
                     async with aiohttp.ClientSession(connector=connector) as session:
                         async with session.get(base_api_url, params=params, timeout=timeout) as response:

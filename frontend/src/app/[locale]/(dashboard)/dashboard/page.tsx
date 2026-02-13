@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
@@ -17,6 +17,9 @@ import {
 import { cn, formatDate } from "@/lib/utils";
 import type { AuditSummary } from "@/types/audit";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ElapsedTime } from "@/components/ui/elapsed-time";
+
+const IN_PROGRESS_STATUSES = ["pending", "crawling", "analyzing", "screenshots", "generating_report"];
 
 export default function DashboardPage() {
   const t = useTranslations("dashboard");
@@ -43,6 +46,65 @@ export default function DashboardPage() {
     }
     load();
   }, []);
+
+  // Poll in-progress audits for status updates
+  const auditsRef = useRef(audits);
+  auditsRef.current = audits;
+
+  const hasInProgress = audits.some((a) => IN_PROGRESS_STATUSES.includes(a.status));
+
+  useEffect(() => {
+    if (!hasInProgress) return;
+
+    const interval = setInterval(async () => {
+      const current = auditsRef.current;
+      const inProgress = current.filter((a) => IN_PROGRESS_STATUSES.includes(a.status));
+      if (inProgress.length === 0) return;
+
+      const results = await Promise.allSettled(
+        inProgress.map(async (audit) => {
+          const res = await fetch(`/api/audit/${audit.id}/progress`);
+          if (!res.ok) return null;
+          const data = await res.json();
+          return { id: audit.id, data };
+        })
+      );
+
+      let anyTerminal = false;
+
+      setAudits((prev) =>
+        prev.map((audit) => {
+          const result = results.find(
+            (r) => r.status === "fulfilled" && r.value?.id === audit.id
+          );
+          if (!result || result.status !== "fulfilled" || !result.value?.data) return audit;
+
+          const { data } = result.value;
+          const wasInProgress = IN_PROGRESS_STATUSES.includes(audit.status);
+          const isNowTerminal = data.status === "completed" || data.status === "failed";
+          if (wasInProgress && isNowTerminal) anyTerminal = true;
+
+          return {
+            ...audit,
+            status: data.status,
+            pagesCrawled: data.pages_crawled ?? audit.pagesCrawled,
+            errorMessage: data.status === "failed" ? (data.message || audit.errorMessage) : audit.errorMessage,
+            completedAt: isNowTerminal ? (audit.completedAt || new Date().toISOString()) : audit.completedAt,
+          };
+        })
+      );
+
+      // Re-fetch full list data when an audit just completed (to get accurate stats)
+      if (anyTerminal) {
+        try {
+          const res = await fetch("/api/audit/list");
+          if (res.ok) setAudits(await res.json());
+        } catch { /* ignore */ }
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [hasInProgress]);
 
   async function handleDelete() {
     if (!deleteAuditId) return;
@@ -172,6 +234,14 @@ export default function DashboardPage() {
                       </div>
                     )}
                   </div>
+                  <ElapsedTime
+                    startedAt={audit.startedAt}
+                    stoppedAt={
+                      audit.status === "completed" || audit.status === "failed"
+                        ? audit.completedAt || null
+                        : null
+                    }
+                  />
                   <ExternalLink className="h-4 w-4 shrink-0 text-gray-400" />
                 </Link>
                 <button

@@ -10,6 +10,8 @@ import {
   Info,
   BookOpen,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import DOMPurify from "isomorphic-dompurify";
 import { IssueCard } from "./issue-card";
 import { AnalyzerTable } from "./analyzer-table";
 import { cn } from "@/lib/utils";
@@ -32,6 +34,7 @@ export function AnalyzerSection({ result }: AnalyzerSectionProps) {
     result.severity === "error" || result.severity === "warning"
   );
   const [showTheory, setShowTheory] = useState(false);
+  const t = useTranslations("audit");
 
   const SevIcon = severityIcons[result.severity];
   const colors = SEVERITY_COLORS[result.severity];
@@ -89,12 +92,12 @@ export function AnalyzerSection({ result }: AnalyzerSectionProps) {
                 className="flex items-center gap-1.5 text-xs font-medium text-gray-900 underline dark:text-white"
               >
                 <BookOpen className="h-3.5 w-3.5" />
-                {showTheory ? "Hide theory" : "Show theory"}
+                {showTheory ? t("hideTheory") : t("showTheory")}
               </button>
               {showTheory && (
                 <div
                   className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs leading-relaxed text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                  dangerouslySetInnerHTML={{ __html: result.theory }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(result.theory) }}
                 />
               )}
             </div>
@@ -113,7 +116,7 @@ export function AnalyzerSection({ result }: AnalyzerSectionProps) {
           {result.issues.length === 0 && result.severity === "success" && (
             <div className="flex items-center gap-2 rounded-lg bg-green-50 p-3 text-sm text-green-700 dark:bg-green-900/10 dark:text-green-400">
               <CheckCircle className="h-4 w-4" />
-              No issues found
+              {t("noIssuesFound")}
             </div>
           )}
 

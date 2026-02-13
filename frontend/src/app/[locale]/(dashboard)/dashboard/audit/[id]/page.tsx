@@ -87,16 +87,16 @@ export default function AuditPage({
           // Audit completed - load cached results (handled by loadCached effect)
           setLoading(true);
         } else if (audit.status === 'failed') {
-          setPageError(audit.errorMessage || "Audit failed");
+          setPageError(audit.errorMessage || tAudit("failed"));
           setLoading(false);
         } else if (!audit.fastApiId) {
           // No fastApiId means audit was never started or cleaned up
-          setPageError("Audit not found or expired");
+          setPageError(tAudit("failed"));
           setLoading(false);
         }
       } catch (err) {
         console.error('[Audit] Status check failed:', err);
-        setPageError("Failed to check audit status");
+        setPageError(tAudit("error"));
         setLoading(false);
       }
     }
@@ -106,7 +106,7 @@ export default function AuditPage({
     return () => {
       isMounted = false;
     };
-  }, [auditId, fastApiId, locale, router]);
+  }, [auditId, fastApiId, locale, router, tAudit]);
 
   // Handle locale changes during active audit
   useEffect(() => {
@@ -141,8 +141,8 @@ export default function AuditPage({
           setResults(data.results);
           setAuditMeta(data);
         }
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error('[Audit] Failed to fetch results:', err);
       }
       setLoading(false);
     }
@@ -175,8 +175,8 @@ export default function AuditPage({
           setResults(data.results);
           setAuditMeta(data);
         }
-      } catch {
-        // ignore
+      } catch (err) {
+        console.error('[Audit] Failed to load cached results:', err);
       }
       setLoading(false);
     }
@@ -208,12 +208,12 @@ export default function AuditPage({
         {isStalled && (
           <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
             <p className="text-red-500">
-              Connection lost. The audit may still be running in the background.
+              {tAudit("connectionLost")}
               <button
                 onClick={() => window.location.reload()}
                 className="ml-2 underline hover:text-red-600"
               >
-                Refresh to reconnect
+                {tAudit("refreshToReconnect")}
               </button>
             </p>
           </div>
@@ -229,7 +229,7 @@ export default function AuditPage({
       <div className="mx-auto max-w-2xl py-12 text-center">
         <div className="mb-4 text-5xl">&#10060;</div>
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-          Audit Failed
+          {tAudit("failed")}
         </h1>
         <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
           {progress.message}
@@ -258,7 +258,7 @@ export default function AuditPage({
       <div className="mx-auto max-w-2xl py-12 text-center">
         <div className="mb-4 text-5xl">&#10060;</div>
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-          Error
+          {tAudit("error")}
         </h1>
         <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
           {pageError}
@@ -267,7 +267,7 @@ export default function AuditPage({
           href={`/${locale}/dashboard`}
           className="mt-4 inline-block text-blue-500 hover:text-blue-600"
         >
-          Return to Dashboard
+          {tAudit("backToDashboard")}
         </Link>
       </div>
     );
@@ -284,7 +284,7 @@ export default function AuditPage({
 
   return (
     <div className="py-12 text-center text-gray-500 dark:text-gray-400">
-      No results available.
+      {tAudit("noResults")}
     </div>
   );
 }

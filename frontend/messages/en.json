@@ -92,7 +92,14 @@
     "audits": "Audits",
     "stageCrawling": "Crawling",
     "stageAnalyzing": "Analyzing",
-    "stageGeneratingReport": "Generating Report"
+    "stageGeneratingReport": "Generating Report",
+    "noIssuesFound": "No issues found",
+    "showTheory": "Show theory",
+    "hideTheory": "Hide theory",
+    "connectionLost": "Connection lost. The audit may still be running in the background.",
+    "refreshToReconnect": "Refresh to reconnect",
+    "error": "Error",
+    "noResults": "No results available."
   },
   "settings": {
     "title": "Settings",

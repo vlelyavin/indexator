@@ -1,6 +1,7 @@
 """Web crawler for SEO audit using Playwright for JavaScript rendering."""
 
 import asyncio
+import logging
 import re
 import time
 from collections import deque
@@ -13,6 +14,8 @@ from playwright.async_api import async_playwright, Browser, BrowserContext
 
 from .config import settings
 from .models import ImageData, LinkData, PageData
+
+logger = logging.getLogger(__name__)
 
 # Precompiled regex patterns for performance
 WORD_PATTERN = re.compile(r'\b\w+\b', re.UNICODE)
@@ -104,15 +107,15 @@ class WebCrawler:
             return False
 
     def _extract_text_content(self, soup: BeautifulSoup) -> str:
-        """Extract visible text content from page."""
-        # Remove script and style elements
-        for element in soup(['script', 'style', 'noscript', 'header', 'footer', 'nav']):
-            element.decompose()
-
-        text = soup.get_text(separator=' ', strip=True)
-        # Normalize whitespace
-        text = WHITESPACE_PATTERN.sub(' ', text)
-        return text
+        """Extract visible text content from page (non-destructive)."""
+        EXCLUDED_TAGS = {'script', 'style', 'noscript', 'header', 'footer', 'nav'}
+        texts = []
+        for element in soup.find_all(string=True):
+            if element.parent.name not in EXCLUDED_TAGS:
+                stripped = element.strip()
+                if stripped:
+                    texts.append(stripped)
+        return WHITESPACE_PATTERN.sub(' ', ' '.join(texts))
 
     def _count_words(self, text: str) -> int:
         """Count words in text."""
@@ -262,8 +265,8 @@ class WebCrawler:
                 h5_tags = [h.get_text(strip=True) for h in soup.find_all('h5') if h.get_text(strip=True)]
                 h6_tags = [h.get_text(strip=True) for h in soup.find_all('h6') if h.get_text(strip=True)]
 
-                # Extract text content and count words (use fresh soup to prevent modification)
-                text_content = self._extract_text_content(BeautifulSoup(html, 'lxml'))
+                # Extract text content and count words (non-destructive, reuses same soup)
+                text_content = self._extract_text_content(soup)
                 word_count = self._count_words(text_content)
 
                 # Extract images
@@ -304,6 +307,7 @@ class WebCrawler:
                 return page_data
 
             except Exception as e:
+                logger.error(f"Failed to fetch {url}: {e}", exc_info=True)
                 return PageData(url=url, status_code=0, depth=depth)
 
             finally:

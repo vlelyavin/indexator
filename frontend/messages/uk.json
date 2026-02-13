@@ -92,7 +92,14 @@
     "audits": "Аудити",
     "stageCrawling": "Сканування",
     "stageAnalyzing": "Аналіз",
-    "stageGeneratingReport": "Генерація звіту"
+    "stageGeneratingReport": "Генерація звіту",
+    "noIssuesFound": "Проблем не знайдено",
+    "showTheory": "Показати теорію",
+    "hideTheory": "Сховати теорію",
+    "connectionLost": "З'єднання втрачено. Аудит може ще виконуватися у фоновому режимі.",
+    "refreshToReconnect": "Оновити для перепідключення",
+    "error": "Помилка",
+    "noResults": "Результати відсутні."
   },
   "settings": {
     "title": "Налаштування",

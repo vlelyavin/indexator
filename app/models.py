@@ -86,10 +86,7 @@ class PageData(BaseModel):
     # Cached parsed HTML (not serialized)
     _soup_cache: Optional[BeautifulSoup] = None
 
-    class Config:
-        arbitrary_types_allowed = True
-        # Exclude _soup_cache from JSON serialization
-        fields = {'_soup_cache': {'exclude': True}}
+    model_config = {"arbitrary_types_allowed": True}
 
     def get_soup(self) -> Optional[BeautifulSoup]:
         """Get cached BeautifulSoup object or create new one if needed.
@@ -97,21 +94,23 @@ class PageData(BaseModel):
         Returns:
             BeautifulSoup object or None if no html_content available
         """
+        if self._soup_cache is not None:
+            return self._soup_cache
+
         if self.html_content is None:
             return None
 
-        if self._soup_cache is None:
-            self._soup_cache = BeautifulSoup(self.html_content, 'lxml')
-
+        self._soup_cache = BeautifulSoup(self.html_content, 'lxml')
         return self._soup_cache
 
     def set_soup(self, soup: BeautifulSoup) -> None:
-        """Cache BeautifulSoup object for reuse.
-
-        Args:
-            soup: Parsed BeautifulSoup object
-        """
+        """Cache BeautifulSoup object for reuse."""
         self._soup_cache = soup
+
+    def clear_cache(self) -> None:
+        """Clear cached data to free memory."""
+        self.html_content = None
+        self._soup_cache = None
 
 
 class AuditIssue(BaseModel):
@@ -153,7 +152,7 @@ class AuditResult(BaseModel):
     warnings: int = 0
     passed_checks: int = 0
     results: Dict[str, AnalyzerResult] = Field(default_factory=dict)
-    pages: Dict[str, PageData] = Field(default_factory=dict)
+    pages: Dict[str, PageData] = Field(default_factory=dict, exclude=True)
     report_path: Optional[str] = None
     error_message: Optional[str] = None
     language: str = "uk"  # Report language: uk, ru

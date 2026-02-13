@@ -1,18 +1,22 @@
 """FastAPI application for SEO Audit Tool."""
 
 import asyncio
+import json
 import logging
 import time
 import uuid
+from collections import deque
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Tuple, List, Set
+from urllib.parse import urlparse
 
 # Setup logger
 logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sse_starlette.sse import EventSourceResponse
@@ -87,11 +91,32 @@ settings.ensure_dirs()
 # Analyzer concurrency control (max 10 analyzers running simultaneously)
 _analyzer_semaphore = asyncio.Semaphore(10)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan: startup and shutdown hooks."""
+    # Startup
+    asyncio.create_task(cleanup_old_audits())
+    logger.info("Audit cleanup task started")
+
+    from .http_client import get_session
+    await get_session()
+    logger.info("HTTP client initialized")
+
+    yield
+
+    # Shutdown
+    from .http_client import close_session
+    await close_session()
+    logger.info("HTTP client closed")
+
+
 # Create FastAPI app
 app = FastAPI(
     title="SEO Audit Tool",
     description="Автоматичний SEO-аудит сайтів з генерацією HTML-звіту",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # CORS — allow frontend origins (dev + production)
@@ -132,27 +157,7 @@ async def cleanup_old_audits():
                 del broadcast_channels[aid]
             if aid in audit_progress_history:
                 del audit_progress_history[aid]
-            print(f"[Cleanup] Removed expired audit: {aid}")
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Start background cleanup task on app startup."""
-    asyncio.create_task(cleanup_old_audits())
-    print("[Startup] Audit cleanup task started")
-
-    # Initialize HTTP client
-    from .http_client import get_session
-    await get_session()
-    print("[Startup] HTTP client initialized")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on app shutdown."""
-    from .http_client import close_session
-    await close_session()
-    print("[Shutdown] HTTP client closed")
+            logger.info(f"Removed expired audit: {aid}")
 
 # Broadcast channel for progress events (supports multiple subscribers)
 class BroadcastChannel:
@@ -168,10 +173,15 @@ class BroadcastChannel:
             for sub_queue in self.subscribers:
                 try:
                     sub_queue.put_nowait(event)
+                except asyncio.QueueFull:
+                    logger.warning("Dropping slow SSE subscriber (queue full)")
+                    dead_subs.add(sub_queue)
                 except Exception:
                     dead_subs.add(sub_queue)
 
             # Clean up dead subscribers
+            if dead_subs:
+                logger.info(f"Removed {len(dead_subs)} dead subscriber(s)")
             self.subscribers -= dead_subs
 
     async def subscribe(self) -> asyncio.Queue:
@@ -190,7 +200,7 @@ class BroadcastChannel:
 # In-memory storage for audits (with timestamps for TTL cleanup)
 audits: Dict[str, Tuple[AuditResult, float]] = {}  # (audit, timestamp)
 broadcast_channels: Dict[str, BroadcastChannel] = {}
-audit_progress_history: Dict[str, List[ProgressEvent]] = {}  # Store last N events
+audit_progress_history: Dict[str, deque] = {}  # Store last 20 events per audit
 AUDIT_TTL = 3600  # 1 hour in seconds
 
 
@@ -217,7 +227,7 @@ async def start_audit(request: AuditRequest, background_tasks: BackgroundTasks):
     # Store audit with timestamp
     audits[audit_id] = (audit, time.time())
     broadcast_channels[audit_id] = BroadcastChannel()
-    audit_progress_history[audit_id] = []
+    audit_progress_history[audit_id] = deque(maxlen=20)
 
     # Run audit in background
     background_tasks.add_task(run_audit, audit_id, request)
@@ -233,8 +243,6 @@ async def audit_status(audit_id: str):
 
     async def event_generator():
         """Generate SSE events with history replay support."""
-        import json
-
         channel = broadcast_channels.get(audit_id)
         if not channel:
             yield {"event": "error", "data": json.dumps({"error": "Broadcast channel not found"})}
@@ -336,7 +344,6 @@ async def get_audit_results(audit_id: str, lang: str = "uk"):
 
     # Instead of returning 400, return partial status if in progress
     if audit.status != AuditStatus.COMPLETED:
-        from fastapi.responses import JSONResponse
         return JSONResponse(
             status_code=202,  # 202 Accepted
             content={
@@ -391,7 +398,6 @@ async def download_report(audit_id: str, format: str = "html"):
         raise HTTPException(status_code=400, detail="Audit not completed yet")
 
     # Extract domain for filename
-    from urllib.parse import urlparse
     domain = urlparse(audit.url).netloc.replace("www.", "")
     date_str = datetime.now().strftime("%Y-%m-%d")
 
@@ -454,10 +460,10 @@ async def run_audit(audit_id: str, request: AuditRequest):
     async def emit_progress(event: ProgressEvent):
         """Broadcast event and store in history."""
         await channel.broadcast(event)
-        # Store in history (keep last 50 events)
-        history = audit_progress_history.get(audit_id, [])
-        history.append(event)
-        audit_progress_history[audit_id] = history[-20:]  # Reduced from 50 to save memory
+        # Store in history (keep last 20 events)
+        if audit_id not in audit_progress_history:
+            audit_progress_history[audit_id] = deque(maxlen=20)
+        audit_progress_history[audit_id].append(event)
 
     try:
         # Phase 1: Crawling (no timeout - page limit controls audit scope)
@@ -513,7 +519,7 @@ async def run_audit(audit_id: str, request: AuditRequest):
                 filename=f"homepage_{audit_id}.png",
             )
         except Exception as e:
-            print(f"Homepage screenshot failed (non-fatal): {e}")
+            logger.warning(f"Homepage screenshot failed (non-fatal): {e}")
 
         # Phase 2: Analysis
         audit.status = AuditStatus.ANALYZING
@@ -532,7 +538,7 @@ async def run_audit(audit_id: str, request: AuditRequest):
         # Phase 2: Analysis - Run analyzers in parallel
         analysis_start = time.time()
 
-        async def run_single_analyzer(analyzer, pages: List[PageData], url: str, lang: str, index: int, total: int):
+        async def run_single_analyzer(analyzer, pages: Dict[str, PageData], url: str, lang: str, index: int, total: int):
             """Run a single analyzer with concurrency control, timeout, and error handling.
 
             Args:
@@ -628,10 +634,10 @@ async def run_audit(audit_id: str, request: AuditRequest):
 
         audit.results = results
 
-        # Clear HTML content to free memory (analyzers are done, soup is cached)
+        # Clear HTML content and soup cache to free memory (analyzers are done)
         for page in pages.values():
-            page.html_content = None
-        logger.info(f"Cleared HTML content from {len(pages)} pages, freed ~{len(pages) * 100}KB memory")
+            page.clear_cache()
+        logger.info(f"Cleared cached data from {len(pages)} pages")
 
         # Calculate totals
         for result in results.values():
@@ -673,8 +679,25 @@ async def run_audit(audit_id: str, request: AuditRequest):
         ))
 
     except Exception as e:
+        logger.error(f"Audit {audit_id} failed: {e}", exc_info=True)
         audit.status = AuditStatus.FAILED
         audit.error_message = str(e)
+
+        # Cleanup: free memory from pages and cached data
+        if hasattr(audit, 'pages') and audit.pages:
+            for page in audit.pages.values():
+                page.clear_cache()
+            audit.pages.clear()
+
+        # Remove partial report/screenshot files for this audit
+        for directory in [settings.REPORTS_DIR, settings.SCREENSHOTS_DIR]:
+            dir_path = Path(directory)
+            if dir_path.exists():
+                for f in dir_path.glob(f"*{audit_id}*"):
+                    try:
+                        f.unlink()
+                    except OSError:
+                        pass
 
         await emit_progress(ProgressEvent(
             status=AuditStatus.FAILED,

@@ -38,6 +38,38 @@ export async function GET(
     `/api/audit/${audit.fastApiId}/download?${queryParams.toString()}`
   );
 
+  // If FastAPI doesn't have the audit in memory anymore, regenerate from cached data
+  if (fastapiRes.status === 404 && audit.resultJson) {
+    const regenerateRes = await fastapiFetch("/api/report/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        format,
+        audit: JSON.parse(audit.resultJson),
+      }),
+    });
+
+    if (!regenerateRes.ok) {
+      return NextResponse.json(
+        { error: "Report generation failed" },
+        { status: regenerateRes.status }
+      );
+    }
+
+    const contentType =
+      regenerateRes.headers.get("content-type") || "application/octet-stream";
+    const disposition =
+      regenerateRes.headers.get("content-disposition") || "";
+    const blob = await regenerateRes.arrayBuffer();
+
+    return new NextResponse(blob, {
+      headers: {
+        "Content-Type": contentType,
+        "Content-Disposition": disposition,
+      },
+    });
+  }
+
   if (!fastapiRes.ok) {
     return NextResponse.json(
       { error: "Export failed" },

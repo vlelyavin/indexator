@@ -17,7 +17,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
   const { data: session } = useSession();
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-gray-800 bg-black/80 px-4 backdrop-blur-sm lg:px-6">
+    <header className="sticky top-0 z-40 flex h-14 items-center gap-4 bg-black/80 px-4 backdrop-blur-sm lg:px-6">
       <button
         onClick={onMenuToggle}
         className="lg:hidden rounded-md p-2 text-gray-500 hover:bg-gray-950"
@@ -29,12 +29,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
         href={`/${locale}/dashboard`}
         className="flex items-center gap-2 font-semibold"
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-black text-sm font-bold">
-          SA
-        </div>
-        <span className="hidden sm:inline text-white">
-          SEO Audit
-        </span>
+        <span className="text-white font-bold text-lg">SEO Audit</span>
       </Link>
 
       <div className="ml-auto flex items-center gap-3">

@@ -78,7 +78,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gray-800 bg-gray-950 transition-transform duration-200 lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-gray-950 transition-transform duration-200 lg:static lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -123,7 +123,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-gray-900 text-white border-l-4 border-white"
+                    ? "bg-gray-800 text-white"
                     : "text-gray-300 hover:bg-gray-800"
                 )}
               >
@@ -149,7 +149,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-gray-900 text-white border-l-4 border-white"
+                        ? "bg-gray-800 text-white"
                         : "text-gray-300 hover:bg-gray-800"
                     )}
                   >

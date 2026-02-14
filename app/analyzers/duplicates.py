@@ -214,9 +214,9 @@ class DuplicatesAnalyzer(BaseAnalyzer):
         )
         all_pairs.sort(key=lambda x: x[2], reverse=True)
 
-        h_url1 = "URL 1"
-        h_url2 = "URL 2"
-        h_similarity = self.t("table_translations.headers.Similarity")
+        h_url1 = self.t("tables.url_1")
+        h_url2 = self.t("tables.url_2")
+        h_similarity = self.t("table_translations.headers.similarity")
 
         for url_a, url_b, similarity, dup_type in all_pairs[:10]:
             table_data.append({
@@ -227,7 +227,7 @@ class DuplicatesAnalyzer(BaseAnalyzer):
 
         if table_data:
             tables.append({
-                "title": self.t("table_translations.titles.Content Duplicates"),
+                "title": self.t("table_translations.titles.content_duplicates"),
                 "headers": [h_url1, h_url2, h_similarity],
                 "rows": table_data,
             })

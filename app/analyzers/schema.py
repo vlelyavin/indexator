@@ -164,9 +164,9 @@ class SchemaAnalyzer(BaseAnalyzer):
 
         # Create table with schema types
         if schema_types:
-            h_type = self.t("table_translations.headers.Schema Type")
-            h_count = self.t("table_translations.headers.Count")
-            h_example = self.t("table_translations.headers.Example URL")
+            h_type = self.t("table_translations.headers.schema_type")
+            h_count = self.t("table_translations.headers.count")
+            h_example = self.t("table_translations.headers.example_url")
 
             table_rows = []
             for type_name, count in schema_types.most_common(10):
@@ -178,7 +178,7 @@ class SchemaAnalyzer(BaseAnalyzer):
                 })
 
             tables.append({
-                "title": self.t("table_translations.titles.Structured Data Types"),
+                "title": self.t("table_translations.titles.structured_data_types"),
                 "headers": [h_type, h_count, h_example],
                 "rows": table_rows[:10],
             })

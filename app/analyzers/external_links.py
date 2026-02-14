@@ -129,9 +129,9 @@ class ExternalLinksAnalyzer(BaseAnalyzer):
         # Create table with top domains
         if domains_count:
             top_domains = domains_count.most_common(10)
-            h_domain = self.t("table_translations.headers.Domain")
-            h_count = self.t("table_translations.headers.Link Count")
-            h_nofollow = self.t("table_translations.headers.With nofollow")
+            h_domain = self.t("table_translations.headers.domain")
+            h_count = self.t("table_translations.headers.link_count")
+            h_nofollow = self.t("table_translations.headers.with_nofollow")
             table_data = []
 
             for domain, count in top_domains:
@@ -146,7 +146,7 @@ class ExternalLinksAnalyzer(BaseAnalyzer):
                 })
 
             tables.append({
-                "title": self.t("table_translations.titles.Top 10 Domains by Link Count"),
+                "title": self.t("table_translations.titles.top_domains"),
                 "headers": [h_domain, h_count, h_nofollow],
                 "rows": table_data,
             })

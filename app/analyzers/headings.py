@@ -151,7 +151,7 @@ class HeadingsAnalyzer(BaseAnalyzer):
         # Create table with problematic pages
         h_url = self.t("tables.url")
         h_problem = self.t("tables.problem")
-        h_h1 = "H1"
+        h_h1 = self.t("tables.h1")
 
         table_data = []
 

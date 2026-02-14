@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { ArrowUpDown } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { cn } from "@/lib/utils";
 import type { TableData } from "@/types/audit";
 
 interface AnalyzerTableProps {
@@ -106,6 +105,53 @@ export function AnalyzerTable({ table }: AnalyzerTableProps) {
   );
 }
 
+const IconCheck = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block align-middle"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 10"/></svg>
+);
+
+const IconCross = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block align-middle"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+);
+
+const IconWarning = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block align-middle"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+);
+
+const ICON_MAP: Record<string, () => React.JSX.Element> = {
+  "\u2713": IconCheck,    // ✓
+  "\u2714": IconCheck,    // ✔
+  "\u2717": IconCross,    // ✗
+  "\u2718": IconCross,    // ✘
+  "\u2716": IconCross,    // ✖
+  "\u26a0\ufe0f": IconWarning, // ⚠️
+  "\u26a0": IconWarning,  // ⚠
+};
+
+const ICON_PATTERN = /[\u2713\u2714\u2717\u2718\u2716]|\u26a0\ufe0f?/g;
+
+function renderCellWithIcons(str: string) {
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = ICON_PATTERN.exec(str)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(str.slice(lastIndex, match.index));
+    }
+    const IconComponent = ICON_MAP[match[0]];
+    if (IconComponent) {
+      parts.push(<IconComponent key={match.index} />);
+    }
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < str.length) {
+    parts.push(str.slice(lastIndex));
+  }
+
+  return <span className="inline-flex items-center gap-0.5">{parts}</span>;
+}
+
 function renderCell(val: string | number | boolean | null, t: (key: string) => string) {
   if (val === null || val === undefined) return "—";
   if (typeof val === "boolean") {
@@ -128,6 +174,11 @@ function renderCell(val: string | number | boolean | null, t: (key: string) => s
         {str}
       </a>
     );
+  }
+  // Replace ✓/✗/⚠️ with SVG icons
+  if (ICON_PATTERN.test(str)) {
+    ICON_PATTERN.lastIndex = 0;
+    return renderCellWithIcons(str);
   }
   return str;
 }

@@ -13,7 +13,7 @@ from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup, escape
 
 from .config import settings
-from .i18n import get_translator, _
+from .i18n import get_translator, load_translations, _
 from .models import AnalyzerResult, AuditResult, SeverityLevel
 from .utils import extract_domain
 
@@ -454,11 +454,8 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                     cms_match = re.search(r'detected: (.+)$', issue.message)
                     if cms_match and "{cms_list}" in translated_msg:
                         issue.message = translated_msg.format(cms_list=cms_match.group(1))
-                # Try to format with count if available
-                elif issue.count is not None and "{count}" in translated_msg and "{" in translated_msg.replace("{count}", ""):
-                    # Has {count} plus other placeholders — skip, handled below
-                    pass
-                elif issue.count is not None and "{count}" in translated_msg:
+                # Try to format with count if available (only {count}, no other placeholders)
+                elif issue.count is not None and "{count}" in translated_msg and "{" not in translated_msg.replace("{count}", ""):
                     issue.message = translated_msg.format(count=issue.count)
                 elif "{" not in translated_msg:
                     # No placeholders, use as-is
@@ -531,10 +528,22 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                         issue.message = issue.message.replace(eng, translations[lang])
 
     # Translate tables
-    table_titles = translator.translations.get("table_translations", {}).get("titles", {})
-    table_headers = translator.translations.get("table_translations", {}).get("headers", {})
-    table_values = translator.translations.get("table_translations", {}).get("values", {})
-    table_patterns = translator.translations.get("table_translations", {}).get("patterns", {})
+    # Build reverse maps: English value → target translation (keyed by snake_case keys)
+    en_translations = load_translations("en")
+    en_tt = en_translations.get("table_translations", {})
+    target_tt = translator.translations.get("table_translations", {})
+
+    def build_reverse_map(en_section: dict, target_section: dict) -> dict:
+        result = {}
+        for key in en_section:
+            if key in target_section:
+                result[en_section[key]] = target_section[key]
+        return result
+
+    table_titles = build_reverse_map(en_tt.get("titles", {}), target_tt.get("titles", {}))
+    table_headers = build_reverse_map(en_tt.get("headers", {}), target_tt.get("headers", {}))
+    table_values = build_reverse_map(en_tt.get("values", {}), target_tt.get("values", {}))
+    table_patterns = build_reverse_map(en_tt.get("patterns", {}), target_tt.get("patterns", {}))
 
     for table in translated.tables:
         # Translate table title

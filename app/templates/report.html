@@ -295,7 +295,7 @@
             padding: 10px 14px;
             background: #f0f9ff;
             border-left: 3px solid var(--color-info);
-            border-radius: 6px;
+            border-radius: 4px;
             margin-top: 10px;
             margin-left: 26px;
         }
@@ -350,6 +350,20 @@
             background: #f1f5f9;
         }
 
+        .data-table td svg {
+            vertical-align: middle;
+            display: inline-block;
+        }
+
+        .data-table td a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .data-table td a:hover {
+            text-decoration: underline;
+        }
+
         .table-title {
             font-weight: 600;
             font-size: 14px;
@@ -361,7 +375,7 @@
         .theory-block {
             margin-bottom: 14px;
             border-left: 3px solid var(--color-info);
-            border-radius: 6px;
+            border-radius: 4px;
             background: #f0f9ff;
             overflow: hidden;
         }
@@ -420,20 +434,21 @@
 
         /* Expand URLs Button */
         .expand-urls-btn {
-            background: #f0f9ff;
+            background: none;
             color: var(--color-info);
-            border: 1px solid #bfdbfe;
-            padding: 4px 12px;
+            border: none;
+            padding: 4px 0;
             font-size: 12px;
+            font-weight: 600;
             cursor: pointer;
             margin-top: 6px;
-            font-weight: 500;
-            border-radius: 999px;
+            border-radius: 0;
             transition: background 0.2s;
         }
 
         .expand-urls-btn:hover {
-            background: #dbeafe;
+            text-decoration: underline;
+            background: none;
         }
 
         .urls-hidden {
@@ -648,7 +663,7 @@
                         {% for row in table.rows %}
                         <tr>
                             {% for header in table.headers %}
-                            <td>{{ row[header] }}</td>
+                            <td>{{ row[header] | format_cell }}</td>
                             {% endfor %}
                         </tr>
                         {% endfor %}

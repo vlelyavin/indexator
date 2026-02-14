@@ -8,7 +8,8 @@ from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
-from jinja2 import Environment, FileSystemLoader
+import re
+from jinja2 import Environment, FileSystemLoader, Markup
 
 from .config import settings
 from .i18n import get_translator, _
@@ -635,6 +636,7 @@ class ReportGenerator:
         self.env.filters['status_icon'] = self.status_icon
         self.env.filters['severity_class'] = self.severity_class
         self.env.filters['format_number'] = self.format_number
+        self.env.filters['format_cell'] = self.format_cell
 
     @staticmethod
     def status_icon(severity: SeverityLevel) -> str:
@@ -662,6 +664,38 @@ class ReportGenerator:
     def format_number(value: int) -> str:
         """Format number with thousands separator."""
         return f"{value:,}".replace(",", " ")
+
+    @staticmethod
+    def format_cell(value) -> Markup:
+        """Format table cell: replace ✓/✗/⚠️ with SVG icons, make URLs clickable."""
+        text = str(value) if value is not None else ""
+
+        # HTML-escape the text first to prevent XSS
+        from markupsafe import escape
+        text = str(escape(text))
+
+        # SVG icons (14×14) matching the report's existing icon style
+        icon_check = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 10"/></svg>'
+        icon_cross = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
+        icon_warning = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+
+        # Replace Unicode symbols and emojis with SVG icons
+        text = text.replace("\u2713", icon_check)     # ✓
+        text = text.replace("\u2714", icon_check)     # ✔
+        text = text.replace("\u2717", icon_cross)     # ✗
+        text = text.replace("\u2718", icon_cross)     # ✘
+        text = text.replace("\u2716", icon_cross)     # ✖
+        text = text.replace("\u26a0\ufe0f", icon_warning)  # ⚠️ (with variation selector)
+        text = text.replace("\u26a0", icon_warning)   # ⚠ (without variation selector)
+
+        # Make URLs clickable
+        text = re.sub(
+            r'(https?://[^\s<>&"\']+)',
+            r'<a href="\1" target="_blank" rel="noopener noreferrer">\1</a>',
+            text,
+        )
+
+        return Markup(text)
 
     async def generate(self, audit: AuditResult, brand: dict | None = None) -> str:
         """Generate HTML report and return file path."""

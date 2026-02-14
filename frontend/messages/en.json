@@ -117,7 +117,9 @@
     "exportFormat": "Format",
     "exportLanguage": "Language",
     "exportDownload": "Download",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "loadingAudit": "Loading audit...",
+    "exportGeneratingHint": "File generation started. You can close this window."
   },
   "settings": {
     "title": "Settings",

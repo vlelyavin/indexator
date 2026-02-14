@@ -276,8 +276,9 @@ export default function AuditPage({
   // Loading
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-white dark:border-white border-t-transparent dark:border-t-transparent" />
+        <p className="text-sm text-gray-500 dark:text-gray-400">{tAudit("loadingAudit")}</p>
       </div>
     );
   }

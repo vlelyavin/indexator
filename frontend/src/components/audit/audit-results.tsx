@@ -77,7 +77,6 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
   }
 
   async function handleExport(format: string, lang: string) {
-    setExportDialogOpen(false);
     setExportingFormat(format);
     setExportError(null);
 

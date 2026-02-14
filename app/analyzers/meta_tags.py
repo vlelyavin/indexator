@@ -191,8 +191,8 @@ class MetaTagsAnalyzer(BaseAnalyzer):
         if missing_titles or missing_descriptions or short_titles or long_titles:
             h_url = self.t("tables.url")
             h_problem = self.t("tables.problem")
-            h_title = "Title"
-            h_description = "Description"
+            h_title = self.t("tables.title")
+            h_description = self.t("tables.description")
 
             table_data = []
             seen_urls = set()

@@ -50,6 +50,11 @@ class SocialTagsAnalyzer(BaseAnalyzer):
         total_pages = 0
         page_tag_status: List[Dict[str, str]] = []
 
+        h_url = self.t("tables.url")
+        h_og_title = self.t("tables.og_title")
+        h_og_image = self.t("tables.og_image")
+        h_twitter_card = self.t("tables.twitter_card")
+
         for url, page in pages.items():
             if page.status_code != 200 or not page.html_content:
                 continue
@@ -101,10 +106,10 @@ class SocialTagsAnalyzer(BaseAnalyzer):
 
             # Collect table data
             page_tag_status.append({
-                "URL": url,
-                "og:title": "\u2713" if has_og else "\u2717",
-                "og:image": "\u2713" if has_og_image else "\u2717",
-                "twitter:card": "\u2713" if has_twitter else "\u2717",
+                h_url: url,
+                h_og_title: "\u2713" if has_og else "\u2717",
+                h_og_image: "\u2713" if has_og_image else "\u2717",
+                h_twitter_card: "\u2713" if has_twitter else "\u2717",
             })
 
         # Create issues
@@ -164,8 +169,8 @@ class SocialTagsAnalyzer(BaseAnalyzer):
         # Create table with tag status per page
         if page_tag_status:
             tables.append({
-                "title": self.t("table_translations.titles.Social Tags Status"),
-                "headers": ["URL", "og:title", "og:image", "twitter:card"],
+                "title": self.t("table_translations.titles.social_tags_status"),
+                "headers": [h_url, h_og_title, h_og_image, h_twitter_card],
                 "rows": page_tag_status[:10],
             })
 

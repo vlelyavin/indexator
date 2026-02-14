@@ -125,8 +125,10 @@ class SpeedAnalyzer(BaseAnalyzer):
 
         # Create metrics table
         # Get translated header keys
-        h_metric = self.t("table_translations.headers.Metric")
-        h_target = self.t("table_translations.headers.Target")
+        h_metric = self.t("table_translations.headers.metric")
+        h_target = self.t("table_translations.headers.target")
+        h_mobile = self.t("tables.mobile")
+        h_desktop = self.t("tables.desktop")
 
         table_data = []
 
@@ -134,58 +136,58 @@ class SpeedAnalyzer(BaseAnalyzer):
             m = pagespeed_result.mobile
             table_data.append({
                 h_metric: "Performance Score",
-                "Mobile": f"{m.score}/100 {'✓' if m.score >= 70 else '⚠️' if m.score >= 50 else '✗'}",
-                "Desktop": f"{pagespeed_result.desktop.score}/100 {'✓' if pagespeed_result.desktop.score >= 70 else '⚠️' if pagespeed_result.desktop.score >= 50 else '✗'}" if pagespeed_result.desktop else "-",
+                h_mobile: f"{m.score}/100 {'✓' if m.score >= 70 else '⚠️' if m.score >= 50 else '✗'}",
+                h_desktop: f"{pagespeed_result.desktop.score}/100 {'✓' if pagespeed_result.desktop.score >= 70 else '⚠️' if pagespeed_result.desktop.score >= 50 else '✗'}" if pagespeed_result.desktop else "-",
                 h_target: "≥ 70",
             })
 
             if m.fcp is not None:
                 table_data.append({
                     h_metric: "First Contentful Paint (FCP)",
-                    "Mobile": f"{m.fcp:.1f}s {'✓' if m.fcp <= self.MOBILE_TARGETS['fcp'] else '✗'}",
-                    "Desktop": f"{pagespeed_result.desktop.fcp:.1f}s" if pagespeed_result.desktop and pagespeed_result.desktop.fcp else "-",
+                    h_mobile: f"{m.fcp:.1f}s {'✓' if m.fcp <= self.MOBILE_TARGETS['fcp'] else '✗'}",
+                    h_desktop: f"{pagespeed_result.desktop.fcp:.1f}s" if pagespeed_result.desktop and pagespeed_result.desktop.fcp else "-",
                     h_target: f"≤ {self.MOBILE_TARGETS['fcp']}s / {self.DESKTOP_TARGETS['fcp']}s",
                 })
 
             if m.lcp is not None:
                 table_data.append({
                     h_metric: "Largest Contentful Paint (LCP)",
-                    "Mobile": f"{m.lcp:.1f}s {'✓' if m.lcp <= self.MOBILE_TARGETS['lcp'] else '✗'}",
-                    "Desktop": f"{pagespeed_result.desktop.lcp:.1f}s" if pagespeed_result.desktop and pagespeed_result.desktop.lcp else "-",
+                    h_mobile: f"{m.lcp:.1f}s {'✓' if m.lcp <= self.MOBILE_TARGETS['lcp'] else '✗'}",
+                    h_desktop: f"{pagespeed_result.desktop.lcp:.1f}s" if pagespeed_result.desktop and pagespeed_result.desktop.lcp else "-",
                     h_target: f"≤ {self.MOBILE_TARGETS['lcp']}s / {self.DESKTOP_TARGETS['lcp']}s",
                 })
 
             if m.cls is not None:
                 table_data.append({
                     h_metric: "Cumulative Layout Shift (CLS)",
-                    "Mobile": f"{m.cls:.3f} {'✓' if m.cls <= 0.1 else '✗'}",
-                    "Desktop": f"{pagespeed_result.desktop.cls:.3f}" if pagespeed_result.desktop and pagespeed_result.desktop.cls else "-",
+                    h_mobile: f"{m.cls:.3f} {'✓' if m.cls <= 0.1 else '✗'}",
+                    h_desktop: f"{pagespeed_result.desktop.cls:.3f}" if pagespeed_result.desktop and pagespeed_result.desktop.cls else "-",
                     h_target: "≤ 0.1",
                 })
 
             if m.tbt is not None:
                 table_data.append({
                     h_metric: "Total Blocking Time (TBT)",
-                    "Mobile": f"{m.tbt:.0f}ms {'✓' if m.tbt <= 300 else '✗'}",
-                    "Desktop": f"{pagespeed_result.desktop.tbt:.0f}ms" if pagespeed_result.desktop and pagespeed_result.desktop.tbt else "-",
+                    h_mobile: f"{m.tbt:.0f}ms {'✓' if m.tbt <= 300 else '✗'}",
+                    h_desktop: f"{pagespeed_result.desktop.tbt:.0f}ms" if pagespeed_result.desktop and pagespeed_result.desktop.tbt else "-",
                     h_target: "≤ 300ms",
                 })
 
             if m.speed_index is not None:
                 table_data.append({
                     h_metric: "Speed Index",
-                    "Mobile": f"{m.speed_index:.1f}s {'✓' if m.speed_index <= self.MOBILE_TARGETS['speed_index'] else '✗'}",
-                    "Desktop": f"{pagespeed_result.desktop.speed_index:.1f}s" if pagespeed_result.desktop and pagespeed_result.desktop.speed_index else "-",
+                    h_mobile: f"{m.speed_index:.1f}s {'✓' if m.speed_index <= self.MOBILE_TARGETS['speed_index'] else '✗'}",
+                    h_desktop: f"{pagespeed_result.desktop.speed_index:.1f}s" if pagespeed_result.desktop and pagespeed_result.desktop.speed_index else "-",
                     h_target: f"≤ {self.MOBILE_TARGETS['speed_index']}s / {self.DESKTOP_TARGETS['speed_index']}s",
                 })
 
         if table_data:
             tables.append({
-                "title": self.t("table_translations.titles.Core Web Vitals and Speed Metrics"),
+                "title": self.t("table_translations.titles.core_web_vitals"),
                 "headers": [
                     h_metric,
-                    "Mobile",
-                    "Desktop",
+                    h_mobile,
+                    h_desktop,
                     h_target
                 ],
                 "rows": table_data,

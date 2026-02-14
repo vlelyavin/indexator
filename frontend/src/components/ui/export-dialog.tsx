@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { cn } from "@/lib/utils";
 
 interface ExportDialogProps {
   open: boolean;
@@ -46,14 +45,14 @@ export function ExportDialog({
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && open && !loading) {
+      if (e.key === "Escape" && open) {
         onClose();
       }
     };
 
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [open, loading, onClose]);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -62,7 +61,7 @@ export function ExportDialog({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={() => !loading && onClose()}
+        onClick={onClose}
       />
 
       {/* Dialog */}
@@ -70,8 +69,7 @@ export function ExportDialog({
         {/* Close button */}
         <button
           onClick={onClose}
-          disabled={loading}
-          className="absolute right-4 top-4 rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+          className="absolute right-4 top-4 rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
         >
           <X className="h-4 w-4" />
         </button>
@@ -133,31 +131,32 @@ export function ExportDialog({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            disabled={loading}
-            className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             {t("cancel")}
           </button>
           <button
             onClick={() => onExport(format, lang)}
             disabled={loading}
-            className={cn(
-              "flex-1 rounded-lg px-4 py-2 text-sm font-medium text-white",
-              loading
-                ? "bg-blue-400 dark:bg-blue-600/50"
-                : "bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700"
-            )}
+            className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                {t("exportDownload")}
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                {t("generating", { format: format.toUpperCase() })}
               </span>
             ) : (
               t("exportDownload")
             )}
           </button>
         </div>
+
+        {/* Generation hint */}
+        {loading && (
+          <p className="mt-3 text-center text-xs text-gray-500 dark:text-gray-400">
+            {t("exportGeneratingHint")}
+          </p>
+        )}
       </div>
     </div>
   );

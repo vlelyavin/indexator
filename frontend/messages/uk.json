@@ -117,7 +117,9 @@
     "exportFormat": "Формат",
     "exportLanguage": "Мова",
     "exportDownload": "Завантажити",
-    "cancel": "Скасувати"
+    "cancel": "Скасувати",
+    "loadingAudit": "Завантаження аудиту...",
+    "exportGeneratingHint": "Генерація файлу запущена. Ви можете закрити це вікно."
   },
   "settings": {
     "title": "Налаштування",

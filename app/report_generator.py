@@ -818,25 +818,37 @@ class ReportGenerator:
                 background: white !important;
                 font-size: 11pt !important;
             }
-            /* Granular page-break: allow sections to split, keep small elements intact */
+            /* Page-break: keep headers with content, allow everything else to split */
             .section-header {
                 page-break-after: avoid;
                 break-after: avoid;
             }
-            .issue {
-                page-break-inside: avoid;
-                break-inside: avoid;
+            .issue-header {
+                page-break-after: avoid;
+                break-after: avoid;
             }
-            .theory-block {
-                page-break-inside: avoid;
-                break-inside: avoid;
-            }
-            .table-wrapper {
-                page-break-inside: avoid;
-                break-inside: avoid;
-            }
+            /* Summary cards: compact for A4 */
             .summary-grid {
                 grid-template-columns: repeat(4, 1fr) !important;
+            }
+            .summary-card {
+                padding: 10px !important;
+                gap: 10px !important;
+            }
+            .summary-card .icon-circle {
+                width: 32px !important;
+                height: 32px !important;
+                min-width: 32px !important;
+            }
+            .summary-card .icon-circle svg {
+                width: 16px !important;
+                height: 16px !important;
+            }
+            .summary-card .number {
+                font-size: 20px !important;
+            }
+            .summary-card .label {
+                font-size: 10px !important;
             }
             .screenshots-grid {
                 grid-template-columns: 1fr !important;

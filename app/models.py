@@ -159,6 +159,28 @@ class AuditResult(BaseModel):
     language: str = "en"  # Report language: en, uk, ru
     homepage_screenshot: Optional[str] = None  # base64 homepage screenshot
 
+    @property
+    def overall_score(self) -> int:
+        """Calculate overall SEO score (0-100) from analyzer severities."""
+        if not self.results:
+            return 0
+        weights = {"success": 100, "info": 80, "warning": 40, "error": 0}
+        total = sum(weights.get(r.severity.value, 50) for r in self.results.values())
+        return round(total / len(self.results))
+
+    @property
+    def score_color(self) -> str:
+        """Get color hex for the overall score."""
+        score = self.overall_score
+        if score >= 90:
+            return "#15803D"
+        elif score >= 70:
+            return "#16A34A"
+        elif score >= 40:
+            return "#F59E0B"
+        else:
+            return "#DC2626"
+
 
 class ProgressEvent(BaseModel):
     """SSE progress event."""

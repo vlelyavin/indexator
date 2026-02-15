@@ -105,6 +105,7 @@
     "recommendation": "Рекомендация:",
     "affectedUrls": "Затронутые URL ({count}):",
     "pages": "{count} страниц",
+    "pagesOfEstimated": "{crawled} / ~{total} страниц",
     "sections": "Разделы",
     "searchIssues": "Поиск проблем...",
     "noMatchingResults": "Нет результатов, соответствующих фильтру.",

@@ -187,6 +187,8 @@ class HreflangAnalyzer(BaseAnalyzer):
         # 5. Validate language codes
         invalid_codes: Set[str] = set()
         for lang in all_languages:
+            if lang == "x-default":
+                continue  # x-default is a directive, not a language code
             # Handle region codes like "uk-UA", "en-US"
             base_lang = lang.split("-")[0] if "-" in lang else lang
             if base_lang not in VALID_LANG_CODES:
@@ -228,10 +230,10 @@ class HreflangAnalyzer(BaseAnalyzer):
         for lang_code in sorted(lang_stats.keys()):
             status = self.t("table_translations.values.valid")
             base_lang = lang_code.split("-")[0] if "-" in lang_code else lang_code
-            if base_lang not in VALID_LANG_CODES:
-                status = self.t("table_translations.values.invalid_code")
-            elif lang_code == "x-default":
+            if lang_code == "x-default":
                 status = "x-default"
+            elif base_lang not in VALID_LANG_CODES:
+                status = self.t("table_translations.values.invalid_code")
 
             table_rows.append({
                 h_lang: lang_code,

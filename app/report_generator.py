@@ -745,6 +745,144 @@ class ReportGenerator:
 
         return str(report_path)
 
+    def _build_pdf_pages(self, audit: AuditResult, sections: list, domain: str, t, lang: str) -> str:
+        """Build cover page, executive summary, and category overview HTML for PDF injection."""
+        generated_at = datetime.now().strftime("%d.%m.%Y")
+
+        # --- Cover Page ---
+        cover_html = f'''
+        <div class="cover-page">
+            <div class="cover-content">
+                <div class="cover-logo">seo-audit.online</div>
+                <h1 class="cover-title">{t("report.cover_title")}</h1>
+                <div class="cover-url">{domain}</div>
+                <div class="cover-meta">
+                    <div>{generated_at}</div>
+                    <div>{t("report.pages_analyzed", count=audit.pages_crawled)}</div>
+                </div>
+            </div>
+        </div>
+        '''
+
+        # --- Executive Summary ---
+        score = audit.overall_score
+        score_color = audit.score_color
+
+        # Collect top critical issues across all analyzers
+        top_issues = []
+        for section in sections:
+            result = section["result"]
+            for issue in result.issues:
+                if issue.severity == SeverityLevel.ERROR:
+                    top_issues.append({
+                        "message": issue.message,
+                        "details": issue.details or "",
+                        "category": section["title"],
+                    })
+        top_issues = top_issues[:3]
+
+        top_issues_html = ""
+        if top_issues:
+            items = ""
+            for ti in top_issues:
+                detail = f' — {ti["details"][:120]}' if ti["details"] else ""
+                items += f'<li><strong>{ti["message"]}</strong>{detail}</li>\n'
+            top_issues_html = f'''
+            <div class="top-issues">
+                <h2 style="font-size: 14pt; margin-bottom: 12px;">{t("report.top_critical_issues")}</h2>
+                <ol style="padding-left: 20px; font-size: 10pt; color: #374151;">
+                    {items}
+                </ol>
+            </div>
+            '''
+
+        # Verdict
+        error_categories = [s["title"] for s in sections if s["severity"] == SeverityLevel.ERROR]
+        error_count = len(error_categories)
+        cat_list = ", ".join(error_categories[:3]) if error_categories else ""
+
+        if score >= 70:
+            verdict_key = "report.verdict_good"
+        elif score >= 40:
+            verdict_key = "report.verdict_average"
+        else:
+            verdict_key = "report.verdict_poor"
+        verdict_text = t(verdict_key, categories=cat_list, count=error_count)
+
+        exec_summary_html = f'''
+        <div class="exec-summary">
+            <h1 style="font-size: 20pt; text-align: center; margin-bottom: 24px;">{t("report.executive_summary")}</h1>
+
+            <div class="score-section">
+                <div class="score-circle" style="border-color: {score_color};">
+                    <div class="score-number" style="color: {score_color};">{score}</div>
+                    <div class="score-label">/ 100</div>
+                </div>
+            </div>
+
+            <div class="stat-cards">
+                <div class="stat-card"><div class="stat-value">{audit.pages_crawled}</div><div class="stat-label">{t("report.pages_crawled")}</div></div>
+                <div class="stat-card"><div class="stat-value" style="color: #10B981;">{audit.passed_checks}</div><div class="stat-label">{t("report.passed_checks")}</div></div>
+                <div class="stat-card"><div class="stat-value" style="color: #F59E0B;">{audit.warnings}</div><div class="stat-label">{t("report.warnings")}</div></div>
+                <div class="stat-card"><div class="stat-value" style="color: #EF4444;">{audit.critical_issues}</div><div class="stat-label">{t("report.critical_issues")}</div></div>
+            </div>
+
+            {top_issues_html}
+
+            <div class="verdict">
+                <p>{verdict_text}</p>
+            </div>
+        </div>
+        '''
+
+        # --- Category Overview Table ---
+        severity_order = {SeverityLevel.ERROR: 0, SeverityLevel.WARNING: 1, SeverityLevel.INFO: 2, SeverityLevel.SUCCESS: 3}
+        sorted_sections = sorted(sections, key=lambda s: severity_order.get(s["severity"], 4))
+
+        badge_map = {
+            SeverityLevel.SUCCESS: (t("report.badge_ok"), "#D1FAE5", "#065F46"),
+            SeverityLevel.WARNING: (t("report.badge_warning"), "#FEF3C7", "#92400E"),
+            SeverityLevel.ERROR: (t("report.badge_error"), "#FEE2E2", "#991B1B"),
+            SeverityLevel.INFO: (t("report.badge_info"), "#DBEAFE", "#1E40AF"),
+        }
+
+        rows_html = ""
+        for i, section in enumerate(sorted_sections, 1):
+            result = section["result"]
+            badge_text, badge_bg, badge_color = badge_map.get(section["severity"], ("—", "#F3F4F6", "#374151"))
+            criticals = sum(1 for iss in result.issues if iss.severity == SeverityLevel.ERROR)
+            warns = sum(1 for iss in result.issues if iss.severity == SeverityLevel.WARNING)
+            rows_html += f'''
+                <tr>
+                    <td style="text-align: center; color: #9CA3AF;">{i}</td>
+                    <td>{section["title"]}</td>
+                    <td><span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 9pt; font-weight: 600; background: {badge_bg}; color: {badge_color};">{badge_text}</span></td>
+                    <td style="text-align: center; color: {'#EF4444' if criticals > 0 else '#9CA3AF'}; font-weight: {'700' if criticals > 0 else '400'};">{criticals}</td>
+                    <td style="text-align: center; color: {'#F59E0B' if warns > 0 else '#9CA3AF'}; font-weight: {'700' if warns > 0 else '400'};">{warns}</td>
+                </tr>'''
+
+        category_html = f'''
+        <div class="category-overview">
+            <h1 style="font-size: 18pt; margin-bottom: 16px;">{t("report.category_overview")}</h1>
+            <table class="overview-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">#</th>
+                        <th>{t("report.category")}</th>
+                        <th>{t("report.status")}</th>
+                        <th style="width: 70px;">{t("report.critical_count")}</th>
+                        <th style="width: 80px;">{t("report.warning_count")}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows_html}
+                </tbody>
+            </table>
+        </div>
+        '''
+
+        return cover_html + exec_summary_html + category_html
+
     async def generate_pdf(self, audit: AuditResult, brand: dict | None = None) -> str:
         """Generate PDF report and return file path."""
         try:
@@ -752,22 +890,68 @@ class ReportGenerator:
         except ImportError:
             raise ImportError("weasyprint is required for PDF export. Install it with: pip install weasyprint")
 
-        # First generate HTML
-        html_path = await self.generate(audit, brand=brand)
+        # Get translator and sections (same logic as generate())
+        lang = getattr(audit, 'language', 'en') or 'en'
+        t = get_translator(lang)
+        domain = extract_domain(audit.url)
 
-        # Read the HTML content
+        sections = []
+        section_order = [
+            "cms", "speed", "meta_tags", "headings", "page_404",
+            "images", "content", "links", "favicon", "external_links",
+            "robots", "structure", "content_sections",
+            "schema", "social_tags", "security", "mobile",
+            "url_quality", "hreflang", "duplicates", "redirects",
+        ]
+        for name in section_order:
+            if name in audit.results:
+                result = audit.results[name]
+                if lang != 'en':
+                    result = translate_analyzer_content(result, lang, t)
+                title = t(f"analyzers.{name}.name")
+                if title == f"analyzers.{name}.name":
+                    title = result.display_name
+                sections.append({"id": name, "title": title, "severity": result.severity, "result": result})
+
+        # First generate HTML (for the detailed findings)
+        html_path = await self.generate(audit, brand=brand)
         with open(html_path, "r", encoding="utf-8") as f:
             html_content = f.read()
+
+        # Build cover + exec summary + category overview
+        pdf_pages_html = self._build_pdf_pages(audit, sections, domain, t, lang)
+
+        # Inject before <main class="main">
+        html_content = html_content.replace(
+            '<main class="main">',
+            pdf_pages_html + '\n<main class="main">'
+        )
 
         # Create PDF
         pdf_filename = f"audit_{audit.id}.pdf"
         pdf_path = Path(settings.REPORTS_DIR) / pdf_filename
 
-        # Add print-specific CSS to hide sidebar and adjust layout
+        # Print-specific CSS
         print_css = CSS(string="""
             @page {
                 size: A4;
-                margin: 1.5cm;
+                margin: 1.5cm 1.5cm 2cm 1.5cm;
+                @bottom-center {
+                    content: counter(page);
+                    font-size: 9pt;
+                    color: #9CA3AF;
+                    font-family: Inter, sans-serif;
+                }
+                @bottom-right {
+                    content: "seo-audit.online";
+                    font-size: 8pt;
+                    color: #D1D5DB;
+                    font-family: Inter, sans-serif;
+                }
+            }
+            @page :first {
+                @bottom-center { content: none; }
+                @bottom-right { content: none; }
             }
             .sidebar {
                 display: none !important;
@@ -779,15 +963,145 @@ class ReportGenerator:
             }
             body {
                 background: white !important;
-                font-size: 11pt !important;
+                font-size: 10pt !important;
+                color: #333 !important;
             }
-            /* Compact spacing for PDF */
+
+            /* === Cover Page === */
+            .cover-page {
+                page-break-after: always;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                min-height: 90vh;
+            }
+            .cover-logo {
+                font-size: 12pt;
+                font-weight: 600;
+                color: #9CA3AF;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                margin-bottom: 40px;
+            }
+            .cover-title {
+                font-size: 28pt;
+                font-weight: 700;
+                color: #111827;
+                margin: 0 0 16px 0;
+            }
+            .cover-url {
+                font-size: 16pt;
+                color: #3B82F6;
+                margin-bottom: 8px;
+            }
+            .cover-meta {
+                font-size: 11pt;
+                color: #6B7280;
+                margin-top: 30px;
+                line-height: 1.8;
+            }
+
+            /* === Executive Summary === */
+            .exec-summary {
+                page-break-after: always;
+            }
+            .score-section {
+                text-align: center;
+                margin: 20px 0 24px 0;
+            }
+            .score-circle {
+                display: inline-flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                width: 120px;
+                height: 120px;
+                border-radius: 50%;
+                border: 6px solid;
+            }
+            .score-number {
+                font-size: 36pt;
+                font-weight: 700;
+                line-height: 1;
+            }
+            .score-label {
+                font-size: 11pt;
+                color: #9CA3AF;
+            }
+            .stat-cards {
+                display: flex;
+                gap: 12px;
+                margin-bottom: 24px;
+            }
+            .stat-card {
+                flex: 1;
+                text-align: center;
+                padding: 12px 8px;
+                border: 1px solid #E5E7EB;
+                border-radius: 8px;
+            }
+            .stat-value {
+                font-size: 22pt;
+                font-weight: 700;
+                color: #111827;
+            }
+            .stat-label {
+                font-size: 8pt;
+                color: #6B7280;
+                margin-top: 4px;
+            }
+            .top-issues {
+                margin-bottom: 20px;
+            }
+            .top-issues li {
+                margin-bottom: 8px;
+                line-height: 1.5;
+            }
+            .verdict {
+                background: #F9FAFB;
+                border-left: 4px solid #3B82F6;
+                padding: 14px 18px;
+                border-radius: 0 8px 8px 0;
+                font-size: 10pt;
+                color: #374151;
+                line-height: 1.6;
+            }
+
+            /* === Category Overview === */
+            .category-overview {
+                page-break-after: always;
+            }
+            .overview-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 9pt;
+            }
+            .overview-table th {
+                background: #F9FAFB;
+                padding: 8px 10px;
+                text-align: left;
+                font-weight: 600;
+                color: #374151;
+                border-bottom: 2px solid #E5E7EB;
+            }
+            .overview-table td {
+                padding: 7px 10px;
+                border-bottom: 1px solid #F3F4F6;
+                color: #374151;
+            }
+            .overview-table tr:hover td {
+                background: #F9FAFB;
+            }
+
+            /* === Detailed Findings === */
             .section {
                 margin-bottom: 18px !important;
             }
             .section-header {
                 margin-bottom: 10px !important;
                 padding-bottom: 8px !important;
+                align-items: center !important;
             }
             .issue {
                 margin-bottom: 6px !important;
@@ -844,9 +1158,6 @@ class ReportGenerator:
             .badge svg {
                 display: inline-block !important;
                 vertical-align: middle !important;
-            }
-            .section-header {
-                align-items: center !important;
             }
             /* Force details open and hide interactive elements for PDF */
             details {
@@ -1276,38 +1587,73 @@ class ReportGenerator:
                 brand_primary_hex = hex_val.upper()
                 brand_primary_rgb = (int(hex_val[0:2], 16), int(hex_val[2:4], 16), int(hex_val[4:6], 16))
 
-        # --- Company Name (if branded) ---
+        # =============================================
+        # PAGE 1: COVER PAGE
+        # =============================================
         if brand and brand.get('company_name'):
             company_para = doc.add_paragraph()
             company_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = company_para.add_run(brand['company_name'])
             self._docx_set_font(run, size_pt=12, bold=True, color_rgb=brand_primary_rgb)
 
-        # --- Title ---
-        title_text = f"{t_labels['express_title']}: {domain}"
-        title_para = doc.add_heading(title_text, 0)
-        title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in title_para.runs:
-            self._docx_set_font(run, size_pt=22, bold=True, color_rgb=(31, 41, 55))
+        # Logo placeholder
+        logo_para = doc.add_paragraph()
+        logo_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        logo_para.paragraph_format.space_before = Pt(120)
+        run = logo_para.add_run("seo-audit.online")
+        self._docx_set_font(run, size_pt=11, color_rgb=(156, 163, 175))
 
-        # Subtitle with date
-        subtitle = doc.add_paragraph()
-        subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = subtitle.add_run(f"{t_labels['generated_at']}: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
-        self._docx_set_font(run, size_pt=11, color_rgb=(128, 128, 128))
+        # Cover title
+        cover_title = doc.add_paragraph()
+        cover_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        cover_title.paragraph_format.space_before = Pt(30)
+        run = cover_title.add_run(t("report.cover_title"))
+        self._docx_set_font(run, size_pt=28, bold=True, color_rgb=(17, 24, 39))
 
-        # URL
-        url_para = doc.add_paragraph()
-        url_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = url_para.add_run(audit.url)
-        self._docx_set_font(run, size_pt=10, color_rgb=brand_primary_rgb)
+        # Domain
+        domain_para = doc.add_paragraph()
+        domain_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        domain_para.paragraph_format.space_before = Pt(12)
+        run = domain_para.add_run(domain)
+        self._docx_set_font(run, size_pt=16, color_rgb=brand_primary_rgb)
 
-        doc.add_paragraph()
+        # Date + pages
+        meta_para = doc.add_paragraph()
+        meta_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        meta_para.paragraph_format.space_before = Pt(24)
+        run = meta_para.add_run(datetime.now().strftime('%d.%m.%Y'))
+        self._docx_set_font(run, size_pt=11, color_rgb=(107, 114, 128))
 
-        # --- Summary Section ---
-        overview_heading = doc.add_heading(t_labels['overview'], level=1)
-        overview_heading.paragraph_format.space_after = Pt(16)
+        pages_para = doc.add_paragraph()
+        pages_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = pages_para.add_run(t("report.pages_analyzed", count=audit.pages_crawled))
+        self._docx_set_font(run, size_pt=11, color_rgb=(107, 114, 128))
 
+        doc.add_page_break()
+
+        # =============================================
+        # PAGE 2: EXECUTIVE SUMMARY
+        # =============================================
+        exec_heading = doc.add_heading(t("report.executive_summary"), level=1)
+        exec_heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in exec_heading.runs:
+            self._docx_set_font(run, size_pt=20, bold=True, color_rgb=(17, 24, 39))
+
+        # Overall Score
+        score = audit.overall_score
+        score_color_hex = audit.score_color.lstrip('#')
+        score_rgb = (int(score_color_hex[0:2], 16), int(score_color_hex[2:4], 16), int(score_color_hex[4:6], 16))
+
+        score_para = doc.add_paragraph()
+        score_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        score_para.paragraph_format.space_before = Pt(16)
+        score_para.paragraph_format.space_after = Pt(4)
+        run = score_para.add_run(str(score))
+        self._docx_set_font(run, size_pt=40, bold=True, color_rgb=score_rgb)
+        run = score_para.add_run(" / 100")
+        self._docx_set_font(run, size_pt=14, color_rgb=(156, 163, 175))
+
+        # Stat cards table
         summary_table = doc.add_table(rows=2, cols=4)
         summary_table.style = 'Table Grid'
 
@@ -1319,7 +1665,6 @@ class ReportGenerator:
         ]
 
         for i, (label, value, color) in enumerate(summary_items):
-            # Header cell
             header_cell = summary_table.rows[0].cells[i]
             header_cell.text = ''
             p = header_cell.paragraphs[0]
@@ -1328,7 +1673,6 @@ class ReportGenerator:
             self._docx_set_cell_left_border(header_cell, color, '24')
             self._docx_set_cell_margins(header_cell, top=40, right=80, bottom=0, left=80)
 
-            # Value cell
             value_cell = summary_table.rows[1].cells[i]
             value_cell.text = ''
             p = value_cell.paragraphs[0]
@@ -1339,7 +1683,141 @@ class ReportGenerator:
 
         doc.add_paragraph()
 
-        # --- Homepage Screenshot ---
+        # Top 3 Critical Issues
+        # Build sections list for data extraction
+        section_order = [
+            "cms", "speed", "meta_tags", "headings", "page_404",
+            "images", "content", "links", "favicon", "external_links",
+            "robots", "structure", "content_sections",
+            "schema", "social_tags", "security", "mobile",
+            "url_quality", "hreflang", "duplicates", "redirects",
+        ]
+        docx_sections = []
+        for name in section_order:
+            if name in audit.results:
+                result = audit.results[name]
+                if lang != 'en':
+                    result = translate_analyzer_content(result, lang, t)
+                title = t(f"analyzers.{name}.name")
+                if title == f"analyzers.{name}.name":
+                    title = result.display_name
+                docx_sections.append({"id": name, "title": title, "severity": result.severity, "result": result})
+
+        top_issues = []
+        for section in docx_sections:
+            for issue in section["result"].issues:
+                if issue.severity == SeverityLevel.ERROR:
+                    top_issues.append({"message": issue.message, "details": issue.details or "", "category": section["title"]})
+        top_issues = top_issues[:3]
+
+        if top_issues:
+            ti_heading = doc.add_heading(t("report.top_critical_issues"), level=2)
+            ti_heading.paragraph_format.space_before = Pt(8)
+            for idx, ti in enumerate(top_issues, 1):
+                ti_para = doc.add_paragraph()
+                ti_para.paragraph_format.space_before = Pt(4)
+                ti_para.paragraph_format.space_after = Pt(4)
+                run = ti_para.add_run(f"{idx}. {ti['message']}")
+                self._docx_set_font(run, size_pt=10, bold=True, color_rgb=(31, 41, 55))
+                if ti['details']:
+                    detail_text = ti['details'][:150]
+                    run = ti_para.add_run(f" — {detail_text}")
+                    self._docx_set_font(run, size_pt=10, color_rgb=(75, 85, 99))
+
+        # Verdict
+        error_categories = [s["title"] for s in docx_sections if s["severity"] == SeverityLevel.ERROR]
+        error_count = len(error_categories)
+        cat_list = ", ".join(error_categories[:3]) if error_categories else ""
+        if score >= 70:
+            verdict_text = t("report.verdict_good", categories=cat_list, count=error_count)
+        elif score >= 40:
+            verdict_text = t("report.verdict_average", categories=cat_list, count=error_count)
+        else:
+            verdict_text = t("report.verdict_poor", categories=cat_list, count=error_count)
+
+        verdict_para = doc.add_paragraph()
+        verdict_para.paragraph_format.space_before = Pt(16)
+        run = verdict_para.add_run(verdict_text)
+        self._docx_set_font(run, size_pt=10, color_rgb=(55, 65, 81))
+
+        doc.add_page_break()
+
+        # =============================================
+        # PAGE 3: CATEGORY OVERVIEW
+        # =============================================
+        cat_heading = doc.add_heading(t("report.category_overview"), level=1)
+        cat_heading.paragraph_format.space_after = Pt(12)
+
+        severity_order_map = {SeverityLevel.ERROR: 0, SeverityLevel.WARNING: 1, SeverityLevel.INFO: 2, SeverityLevel.SUCCESS: 3}
+        sorted_sections = sorted(docx_sections, key=lambda s: severity_order_map.get(s["severity"], 4))
+
+        cat_table = doc.add_table(rows=1 + len(sorted_sections), cols=5)
+        cat_table.style = 'Table Grid'
+
+        # Header row
+        headers = ["#", t("report.category"), t("report.status"), t("report.critical_count"), t("report.warning_count")]
+        for i, header_text in enumerate(headers):
+            cell = cat_table.rows[0].cells[i]
+            cell.text = ''
+            p = cell.paragraphs[0]
+            run = p.add_run(header_text)
+            self._docx_set_font(run, size_pt=9, bold=True, color_rgb=(55, 65, 81))
+            self._docx_set_cell_shading(cell, 'F9FAFB')
+
+        badge_text_map = {
+            SeverityLevel.SUCCESS: t("report.badge_ok"),
+            SeverityLevel.WARNING: t("report.badge_warning"),
+            SeverityLevel.ERROR: t("report.badge_error"),
+            SeverityLevel.INFO: t("report.badge_info"),
+        }
+        badge_color_map = {
+            SeverityLevel.SUCCESS: (6, 95, 70),
+            SeverityLevel.WARNING: (146, 64, 14),
+            SeverityLevel.ERROR: (153, 27, 27),
+            SeverityLevel.INFO: (30, 64, 175),
+        }
+
+        for row_idx, section in enumerate(sorted_sections, 1):
+            result = section["result"]
+            criticals = sum(1 for iss in result.issues if iss.severity == SeverityLevel.ERROR)
+            warns = sum(1 for iss in result.issues if iss.severity == SeverityLevel.WARNING)
+
+            row = cat_table.rows[row_idx]
+            # #
+            cell = row.cells[0]
+            cell.text = ''
+            run = cell.paragraphs[0].add_run(str(row_idx))
+            self._docx_set_font(run, size_pt=9, color_rgb=(156, 163, 175))
+            # Category
+            cell = row.cells[1]
+            cell.text = ''
+            run = cell.paragraphs[0].add_run(section["title"])
+            self._docx_set_font(run, size_pt=9, color_rgb=(55, 65, 81))
+            # Status badge
+            cell = row.cells[2]
+            cell.text = ''
+            badge = badge_text_map.get(section["severity"], "—")
+            badge_clr = badge_color_map.get(section["severity"], (55, 65, 81))
+            run = cell.paragraphs[0].add_run(badge)
+            self._docx_set_font(run, size_pt=9, bold=True, color_rgb=badge_clr)
+            # Critical count
+            cell = row.cells[3]
+            cell.text = ''
+            run = cell.paragraphs[0].add_run(str(criticals))
+            self._docx_set_font(run, size_pt=9, bold=criticals > 0, color_rgb=(239, 68, 68) if criticals > 0 else (156, 163, 175))
+            # Warning count
+            cell = row.cells[4]
+            cell.text = ''
+            run = cell.paragraphs[0].add_run(str(warns))
+            self._docx_set_font(run, size_pt=9, bold=warns > 0, color_rgb=(245, 158, 11) if warns > 0 else (156, 163, 175))
+
+        doc.add_page_break()
+
+        # =============================================
+        # PAGE 4+: DETAILED FINDINGS
+        # =============================================
+
+        # Homepage Screenshot
         if audit.homepage_screenshot:
             import base64 as b64
             from io import BytesIO
@@ -1500,6 +1978,36 @@ class ReportGenerator:
                                 logger.warning(f"Failed to add PageSpeed screenshot to DOCX: {e}")
 
             doc.add_paragraph()  # spacing between sections
+
+        # Add footer with page numbers and branding
+        from docx.oxml import OxmlElement
+        section = doc.sections[0]
+        footer = section.footer
+        footer.is_linked_to_previous = False
+        footer_para = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
+        footer_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # Page number field
+        run = footer_para.add_run()
+        self._docx_set_font(run, size_pt=8, color_rgb=(156, 163, 175))
+        fld_char_begin = OxmlElement('w:fldChar')
+        fld_char_begin.set(qn('w:fldCharType'), 'begin')
+        run._element.append(fld_char_begin)
+
+        run2 = footer_para.add_run()
+        self._docx_set_font(run2, size_pt=8, color_rgb=(156, 163, 175))
+        instr_text = OxmlElement('w:instrText')
+        instr_text.set(qn('xml:space'), 'preserve')
+        instr_text.text = ' PAGE '
+        run2._element.append(instr_text)
+
+        run3 = footer_para.add_run()
+        fld_char_end = OxmlElement('w:fldChar')
+        fld_char_end.set(qn('w:fldCharType'), 'end')
+        run3._element.append(fld_char_end)
+
+        run4 = footer_para.add_run("    |    seo-audit.online")
+        self._docx_set_font(run4, size_pt=8, color_rgb=(209, 213, 219))
 
         # Save document
         docx_filename = f"audit_{audit.id}.docx"

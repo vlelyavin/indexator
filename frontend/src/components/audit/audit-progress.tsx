@@ -25,7 +25,9 @@ export function AuditProgressView({ progress }: AuditProgressViewProps) {
           ? t("progressCrawling", { count: progress.pages_crawled })
           : t("progressCrawlingStart");
       case "analyzing":
-        return t("progressAnalyzing");
+        return progress.analyzer_name
+          ? t("progressAnalyzingName", { name: progress.analyzer_name })
+          : t("progressAnalyzing");
       case "generating_report":
         return t("progressGeneratingReport");
       default:

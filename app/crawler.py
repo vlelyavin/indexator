@@ -33,6 +33,7 @@ class WebCrawler:
         timeout: int = None,
         parallel_requests: int = None,
         progress_callback: Optional[Callable] = None,
+        screenshot_callback: Optional[Callable] = None,
     ):
         self.start_url = self._normalize_url(start_url)
         parsed = urlparse(self.start_url)
@@ -43,6 +44,8 @@ class WebCrawler:
         self.timeout = (timeout or settings.PAGE_TIMEOUT) * 1000  # Convert to ms for Playwright
         self.parallel_requests = parallel_requests or settings.PARALLEL_REQUESTS
         self.progress_callback = progress_callback
+        self.screenshot_callback = screenshot_callback
+        self._homepage_screenshot_taken = False
 
         self.visited: Set[str] = set()
         self.queue: deque = deque()
@@ -321,6 +324,22 @@ class WebCrawler:
                 # Cache the parsed soup for analyzers to reuse
                 page_data.set_soup(soup)
 
+                # Capture homepage screenshot during crawl (avoids separate browser launch)
+                if depth == 0 and self.screenshot_callback and not self._homepage_screenshot_taken:
+                    self._homepage_screenshot_taken = True
+                    try:
+                        # Wait briefly for remaining resources to load
+                        await page.wait_for_load_state("networkidle", timeout=5000)
+                    except Exception:
+                        pass  # networkidle timeout is non-fatal
+                    try:
+                        import base64
+                        screenshot_bytes = await page.screenshot(type="png")
+                        screenshot_b64 = base64.b64encode(screenshot_bytes).decode("utf-8")
+                        await self.screenshot_callback(screenshot_b64)
+                    except Exception as e:
+                        logger.warning(f"Homepage screenshot during crawl failed: {e}")
+
                 return page_data
 
             except Exception as e:
@@ -385,9 +404,9 @@ class WebCrawler:
                         # Store page data
                         self.pages[page.url] = page
 
-                        # Notify progress
+                        # Notify progress (fire-and-forget to avoid blocking crawl)
                         if self.progress_callback:
-                            await self.progress_callback(page)
+                            asyncio.create_task(self.progress_callback(page))
 
                         yield page
 

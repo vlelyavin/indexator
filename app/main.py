@@ -600,6 +600,21 @@ async def run_audit(audit_id: str, request: AuditRequest):
         pages: Dict[str, PageData] = {}
         max_pages = request.max_pages or settings.MAX_PAGES
 
+        # Start Speed Analyzer early (it only needs the URL, not crawled pages)
+        # This runs in parallel with crawling to save 35-90 seconds
+        speed_task = None
+        selected = request.analyzers if request.analyzers else list(ALL_ANALYZERS.keys())
+        if "speed" in selected and "speed" in ALL_ANALYZERS:
+            speed_analyzer = ALL_ANALYZERS["speed"]()
+            speed_analyzer.set_language(lang)
+            logger.info(f"[Audit {audit.id}] Starting Speed Analyzer early (parallel with crawl)")
+            speed_task = asyncio.create_task(
+                asyncio.wait_for(
+                    speed_analyzer.analyze({}, str(request.url)),
+                    timeout=settings.ANALYZER_TIMEOUT
+                )
+            )
+
         async def progress_callback(page: PageData):
             progress = min(len(pages) / max_pages * 40, 40)
             await emit_progress(ProgressEvent(
@@ -611,10 +626,16 @@ async def run_audit(audit_id: str, request: AuditRequest):
                 stage="crawling",
             ))
 
+        # Capture homepage screenshot during crawl (reuses crawler's browser)
+        async def screenshot_callback(screenshot_b64: str):
+            audit.homepage_screenshot = screenshot_b64
+            logger.info(f"[Audit {audit.id}] Homepage screenshot captured during crawl")
+
         crawler = WebCrawler(
             str(request.url),
             max_pages=max_pages,
             progress_callback=progress_callback,
+            screenshot_callback=screenshot_callback,
         )
 
         try:
@@ -627,6 +648,19 @@ async def run_audit(audit_id: str, request: AuditRequest):
         audit.pages_crawled = len(pages)
         audit.pages = pages
 
+        # Fallback: if screenshot wasn't captured during crawl, try standalone
+        if not audit.homepage_screenshot:
+            try:
+                from .screenshots import screenshot_capture
+                audit.homepage_screenshot = await screenshot_capture.capture_page(
+                    str(request.url),
+                    viewport=screenshot_capture.DESKTOP_VIEWPORT,
+                    full_page=False,
+                    filename=f"homepage_{audit_id}.png",
+                )
+            except Exception as e:
+                logger.warning(f"Homepage screenshot fallback failed (non-fatal): {e}")
+
         await emit_progress(ProgressEvent(
             status=AuditStatus.CRAWLING,
             progress=40,
@@ -634,18 +668,6 @@ async def run_audit(audit_id: str, request: AuditRequest):
             pages_crawled=len(pages),
             stage="crawling",
         ))
-
-        # Capture homepage screenshot
-        try:
-            from .screenshots import screenshot_capture
-            audit.homepage_screenshot = await screenshot_capture.capture_page(
-                str(request.url),
-                viewport=screenshot_capture.DESKTOP_VIEWPORT,
-                full_page=False,
-                filename=f"homepage_{audit_id}.png",
-            )
-        except Exception as e:
-            logger.warning(f"Homepage screenshot failed (non-fatal): {e}")
 
         # Phase 2: Analysis
         audit.status = AuditStatus.ANALYZING
@@ -658,8 +680,12 @@ async def run_audit(audit_id: str, request: AuditRequest):
         ))
 
         # Filter analyzers by request selection (None = all)
-        selected = request.analyzers if request.analyzers else list(ALL_ANALYZERS.keys())
-        analyzers = [ALL_ANALYZERS[name]() for name in selected if name in ALL_ANALYZERS]
+        # Exclude speed — it was started early in parallel with crawling
+        analyzers = [
+            ALL_ANALYZERS[name]()
+            for name in selected
+            if name in ALL_ANALYZERS and (name != "speed" or speed_task is None)
+        ]
 
         # Phase 2: Analysis - Run analyzers in parallel
         analysis_start = time.time()
@@ -699,12 +725,14 @@ async def run_audit(audit_id: str, request: AuditRequest):
 
                 # Emit progress AFTER completion for accurate reporting
                 completed_count[0] += 1
+                analyzer_display_name = t(f"analyzers.{analyzer.name}.name", progress_lang)
                 await emit_progress(ProgressEvent(
                     status=AuditStatus.ANALYZING,
                     progress=40 + (completed_count[0] / total * 40),
-                    message=t("progress.analyzing_analyzer", progress_lang, name=t(f"analyzers.{analyzer.name}.name", progress_lang)),
+                    message=t("progress.analyzing_analyzer", progress_lang, name=analyzer_display_name),
                     pages_crawled=len(pages),
                     stage="analyzing",
+                    analyzer_name=analyzer_display_name,
                 ))
 
                 return name_result
@@ -748,12 +776,35 @@ async def run_audit(audit_id: str, request: AuditRequest):
                 logger.warning(f"Analyzer {analyzer_name} returned no result")
                 failed_analyzers.append(analyzer_name)
 
+        # Collect early-started Speed Analyzer result
+        if speed_task is not None:
+            try:
+                speed_result = await speed_task
+                results["speed"] = speed_result
+                successful_analyzers.append("speed")
+                logger.info(f"Speed Analyzer (early-started) completed successfully")
+                await emit_progress(ProgressEvent(
+                    status=AuditStatus.ANALYZING,
+                    progress=80,
+                    message=t("progress.analyzing_analyzer", progress_lang, name=t("analyzers.speed.name", progress_lang)),
+                    pages_crawled=len(pages),
+                    stage="analyzing",
+                    analyzer_name=t("analyzers.speed.name", progress_lang),
+                ))
+            except asyncio.TimeoutError:
+                logger.error(f"Speed Analyzer timed out after {settings.ANALYZER_TIMEOUT}s")
+                failed_analyzers.append("speed")
+            except Exception as e:
+                logger.error(f"Speed Analyzer failed: {e}", exc_info=e)
+                failed_analyzers.append("speed")
+
         analysis_duration = time.time() - analysis_start
         logger.info(f"Analysis phase completed in {analysis_duration:.2f}s")
 
+        total_analyzers = len(analyzers) + (1 if speed_task is not None else 0)
         # Log analyzer execution statistics
         logger.info(
-            f"Analyzer results: {len(successful_analyzers)}/{len(analyzers)} successful, "
+            f"Analyzer results: {len(successful_analyzers)}/{total_analyzers} successful, "
             f"{len(failed_analyzers)} failed"
         )
         if failed_analyzers:

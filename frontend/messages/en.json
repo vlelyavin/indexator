@@ -124,6 +124,7 @@
     "progressCrawlingStart": "Starting site crawl...",
     "progressCrawling": "Crawled {count} pages",
     "progressAnalyzing": "Analyzing crawled pages...",
+    "progressAnalyzingName": "Analyzing: {name}...",
     "progressGeneratingReport": "Generating report..."
   },
   "settings": {

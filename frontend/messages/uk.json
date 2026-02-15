@@ -124,6 +124,7 @@
     "progressCrawlingStart": "Починаємо сканування сайту...",
     "progressCrawling": "Проскановано {count} сторінок",
     "progressAnalyzing": "Аналіз просканованих сторінок...",
+    "progressAnalyzingName": "Аналіз: {name}...",
     "progressGeneratingReport": "Генерація звіту..."
   },
   "settings": {

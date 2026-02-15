@@ -168,6 +168,7 @@ class ProgressEvent(BaseModel):
     current_url: Optional[str] = None
     pages_crawled: int = 0
     stage: Optional[str] = None
+    analyzer_name: Optional[str] = None  # Display name of currently running analyzer
 
 
 class RobotsTxtData(BaseModel):

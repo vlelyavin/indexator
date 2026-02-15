@@ -52,6 +52,7 @@ export interface ProgressEvent {
   current_url?: string | null;
   pages_crawled: number;
   stage?: string | null;
+  analyzer_name?: string | null;
 }
 
 /** Mirrors Python SpeedMetrics */

@@ -146,6 +146,7 @@
     "overall_score": "Загальна оцінка",
     "top_critical_issues": "Основні критичні проблеми",
     "category_overview": "Огляд категорій",
+    "category_overview_description": "Підсумок усіх проаналізованих категорій, відсортованих за рівнем серйозності.",
     "category": "Категорія",
     "status": "Статус",
     "critical_count": "Критичні",

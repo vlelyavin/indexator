@@ -746,6 +746,7 @@ class ReportGenerator:
             "badge_info": t("report.badge_info"),
             "pages_analyzed": t("report.pages_analyzed", count=audit.pages_crawled),
             "category_overview": t("report.category_overview"),
+            "category_overview_desc": t("report.category_overview_description"),
             "category_label": t("report.category"),
             "status_label": t("report.status"),
             "critical_label": t("report.critical_count"),
@@ -773,67 +774,6 @@ class ReportGenerator:
             f.write(html)
 
         return str(report_path)
-
-    def _build_pdf_pages(self, audit: AuditResult, sections: list, domain: str, t, lang: str) -> str:
-        """Build category overview HTML for PDF injection."""
-        # --- Category Overview Table ---
-        severity_order = {SeverityLevel.ERROR: 0, SeverityLevel.WARNING: 1, SeverityLevel.INFO: 2, SeverityLevel.SUCCESS: 3}
-        sorted_sections = sorted(sections, key=lambda s: severity_order.get(s["severity"], 4))
-
-        severity_class_map = {
-            SeverityLevel.SUCCESS: "success",
-            SeverityLevel.WARNING: "warning",
-            SeverityLevel.ERROR: "error",
-            SeverityLevel.INFO: "info",
-        }
-
-        badge_text_map = {
-            SeverityLevel.SUCCESS: t("report.badge_ok"),
-            SeverityLevel.WARNING: t("report.badge_warning"),
-            SeverityLevel.ERROR: t("report.badge_error"),
-            SeverityLevel.INFO: t("report.badge_info"),
-        }
-
-        rows_html = ""
-        for i, section in enumerate(sorted_sections, 1):
-            result = section["result"]
-            sev_class = severity_class_map.get(section["severity"], "info")
-            badge_text = badge_text_map.get(section["severity"], "—")
-            icon_svg = self.status_icon(section["severity"])
-            criticals = sum(1 for iss in result.issues if iss.severity == SeverityLevel.ERROR)
-            warns = sum(1 for iss in result.issues if iss.severity == SeverityLevel.WARNING)
-            rows_html += f'''
-                <tr>
-                    <td>{i}</td>
-                    <td>{section["title"]}</td>
-                    <td><span class="badge {sev_class}">{icon_svg} {badge_text}</span></td>
-                    <td style="text-align: center; color: {'#EF4444' if criticals > 0 else '#9CA3AF'}; font-weight: {'700' if criticals > 0 else '400'};">{criticals}</td>
-                    <td style="text-align: center; color: {'#F59E0B' if warns > 0 else '#9CA3AF'}; font-weight: {'700' if warns > 0 else '400'};">{warns}</td>
-                </tr>'''
-
-        category_html = f'''
-        <div class="category-overview">
-            <h1 style="font-size: 18pt; margin-bottom: 16px;">{t("report.category_overview")}</h1>
-            <div class="table-wrapper">
-                <table class="data-table category-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 30px;">#</th>
-                            <th>{t("report.category")}</th>
-                            <th style="width: 100px;">{t("report.status")}</th>
-                            <th style="width: 70px; text-align: center;">{t("report.critical_count")}</th>
-                            <th style="width: 90px; text-align: center;">{t("report.warning_count")}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows_html}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        '''
-
-        return category_html
 
     async def generate_pdf(self, audit: AuditResult, brand: dict | None = None) -> str:
         """Generate PDF report and return file path."""
@@ -870,29 +810,21 @@ class ReportGenerator:
         with open(html_path, "r", encoding="utf-8") as f:
             html_content = f.read()
 
-        # Build category overview
-        category_overview_html = self._build_pdf_pages(audit, sections, domain, t, lang)
-
-        # --- Change 1: Replace summary header with cover-style content ---
+        # --- Replace summary header with cover-style content for PDF ---
         generated_at = datetime.now().strftime("%d.%m.%Y")
         cover_header = f'''
             <h1 class="pdf-cover-title">Express SEO audit</h1>
             <div class="pdf-cover-url">Website: {domain}</div>
             <div class="pdf-cover-meta">{t("report.pages_analyzed", count=audit.pages_crawled)} · {generated_at}</div>
         '''
-        # Replace the original h1 + p header in the summary section
+        # Replace the original h1 + two p tags header in the summary section
         html_content = re.sub(
             r'<h1 style="font-size: 24px; margin-bottom: 6px;">.*?</h1>\s*'
+            r'<p style="color: var\(--color-text-light\); margin-bottom: 4px; font-size: 13px;">.*?</p>\s*'
             r'<p style="color: var\(--color-text-light\); margin-bottom: 24px; font-size: 13px;">.*?</p>',
             cover_header,
             html_content,
             flags=re.DOTALL,
-        )
-
-        # --- Inject category overview before analyzer sections ---
-        html_content = html_content.replace(
-            '<!-- Analyzer Sections -->',
-            category_overview_html + '\n<!-- Analyzer Sections -->'
         )
 
         # --- Change 4: Limit URL lists to 10 items for PDF ---
@@ -953,7 +885,7 @@ class ReportGenerator:
             }
 
             /* === Category Overview === */
-            .category-overview {
+            #category-overview {
                 page-break-after: always;
             }
 

@@ -925,7 +925,6 @@ class ReportGenerator:
 
             /* === Category Overview === */
             .category-overview {
-                page-break-before: always;
                 page-break-after: always;
             }
 

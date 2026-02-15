@@ -745,30 +745,14 @@ class ReportGenerator:
 
         return str(report_path)
 
-    def _build_pdf_pages(self, audit: AuditResult, sections: list, domain: str, t, lang: str) -> str:
-        """Build cover page, executive summary, and category overview HTML for PDF injection."""
-        generated_at = datetime.now().strftime("%d.%m.%Y")
+    def _build_pdf_pages(self, audit: AuditResult, sections: list, domain: str, t, lang: str) -> dict:
+        """Build top critical issues and category overview HTML for PDF injection.
 
-        # --- Cover Page ---
-        cover_html = f'''
-        <div class="cover-page">
-            <div class="cover-content">
-                <div class="cover-logo">seo-audit.online</div>
-                <h1 class="cover-title">{t("report.cover_title")}</h1>
-                <div class="cover-url">{domain}</div>
-                <div class="cover-meta">
-                    <div>{generated_at}</div>
-                    <div>{t("report.pages_analyzed", count=audit.pages_crawled)}</div>
-                </div>
-            </div>
-        </div>
-        '''
-
-        # --- Executive Summary ---
-        score = audit.overall_score
-        score_color = audit.score_color
-
-        # Collect top critical issues across all analyzers
+        Returns a dict with:
+        - 'top_issues': HTML for top critical issues (injected after screenshot)
+        - 'category_overview': HTML for category overview table (injected before analyzer sections)
+        """
+        # --- Top Critical Issues (max 3) ---
         top_issues = []
         for section in sections:
             result = section["result"]
@@ -796,67 +780,37 @@ class ReportGenerator:
             </div>
             '''
 
-        # Verdict
-        error_categories = [s["title"] for s in sections if s["severity"] == SeverityLevel.ERROR]
-        error_count = len(error_categories)
-        cat_list = ", ".join(error_categories[:3]) if error_categories else ""
-
-        if score >= 70:
-            verdict_key = "report.verdict_good"
-        elif score >= 40:
-            verdict_key = "report.verdict_average"
-        else:
-            verdict_key = "report.verdict_poor"
-        verdict_text = t(verdict_key, categories=cat_list, count=error_count)
-
-        exec_summary_html = f'''
-        <div class="exec-summary">
-            <h1 style="font-size: 20pt; text-align: center; margin-bottom: 24px;">{t("report.executive_summary")}</h1>
-
-            <div class="score-section">
-                <div class="score-circle" style="border-color: {score_color};">
-                    <div class="score-number" style="color: {score_color};">{score}</div>
-                    <div class="score-label">/ 100</div>
-                </div>
-            </div>
-
-            <div class="stat-cards">
-                <div class="stat-card"><div class="stat-value">{audit.pages_crawled}</div><div class="stat-label">{t("report.pages_crawled")}</div></div>
-                <div class="stat-card"><div class="stat-value" style="color: #10B981;">{audit.passed_checks}</div><div class="stat-label">{t("report.passed_checks")}</div></div>
-                <div class="stat-card"><div class="stat-value" style="color: #F59E0B;">{audit.warnings}</div><div class="stat-label">{t("report.warnings")}</div></div>
-                <div class="stat-card"><div class="stat-value" style="color: #EF4444;">{audit.critical_issues}</div><div class="stat-label">{t("report.critical_issues")}</div></div>
-            </div>
-
-            {top_issues_html}
-
-            <div class="verdict">
-                <p>{verdict_text}</p>
-            </div>
-        </div>
-        '''
-
         # --- Category Overview Table ---
         severity_order = {SeverityLevel.ERROR: 0, SeverityLevel.WARNING: 1, SeverityLevel.INFO: 2, SeverityLevel.SUCCESS: 3}
         sorted_sections = sorted(sections, key=lambda s: severity_order.get(s["severity"], 4))
 
-        badge_map = {
-            SeverityLevel.SUCCESS: (t("report.badge_ok"), "#D1FAE5", "#065F46"),
-            SeverityLevel.WARNING: (t("report.badge_warning"), "#FEF3C7", "#92400E"),
-            SeverityLevel.ERROR: (t("report.badge_error"), "#FEE2E2", "#991B1B"),
-            SeverityLevel.INFO: (t("report.badge_info"), "#DBEAFE", "#1E40AF"),
+        severity_class_map = {
+            SeverityLevel.SUCCESS: "success",
+            SeverityLevel.WARNING: "warning",
+            SeverityLevel.ERROR: "error",
+            SeverityLevel.INFO: "info",
+        }
+
+        badge_text_map = {
+            SeverityLevel.SUCCESS: t("report.badge_ok"),
+            SeverityLevel.WARNING: t("report.badge_warning"),
+            SeverityLevel.ERROR: t("report.badge_error"),
+            SeverityLevel.INFO: t("report.badge_info"),
         }
 
         rows_html = ""
         for i, section in enumerate(sorted_sections, 1):
             result = section["result"]
-            badge_text, badge_bg, badge_color = badge_map.get(section["severity"], ("—", "#F3F4F6", "#374151"))
+            sev_class = severity_class_map.get(section["severity"], "info")
+            badge_text = badge_text_map.get(section["severity"], "—")
+            icon_svg = self.status_icon(section["severity"])
             criticals = sum(1 for iss in result.issues if iss.severity == SeverityLevel.ERROR)
             warns = sum(1 for iss in result.issues if iss.severity == SeverityLevel.WARNING)
             rows_html += f'''
                 <tr>
-                    <td style="text-align: center; color: #9CA3AF;">{i}</td>
+                    <td>{i}</td>
                     <td>{section["title"]}</td>
-                    <td><span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 9pt; font-weight: 600; background: {badge_bg}; color: {badge_color};">{badge_text}</span></td>
+                    <td><span class="badge {sev_class}">{icon_svg} {badge_text}</span></td>
                     <td style="text-align: center; color: {'#EF4444' if criticals > 0 else '#9CA3AF'}; font-weight: {'700' if criticals > 0 else '400'};">{criticals}</td>
                     <td style="text-align: center; color: {'#F59E0B' if warns > 0 else '#9CA3AF'}; font-weight: {'700' if warns > 0 else '400'};">{warns}</td>
                 </tr>'''
@@ -864,24 +818,29 @@ class ReportGenerator:
         category_html = f'''
         <div class="category-overview">
             <h1 style="font-size: 18pt; margin-bottom: 16px;">{t("report.category_overview")}</h1>
-            <table class="overview-table">
-                <thead>
-                    <tr>
-                        <th style="width: 40px;">#</th>
-                        <th>{t("report.category")}</th>
-                        <th>{t("report.status")}</th>
-                        <th style="width: 70px;">{t("report.critical_count")}</th>
-                        <th style="width: 80px;">{t("report.warning_count")}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {rows_html}
-                </tbody>
-            </table>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px;">#</th>
+                            <th>{t("report.category")}</th>
+                            <th>{t("report.status")}</th>
+                            <th style="width: 60px; text-align: center;">{t("report.critical_count")}</th>
+                            <th style="width: 70px; text-align: center;">{t("report.warning_count")}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows_html}
+                    </tbody>
+                </table>
+            </div>
         </div>
         '''
 
-        return cover_html + exec_summary_html + category_html
+        return {
+            "top_issues": top_issues_html,
+            "category_overview": category_html,
+        }
 
     async def generate_pdf(self, audit: AuditResult, brand: dict | None = None) -> str:
         """Generate PDF report and return file path."""
@@ -918,14 +877,34 @@ class ReportGenerator:
         with open(html_path, "r", encoding="utf-8") as f:
             html_content = f.read()
 
-        # Build cover + exec summary + category overview
-        pdf_pages_html = self._build_pdf_pages(audit, sections, domain, t, lang)
+        # Build top issues + category overview
+        pdf_parts = self._build_pdf_pages(audit, sections, domain, t, lang)
 
-        # Inject before <main class="main">
-        html_content = html_content.replace(
-            '<main class="main">',
-            pdf_pages_html + '\n<main class="main">'
+        # --- Change 1: Replace summary header with cover-style content ---
+        generated_at = datetime.now().strftime("%d.%m.%Y")
+        cover_header = f'''
+            <h1 class="pdf-cover-title">{t("report.cover_title")}</h1>
+            <div class="pdf-cover-url">{domain}</div>
+            <div class="pdf-cover-meta">{generated_at} | {t("report.pages_analyzed", count=audit.pages_crawled)}</div>
+            <div class="pdf-cover-branding">Made by seo-audit.online</div>
+        '''
+        # Replace the original h1 + p header in the summary section
+        html_content = re.sub(
+            r'<h1 style="font-size: 24px; margin-bottom: 6px;">.*?</h1>\s*'
+            r'<p style="color: var\(--color-text-light\); margin-bottom: 24px; font-size: 13px;">.*?</p>',
+            cover_header,
+            html_content,
+            flags=re.DOTALL,
         )
+
+        # --- Change 2: Inject top issues after screenshot, category overview before sections ---
+        html_content = html_content.replace(
+            '<!-- Analyzer Sections -->',
+            pdf_parts["top_issues"] + '\n' + pdf_parts["category_overview"] + '\n<!-- Analyzer Sections -->'
+        )
+
+        # --- Change 4: Limit URL lists to 10 items for PDF ---
+        html_content = self._limit_pdf_urls(html_content)
 
         # Create PDF
         pdf_filename = f"audit_{audit.id}.pdf"
@@ -949,10 +928,6 @@ class ReportGenerator:
                     font-family: Inter, sans-serif;
                 }
             }
-            @page :first {
-                @bottom-center { content: none; }
-                @bottom-right { content: none; }
-            }
             .sidebar {
                 display: none !important;
             }
@@ -967,131 +942,43 @@ class ReportGenerator:
                 color: #333 !important;
             }
 
-            /* === Cover Page === */
-            .cover-page {
-                page-break-after: always;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                text-align: center;
-                min-height: 90vh;
-            }
-            .cover-logo {
-                font-size: 12pt;
-                font-weight: 600;
-                color: #9CA3AF;
-                text-transform: uppercase;
-                letter-spacing: 2px;
-                margin-bottom: 40px;
-            }
-            .cover-title {
-                font-size: 28pt;
-                font-weight: 700;
-                color: #111827;
-                margin: 0 0 16px 0;
-            }
-            .cover-url {
-                font-size: 16pt;
-                color: #3B82F6;
-                margin-bottom: 8px;
-            }
-            .cover-meta {
-                font-size: 11pt;
-                color: #6B7280;
-                margin-top: 30px;
-                line-height: 1.8;
-            }
-
-            /* === Executive Summary === */
-            .exec-summary {
-                page-break-after: always;
-            }
-            .score-section {
-                text-align: center;
-                margin: 20px 0 24px 0;
-            }
-            .score-circle {
-                display: inline-flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                width: 120px;
-                height: 120px;
-                border-radius: 50%;
-                border: 6px solid;
-            }
-            .score-number {
-                font-size: 36pt;
-                font-weight: 700;
-                line-height: 1;
-            }
-            .score-label {
-                font-size: 11pt;
-                color: #9CA3AF;
-            }
-            .stat-cards {
-                display: flex;
-                gap: 12px;
-                margin-bottom: 24px;
-            }
-            .stat-card {
-                flex: 1;
-                text-align: center;
-                padding: 12px 8px;
-                border: 1px solid #E5E7EB;
-                border-radius: 8px;
-            }
-            .stat-value {
+            /* === Cover Header (merged into first page) === */
+            .pdf-cover-title {
                 font-size: 22pt;
                 font-weight: 700;
                 color: #111827;
+                margin: 0 0 8px 0;
             }
-            .stat-label {
-                font-size: 8pt;
+            .pdf-cover-url {
+                font-size: 14pt;
+                color: #3B82F6;
+                margin-bottom: 4px;
+            }
+            .pdf-cover-meta {
+                font-size: 10pt;
                 color: #6B7280;
-                margin-top: 4px;
+                margin-bottom: 4px;
             }
-            .top-issues {
+            .pdf-cover-branding {
+                font-size: 10pt;
+                color: #3B82F6;
                 margin-bottom: 20px;
+            }
+
+            /* === Top Critical Issues === */
+            .top-issues {
+                margin: 16px 0 24px 0;
             }
             .top-issues li {
                 margin-bottom: 8px;
                 line-height: 1.5;
-            }
-            .verdict {
-                background: #F9FAFB;
-                border-left: 4px solid #3B82F6;
-                padding: 14px 18px;
-                border-radius: 0 8px 8px 0;
                 font-size: 10pt;
                 color: #374151;
-                line-height: 1.6;
             }
 
             /* === Category Overview === */
             .category-overview {
                 page-break-after: always;
-            }
-            .overview-table {
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 9pt;
-            }
-            .overview-table th {
-                background: #F9FAFB;
-                padding: 8px 10px;
-                text-align: left;
-                font-weight: 600;
-                color: #374151;
-                border-bottom: 2px solid #E5E7EB;
-            }
-            .overview-table td {
-                padding: 7px 10px;
-                border-bottom: 1px solid #F3F4F6;
-                color: #374151;
-            }
-            .overview-table tr:hover td {
-                background: #F9FAFB;
             }
 
             /* === Detailed Findings === */
@@ -1180,6 +1067,21 @@ class ReportGenerator:
             .urls-hidden {
                 display: block !important;
             }
+            /* === Truncation: single-line URLs and table cells === */
+            .issue-urls li {
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                max-width: 100% !important;
+                word-break: normal !important;
+            }
+            .data-table td {
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                max-width: 300px !important;
+                word-break: normal !important;
+            }
         """)
 
         # Force all details elements to be open for PDF
@@ -1188,6 +1090,32 @@ class ReportGenerator:
         HTML(string=html_content).write_pdf(pdf_path, stylesheets=[print_css])
 
         return str(pdf_path)
+
+    @staticmethod
+    def _limit_pdf_urls(html: str, max_urls: int = 10) -> str:
+        """Limit URL lists in PDF to max_urls items per issue."""
+        def replace_ul(match):
+            full = match.group(0)
+            items = re.findall(r'<li>.*?</li>', full, re.DOTALL)
+            if len(items) <= max_urls:
+                return full
+            kept = '\n'.join(items[:max_urls])
+            remaining = len(items) - max_urls
+            more_text = f'<li style="color: #6B7280; font-style: italic;">... and {remaining} more</li>'
+            return re.sub(
+                r'(<ul[^>]*>)(.*?)(</ul>)',
+                lambda m: m.group(1) + '\n' + kept + '\n' + more_text + '\n' + m.group(3),
+                full,
+                count=0,
+                flags=re.DOTALL,
+            )
+
+        return re.sub(
+            r'<ul[^>]*>(?:\s*<li>.*?</li>\s*)+</ul>',
+            replace_ul,
+            html,
+            flags=re.DOTALL,
+        )
 
     # --- DOCX Helper Methods ---
 

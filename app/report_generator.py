@@ -671,7 +671,7 @@ class ReportGenerator:
         # Prepare sections for navigation with translated names
         sections = []
         section_order = [
-            "cms", "meta_tags", "headings", "page_404", "speed",
+            "cms", "speed", "meta_tags", "headings", "page_404",
             "images", "content", "links", "favicon", "external_links",
             "robots", "structure", "content_sections",
             "schema", "social_tags", "security", "mobile",
@@ -795,10 +795,15 @@ class ReportGenerator:
             .theory-block {
                 margin-bottom: 8px !important;
             }
-            /* Keep issue headers with their content */
-            .issue-header {
-                page-break-after: avoid;
-                break-after: avoid;
+            /* Allow ALL content to split across pages — no gaps */
+            .section, .section-header, .issue, .issue-header,
+            .theory-block, .table-wrapper, .summary-grid, .screenshots-grid {
+                page-break-inside: auto !important;
+                break-inside: auto !important;
+                page-break-before: auto !important;
+                break-before: auto !important;
+                page-break-after: auto !important;
+                break-after: auto !important;
             }
             /* Summary cards: compact for A4 */
             .summary-grid {
@@ -1351,7 +1356,7 @@ class ReportGenerator:
 
         # --- Results Sections ---
         section_order = [
-            "cms", "meta_tags", "headings", "page_404", "speed",
+            "cms", "speed", "meta_tags", "headings", "page_404",
             "images", "content", "links", "favicon", "external_links",
             "robots", "structure", "content_sections",
             "schema", "social_tags", "security", "mobile",

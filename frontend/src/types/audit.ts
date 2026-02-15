@@ -51,6 +51,7 @@ export interface ProgressEvent {
   message: string;
   current_url?: string | null;
   pages_crawled: number;
+  estimated_pages?: number | null;
   stage?: string | null;
   analyzer_name?: string | null;
 }

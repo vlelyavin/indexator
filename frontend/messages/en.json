@@ -105,6 +105,7 @@
     "recommendation": "Recommendation:",
     "affectedUrls": "Affected URLs ({count}):",
     "pages": "{count} pages",
+    "pagesOfEstimated": "{crawled} / ~{total} pages",
     "sections": "Sections",
     "searchIssues": "Search issues...",
     "noMatchingResults": "No results match your filter.",

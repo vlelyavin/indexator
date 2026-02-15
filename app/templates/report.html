@@ -460,10 +460,11 @@
         @media print {
             .sidebar { display: none; }
             .main { margin-left: 0; padding: 0; }
-            .section-header { page-break-after: avoid; break-after: avoid; }
-            .issue { page-break-inside: avoid; break-inside: avoid; }
-            .theory-block { page-break-inside: avoid; break-inside: avoid; }
-            .table-wrapper { page-break-inside: avoid; break-inside: avoid; }
+            .section, .section-header, .issue, .theory-block,
+            .table-wrapper, .summary-grid, .screenshots-grid {
+                page-break-inside: auto !important;
+                break-inside: auto !important;
+            }
             body { background: white; }
         }
 

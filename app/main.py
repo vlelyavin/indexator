@@ -1,5 +1,6 @@
 """FastAPI application for SEO Audit Tool."""
 
+import aiohttp
 import asyncio
 import copy
 import json
@@ -11,7 +12,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple, List, Set
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 from .utils import extract_domain
 
@@ -568,6 +569,22 @@ async def translate_results(request: Request):
     return JSONResponse(content={**cached_data, "results": results_dict})
 
 
+async def fetch_sitemap_count(url: str) -> int:
+    """Quick fetch of sitemap.xml to estimate total pages (~1-2s)."""
+    try:
+        from .http_client import get_session
+        session = await get_session()
+        base = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
+        sitemap_url = urljoin(base, "/sitemap.xml")
+        async with session.get(sitemap_url, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+            if resp.status == 200:
+                text = await resp.text()
+                return text.count("<loc>")
+    except Exception:
+        pass
+    return 0
+
+
 async def run_audit(audit_id: str, request: AuditRequest):
     """Background task to run the full audit with 10-minute timeout."""
     channel = broadcast_channels[audit_id]
@@ -615,14 +632,26 @@ async def run_audit(audit_id: str, request: AuditRequest):
                 )
             )
 
+        # Fetch sitemap page count in parallel for smoother progress bar
+        sitemap_count_task = asyncio.create_task(fetch_sitemap_count(str(request.url)))
+        estimated_pages = [0]  # mutable container for closure
+
         async def progress_callback(page: PageData):
-            progress = min(len(pages) / max_pages * 40, 40)
+            # Resolve sitemap estimate if ready
+            if estimated_pages[0] == 0 and sitemap_count_task.done():
+                try:
+                    estimated_pages[0] = sitemap_count_task.result()
+                except Exception:
+                    pass
+            denominator = estimated_pages[0] if estimated_pages[0] > 0 else max_pages
+            progress = min(len(pages) / denominator * 40, 39)
             await emit_progress(ProgressEvent(
                 status=AuditStatus.CRAWLING,
                 progress=progress,
                 message=t("progress.crawling_pages", progress_lang, count=len(pages)),
                 current_url=page.url,
                 pages_crawled=len(pages),
+                estimated_pages=estimated_pages[0] if estimated_pages[0] > 0 else None,
                 stage="crawling",
             ))
 
@@ -794,9 +823,21 @@ async def run_audit(audit_id: str, request: AuditRequest):
             except asyncio.TimeoutError:
                 logger.error(f"Speed Analyzer timed out after {settings.ANALYZER_TIMEOUT}s")
                 failed_analyzers.append("speed")
+                results["speed"] = AnalyzerResult(
+                    status=SeverityLevel.ERROR,
+                    summary=t("analyzer_content.speed.summary.failed", progress_lang),
+                    issues=[],
+                    data={},
+                )
             except Exception as e:
                 logger.error(f"Speed Analyzer failed: {e}", exc_info=e)
                 failed_analyzers.append("speed")
+                results["speed"] = AnalyzerResult(
+                    status=SeverityLevel.ERROR,
+                    summary=t("analyzer_content.speed.summary.failed", progress_lang),
+                    issues=[],
+                    data={},
+                )
 
         analysis_duration = time.time() - analysis_start
         logger.info(f"Analysis phase completed in {analysis_duration:.2f}s")

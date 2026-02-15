@@ -515,6 +515,12 @@
                 {{ t.homepage_screenshot_title if t.homepage_screenshot_title and t.homepage_screenshot_title != 'report.homepage_screenshot_title' else 'Screenshot' }}
             </a>
             {% endif %}
+            {% if category_overview %}
+            <a href="#category-overview">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                {{ t.category_overview if t else 'Category Overview' }}
+            </a>
+            {% endif %}
             {% for section in sections %}
             <a href="#{{ section.id }}">
                 {{ section.title }}
@@ -528,8 +534,9 @@
     <main class="main">
         <!-- Summary Section -->
         <section id="summary">
-            <h1 style="font-size: 24px; margin-bottom: 6px;">{{ t.report_title if t else 'SEO Audit' }}: {{ domain }}</h1>
-            <p style="color: var(--color-text-light); margin-bottom: 24px; font-size: 13px;">{{ audit.url }}</p>
+            <h1 style="font-size: 24px; margin-bottom: 6px;">{{ t.express_title if t else 'Express SEO audit' }}</h1>
+            <p style="color: var(--color-text-light); margin-bottom: 4px; font-size: 13px;">Website: {{ domain }}</p>
+            <p style="color: var(--color-text-light); margin-bottom: 24px; font-size: 13px;">{{ t.pages_analyzed if t else '{} pages analyzed'.format(audit.pages_crawled) }} · {{ generated_at }}</p>
 
             <div class="summary-grid">
                 <div class="summary-card info">
@@ -563,6 +570,38 @@
         <section class="section" id="homepage-screenshot">
             <div style="text-align: center;">
                 <img src="data:image/png;base64,{{ audit.homepage_screenshot }}" alt="Homepage" style="max-width: 100%; border: 1px solid var(--color-border); border-radius: 8px;">
+            </div>
+        </section>
+        {% endif %}
+
+        {% if category_overview %}
+        <section class="section" id="category-overview">
+            <div class="section-header">
+                <h2>{{ t.category_overview if t else 'Category Overview' }}</h2>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 30px;">#</th>
+                            <th>{{ t.category_label if t else 'Category' }}</th>
+                            <th style="width: 100px;">{{ t.status_label if t else 'Status' }}</th>
+                            <th style="width: 70px; text-align: center;">{{ t.critical_label if t else 'Critical' }}</th>
+                            <th style="width: 90px; text-align: center;">{{ t.warnings_label if t else 'Warnings' }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cat in category_overview %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ cat.title }}</td>
+                            <td><span class="badge {{ cat.severity | severity_class }}">{{ cat.severity | status_icon | safe }} {{ cat.badge_text }}</span></td>
+                            <td style="text-align: center;">{{ cat.criticals }}</td>
+                            <td style="text-align: center;">{{ cat.warns }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </section>
         {% endif %}

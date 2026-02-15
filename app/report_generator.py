@@ -702,9 +702,31 @@ class ReportGenerator:
         # Extract domain
         domain = extract_domain(audit.url)
 
+        # Compute category overview data (sorted by severity)
+        severity_order = {SeverityLevel.ERROR: 0, SeverityLevel.WARNING: 1, SeverityLevel.INFO: 2, SeverityLevel.SUCCESS: 3}
+        badge_text_map = {
+            SeverityLevel.SUCCESS: t("report.badge_ok"),
+            SeverityLevel.WARNING: t("report.badge_warning"),
+            SeverityLevel.ERROR: t("report.badge_error"),
+            SeverityLevel.INFO: t("report.badge_info"),
+        }
+        category_overview = []
+        for section in sorted(sections, key=lambda s: severity_order.get(s["severity"], 4)):
+            result = section["result"]
+            criticals = sum(1 for iss in result.issues if iss.severity == SeverityLevel.ERROR)
+            warns = sum(1 for iss in result.issues if iss.severity == SeverityLevel.WARNING)
+            category_overview.append({
+                "title": section["title"],
+                "severity": section["severity"],
+                "badge_text": badge_text_map.get(section["severity"], "—"),
+                "criticals": criticals,
+                "warns": warns,
+            })
+
         # Prepare translations for template
         translations = {
             "report_title": t("report.title"),
+            "express_title": t("report.express_title"),
             "overview": t("report.overview"),
             "pages_crawled": t("report.pages_crawled"),
             "passed_checks": t("report.passed_checks"),
@@ -722,6 +744,12 @@ class ReportGenerator:
             "badge_warning": t("report.badge_warning"),
             "badge_error": t("report.badge_error"),
             "badge_info": t("report.badge_info"),
+            "pages_analyzed": t("report.pages_analyzed", count=audit.pages_crawled),
+            "category_overview": t("report.category_overview"),
+            "category_label": t("report.category"),
+            "status_label": t("report.status"),
+            "critical_label": t("report.critical_count"),
+            "warnings_label": t("report.warning_count"),
         }
 
         # Render template
@@ -729,6 +757,7 @@ class ReportGenerator:
             audit=audit,
             domain=domain,
             sections=sections,
+            category_overview=category_overview,
             generated_at=datetime.now().strftime("%d.%m.%Y %H:%M"),
             SeverityLevel=SeverityLevel,
             t=translations,
@@ -1484,72 +1513,29 @@ class ReportGenerator:
                 brand_primary_rgb = (int(hex_val[0:2], 16), int(hex_val[2:4], 16), int(hex_val[4:6], 16))
 
         # =============================================
-        # PAGE 1: COVER PAGE
+        # HEADER
         # =============================================
-        if brand and brand.get('company_name'):
-            company_para = doc.add_paragraph()
-            company_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run = company_para.add_run(brand['company_name'])
-            self._docx_set_font(run, size_pt=12, bold=True, color_rgb=brand_primary_rgb)
+        # Title
+        title_para = doc.add_paragraph()
+        title_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        run = title_para.add_run(t("report.express_title"))
+        self._docx_set_font(run, size_pt=22, bold=True, color_rgb=(17, 24, 39))
 
-        # Logo placeholder
-        logo_para = doc.add_paragraph()
-        logo_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        logo_para.paragraph_format.space_before = Pt(120)
-        run = logo_para.add_run("seo-audit.online")
-        self._docx_set_font(run, size_pt=11, color_rgb=(156, 163, 175))
+        # Website
+        site_para = doc.add_paragraph()
+        site_para.paragraph_format.space_before = Pt(2)
+        run = site_para.add_run(f"Website: {domain}")
+        self._docx_set_font(run, size_pt=10, color_rgb=(17, 24, 39))
 
-        # Cover title
-        cover_title = doc.add_paragraph()
-        cover_title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        cover_title.paragraph_format.space_before = Pt(30)
-        run = cover_title.add_run(t("report.cover_title"))
-        self._docx_set_font(run, size_pt=28, bold=True, color_rgb=(17, 24, 39))
-
-        # Domain
-        domain_para = doc.add_paragraph()
-        domain_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        domain_para.paragraph_format.space_before = Pt(12)
-        run = domain_para.add_run(domain)
-        self._docx_set_font(run, size_pt=16, color_rgb=brand_primary_rgb)
-
-        # Date + pages
+        # Meta line (pages · date)
+        generated_at = datetime.now().strftime('%d.%m.%Y')
         meta_para = doc.add_paragraph()
-        meta_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        meta_para.paragraph_format.space_before = Pt(24)
-        run = meta_para.add_run(datetime.now().strftime('%d.%m.%Y'))
-        self._docx_set_font(run, size_pt=11, color_rgb=(107, 114, 128))
+        meta_para.paragraph_format.space_before = Pt(2)
+        pages_text = t("report.pages_analyzed", count=audit.pages_crawled)
+        run = meta_para.add_run(f"{pages_text} · {generated_at}")
+        self._docx_set_font(run, size_pt=10, color_rgb=(107, 114, 128))
 
-        pages_para = doc.add_paragraph()
-        pages_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = pages_para.add_run(t("report.pages_analyzed", count=audit.pages_crawled))
-        self._docx_set_font(run, size_pt=11, color_rgb=(107, 114, 128))
-
-        doc.add_page_break()
-
-        # =============================================
-        # PAGE 2: EXECUTIVE SUMMARY
-        # =============================================
-        exec_heading = doc.add_heading(t("report.executive_summary"), level=1)
-        exec_heading.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in exec_heading.runs:
-            self._docx_set_font(run, size_pt=20, bold=True, color_rgb=(17, 24, 39))
-
-        # Overall Score
-        score = audit.overall_score
-        score_color_hex = audit.score_color.lstrip('#')
-        score_rgb = (int(score_color_hex[0:2], 16), int(score_color_hex[2:4], 16), int(score_color_hex[4:6], 16))
-
-        score_para = doc.add_paragraph()
-        score_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        score_para.paragraph_format.space_before = Pt(16)
-        score_para.paragraph_format.space_after = Pt(4)
-        run = score_para.add_run(str(score))
-        self._docx_set_font(run, size_pt=40, bold=True, color_rgb=score_rgb)
-        run = score_para.add_run(" / 100")
-        self._docx_set_font(run, size_pt=14, color_rgb=(156, 163, 175))
-
-        # Stat cards table
+        # Summary stats table
         summary_table = doc.add_table(rows=2, cols=4)
         summary_table.style = 'Table Grid'
 
@@ -1579,8 +1565,7 @@ class ReportGenerator:
 
         doc.add_paragraph()
 
-        # Top 3 Critical Issues
-        # Build sections list for data extraction
+        # Build sections list for category overview and detailed findings
         section_order = [
             "cms", "speed", "meta_tags", "headings", "page_404",
             "images", "content", "links", "favicon", "external_links",
@@ -1599,47 +1584,25 @@ class ReportGenerator:
                     title = result.display_name
                 docx_sections.append({"id": name, "title": title, "severity": result.severity, "result": result})
 
-        top_issues = []
-        for section in docx_sections:
-            for issue in section["result"].issues:
-                if issue.severity == SeverityLevel.ERROR:
-                    top_issues.append({"message": issue.message, "details": issue.details or "", "category": section["title"]})
-        top_issues = top_issues[:3]
-
-        if top_issues:
-            ti_heading = doc.add_heading(t("report.top_critical_issues"), level=2)
-            ti_heading.paragraph_format.space_before = Pt(8)
-            for idx, ti in enumerate(top_issues, 1):
-                ti_para = doc.add_paragraph()
-                ti_para.paragraph_format.space_before = Pt(4)
-                ti_para.paragraph_format.space_after = Pt(4)
-                run = ti_para.add_run(f"{idx}. {ti['message']}")
-                self._docx_set_font(run, size_pt=10, bold=True, color_rgb=(31, 41, 55))
-                if ti['details']:
-                    detail_text = ti['details'][:150]
-                    run = ti_para.add_run(f" — {detail_text}")
-                    self._docx_set_font(run, size_pt=10, color_rgb=(75, 85, 99))
-
-        # Verdict
-        error_categories = [s["title"] for s in docx_sections if s["severity"] == SeverityLevel.ERROR]
-        error_count = len(error_categories)
-        cat_list = ", ".join(error_categories[:3]) if error_categories else ""
-        if score >= 70:
-            verdict_text = t("report.verdict_good", categories=cat_list, count=error_count)
-        elif score >= 40:
-            verdict_text = t("report.verdict_average", categories=cat_list, count=error_count)
-        else:
-            verdict_text = t("report.verdict_poor", categories=cat_list, count=error_count)
-
-        verdict_para = doc.add_paragraph()
-        verdict_para.paragraph_format.space_before = Pt(16)
-        run = verdict_para.add_run(verdict_text)
-        self._docx_set_font(run, size_pt=10, color_rgb=(55, 65, 81))
-
-        doc.add_page_break()
+        # =============================================
+        # HOMEPAGE SCREENSHOT
+        # =============================================
+        if audit.homepage_screenshot:
+            import base64 as b64
+            from io import BytesIO
+            hp_title = t_labels.get("homepage_screenshot_title", "Homepage")
+            hp_heading = doc.add_heading(hp_title, level=1)
+            hp_heading.paragraph_format.space_after = Pt(12)
+            try:
+                img_bytes = b64.b64decode(audit.homepage_screenshot)
+                img_stream = BytesIO(img_bytes)
+                doc.add_picture(img_stream, width=Inches(6.0))
+            except Exception as e:
+                logger.warning(f"Failed to add homepage screenshot to DOCX: {e}")
+            doc.add_paragraph()
 
         # =============================================
-        # PAGE 3: CATEGORY OVERVIEW
+        # CATEGORY OVERVIEW
         # =============================================
         cat_heading = doc.add_heading(t("report.category_overview"), level=1)
         cat_heading.paragraph_format.space_after = Pt(12)
@@ -1707,26 +1670,11 @@ class ReportGenerator:
             run = cell.paragraphs[0].add_run(str(warns))
             self._docx_set_font(run, size_pt=9, bold=warns > 0, color_rgb=(245, 158, 11) if warns > 0 else (156, 163, 175))
 
-        doc.add_page_break()
+        doc.add_paragraph()
 
         # =============================================
-        # PAGE 4+: DETAILED FINDINGS
+        # DETAILED FINDINGS
         # =============================================
-
-        # Homepage Screenshot
-        if audit.homepage_screenshot:
-            import base64 as b64
-            from io import BytesIO
-            hp_title = t_labels.get("homepage_screenshot_title", "Homepage")
-            hp_heading = doc.add_heading(hp_title, level=1)
-            hp_heading.paragraph_format.space_after = Pt(12)
-            try:
-                img_bytes = b64.b64decode(audit.homepage_screenshot)
-                img_stream = BytesIO(img_bytes)
-                doc.add_picture(img_stream, width=Inches(6.0))
-            except Exception as e:
-                logger.warning(f"Failed to add homepage screenshot to DOCX: {e}")
-            doc.add_paragraph()
 
         # --- Results Sections ---
         section_order = [

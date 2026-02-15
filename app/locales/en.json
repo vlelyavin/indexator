@@ -146,6 +146,7 @@
     "overall_score": "Overall Score",
     "top_critical_issues": "Top Critical Issues",
     "category_overview": "Category Overview",
+    "category_overview_description": "Summary of all analyzed categories sorted by severity.",
     "category": "Category",
     "status": "Status",
     "critical_count": "Critical",

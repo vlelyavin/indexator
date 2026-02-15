@@ -146,6 +146,7 @@
     "overall_score": "Общая оценка",
     "top_critical_issues": "Основные критические проблемы",
     "category_overview": "Обзор категорий",
+    "category_overview_description": "Сводка всех проанализированных категорий, отсортированных по уровню серьёзности.",
     "category": "Категория",
     "status": "Статус",
     "critical_count": "Критические",

@@ -299,7 +299,7 @@ class SpeedAnalyzer(BaseAnalyzer):
                     from ..http_client import get_session
 
                     session = await get_session()
-                    timeout = aiohttp.ClientTimeout(total=60)
+                    timeout = aiohttp.ClientTimeout(total=90)
 
                     async with session.get(base_api_url, params=params, timeout=timeout) as response:
                             if response.status != 200:
@@ -408,7 +408,7 @@ class SpeedAnalyzer(BaseAnalyzer):
                     errors.append(error_msg)
                     return None
                 except asyncio.TimeoutError:
-                    error_msg = f"{strategy}: Timeout (60s exceeded)"
+                    error_msg = f"{strategy}: Timeout (90s exceeded)"
                     logger.error(f"PageSpeed API timeout for {strategy} (60s exceeded)")
                     if attempt < max_retries - 1:
                         await asyncio.sleep((attempt + 1) * 3)

@@ -611,7 +611,7 @@ async def run_audit(audit_id: str, request: AuditRequest):
             speed_task = asyncio.create_task(
                 asyncio.wait_for(
                     speed_analyzer.analyze({}, str(request.url)),
-                    timeout=settings.ANALYZER_TIMEOUT
+                    timeout=180  # 3 min — PageSpeed API is slow, needs retries for both mobile & desktop
                 )
             )
 
@@ -792,7 +792,7 @@ async def run_audit(audit_id: str, request: AuditRequest):
                     analyzer_name=t("analyzers.speed.name", progress_lang),
                 ))
             except asyncio.TimeoutError:
-                logger.error(f"Speed Analyzer timed out after {settings.ANALYZER_TIMEOUT}s")
+                logger.error(f"Speed Analyzer timed out after 180s")
                 failed_analyzers.append("speed")
                 results["speed"] = AnalyzerResult(
                     name="speed",

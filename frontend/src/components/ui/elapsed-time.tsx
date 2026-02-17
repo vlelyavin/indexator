@@ -14,13 +14,7 @@ function formatElapsed(ms: number): string {
   return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`;
 }
 
-export function ElapsedTime({
-  startedAt,
-  stoppedAt,
-}: {
-  startedAt: string;
-  stoppedAt?: string | null;
-}) {
+export function ElapsedTime({ startedAt, stoppedAt }: { startedAt: string; stoppedAt?: string | null }) {
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -35,8 +29,6 @@ export function ElapsedTime({
   const elapsed = end - start;
 
   return (
-    <span className="shrink-0 text-xs tabular-nums text-gray-400 dark:text-gray-500">
-      {formatElapsed(elapsed)}
-    </span>
+    <span className="shrink-0 text-xs tabular-nums text-gray-400 dark:text-gray-500">{formatElapsed(elapsed)}</span>
   );
 }

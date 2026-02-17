@@ -96,12 +96,13 @@ class ScreenshotCapture:
     ]
 
     async def capture_pagespeed_both(self, url: str) -> Tuple[Optional[str], Optional[str]]:
-        """Capture both mobile and desktop PageSpeed screenshots in a single browser session."""
+        """Capture both mobile and desktop PageSpeed screenshots in parallel."""
         mobile_b64 = None
         desktop_b64 = None
 
         try:
             from playwright.async_api import async_playwright
+            import asyncio
 
             mobile_url = f"https://pagespeed.web.dev/analysis?url={quote(url, safe='')}"
             desktop_url = f"https://pagespeed.web.dev/analysis?url={quote(url, safe='')}&form_factor=desktop"
@@ -113,19 +114,18 @@ class ScreenshotCapture:
                     args=self._BROWSER_ARGS,
                 )
                 try:
-                    # --- Mobile screenshot ---
-                    mobile_b64 = await self._capture_pagespeed_page(
-                        browser, mobile_url, f"pagespeed_mobile_{domain_slug}.png",
+                    # Run both screenshots in parallel (separate contexts, same browser)
+                    mobile_task = asyncio.create_task(
+                        self._capture_pagespeed_page(
+                            browser, mobile_url, f"pagespeed_mobile_{domain_slug}.png",
+                        )
                     )
-
-                    # Delay between requests
-                    import asyncio
-                    await asyncio.sleep(3)
-
-                    # --- Desktop screenshot ---
-                    desktop_b64 = await self._capture_pagespeed_page(
-                        browser, desktop_url, f"pagespeed_desktop_{domain_slug}.png",
+                    desktop_task = asyncio.create_task(
+                        self._capture_pagespeed_page(
+                            browser, desktop_url, f"pagespeed_desktop_{domain_slug}.png",
+                        )
                     )
+                    mobile_b64, desktop_b64 = await asyncio.gather(mobile_task, desktop_task)
                 finally:
                     await browser.close()
 
@@ -151,7 +151,7 @@ class ScreenshotCapture:
 
             try:
                 logger.info(f"Navigating to {pagespeed_url}")
-                await page.goto(pagespeed_url, wait_until="commit", timeout=120000)
+                await page.goto(pagespeed_url, wait_until="commit", timeout=45000)
 
                 # Dismiss Google cookie consent banner if present
                 try:
@@ -169,12 +169,12 @@ class ScreenshotCapture:
                 try:
                     await page.wait_for_selector(
                         ".lh-gauge__percentage, .lh-exp-gauge__percentage",
-                        timeout=90000,
+                        timeout=30000,
                     )
-                    await page.wait_for_timeout(3000)
+                    await page.wait_for_timeout(1500)
                 except Exception:
-                    logger.info("Score gauge not found, waiting extra 10s...")
-                    await page.wait_for_timeout(10000)
+                    logger.info("Score gauge not found, waiting extra 5s...")
+                    await page.wait_for_timeout(5000)
 
                 screenshot_bytes = await page.screenshot(full_page=False, type="png")
 

@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import { Globe, Play, ChevronDown, ChevronUp } from "lucide-react";
 import { ANALYZER_NAMES, ANALYZER_LABELS } from "@/types/audit";
 import { cn } from "@/lib/utils";
+
+const REAL_ANALYZER_NAMES = ANALYZER_NAMES.filter((n) => n !== "speed_screenshots");
 
 export default function NewAuditPage() {
   const t = useTranslations("audit");
@@ -15,7 +17,7 @@ export default function NewAuditPage() {
   const { data: session } = useSession();
 
   const [url, setUrl] = useState("");
-  const [selectedAnalyzers, setSelectedAnalyzers] = useState<string[]>([...ANALYZER_NAMES]);
+  const [selectedAnalyzers, setSelectedAnalyzers] = useState<string[]>([...REAL_ANALYZER_NAMES]);
   const [showAnalyzers, setShowAnalyzers] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -48,6 +50,12 @@ export default function NewAuditPage() {
     );
   }
 
+  const realSelected = useMemo(
+    () => selectedAnalyzers.filter((a) => a !== "speed_screenshots"),
+    [selectedAnalyzers]
+  );
+  const includeScreenshots = selectedAnalyzers.includes("speed_screenshots");
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -61,8 +69,9 @@ export default function NewAuditPage() {
           url,
           language: "en",
           progressLanguage: locale,
-          analyzers: selectedAnalyzers.length === ANALYZER_NAMES.length ? null : selectedAnalyzers,
+          analyzers: realSelected.length === REAL_ANALYZER_NAMES.length ? null : realSelected,
           maxPages,
+          includeScreenshots,
         }),
       });
 
@@ -148,7 +157,7 @@ export default function NewAuditPage() {
               className="flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               <span>
-                {t("analyzers")} ({selectedAnalyzers.length}/{ANALYZER_NAMES.length})
+                {t("analyzers")} ({realSelected.length}/{REAL_ANALYZER_NAMES.length})
               </span>
               {showAnalyzers ? (
                 <ChevronUp className="h-4 w-4" />
@@ -162,7 +171,12 @@ export default function NewAuditPage() {
                 <div className="mb-2 flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setSelectedAnalyzers([...ANALYZER_NAMES])}
+                    onClick={() =>
+                      setSelectedAnalyzers((prev) => {
+                        const extras = prev.filter((a) => !REAL_ANALYZER_NAMES.includes(a as typeof REAL_ANALYZER_NAMES[number]));
+                        return [...REAL_ANALYZER_NAMES, ...extras];
+                      })
+                    }
                     className="text-xs text-gray-900 underline dark:text-white"
                   >
                     {t("selectAll")}
@@ -177,7 +191,7 @@ export default function NewAuditPage() {
                   </button>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5">
-                  {ANALYZER_NAMES.map((name) => (
+                  {REAL_ANALYZER_NAMES.map((name) => (
                     <label
                       key={name}
                       className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
@@ -194,6 +208,24 @@ export default function NewAuditPage() {
                     </label>
                   ))}
                 </div>
+
+                {/* PageSpeed Screenshots option */}
+                <div className="mt-3 border-t pt-3 dark:border-gray-700">
+                  <label className="flex items-center gap-2 rounded px-2 py-1 text-sm hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={includeScreenshots}
+                      onChange={() => toggleAnalyzer("speed_screenshots")}
+                      className="rounded border-gray-300 text-gray-900 focus:ring-gray-500 dark:border-gray-600 dark:text-white dark:focus:ring-white"
+                    />
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {ANALYZER_LABELS["speed_screenshots"]}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {t("screenshotsHint")}
+                    </span>
+                  </label>
+                </div>
               </div>
             )}
           </div>
@@ -201,7 +233,7 @@ export default function NewAuditPage() {
 
         <button
           type="submit"
-          disabled={loading || !url || selectedAnalyzers.length === 0}
+          disabled={loading || !url || realSelected.length === 0}
           className="flex w-full items-center justify-center gap-2 rounded-lg bg-gray-900 text-white hover:bg-gray-800 px-4 py-3 text-sm font-medium dark:bg-white dark:text-black dark:hover:bg-gray-200 disabled:opacity-50 transition-colors"
         >
           <Play className="h-4 w-4" />

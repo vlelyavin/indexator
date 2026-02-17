@@ -128,6 +128,7 @@ export const ANALYZER_NAMES = [
   "hreflang",
   "duplicates",
   "redirects",
+  "speed_screenshots",
 ] as const;
 
 export type AnalyzerName = (typeof ANALYZER_NAMES)[number];
@@ -155,6 +156,7 @@ export const ANALYZER_LABELS: Record<AnalyzerName, string> = {
   hreflang: "Hreflang",
   duplicates: "Duplicates",
   redirects: "Redirects",
+  speed_screenshots: "PageSpeed Screenshots",
 };
 
 /** Severity badge colors */

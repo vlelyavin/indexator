@@ -160,7 +160,7 @@
     "primaryColor": "Основний колір",
     "accentColor": "Акцентний колір",
     "preview": "Попередній перегляд",
-    "proRequired": "Потрібен план Pro або Agency",
+    "proRequired": "Потрібен план Agency",
     "brandingSaved": "Налаштування брендингу збережено",
     "errorSaving": "Помилка збереження",
     "logoUploaded": "Логотип успішно завантажено",
@@ -195,7 +195,12 @@
     "perMonth": "/місяць",
     "noBilling": "Зміна плану відбувається миттєво. Оплата поки не підключена.",
     "planUpdated": "План успішно оновлено!",
-    "updateFailed": "Не вдалося оновити план"
+    "updateFailed": "Не вдалося оновити план",
+    "unlimitedAudits": "Необмежена кількість аудитів/місяць",
+    "pdfOnly": "Експорт лише у PDF",
+    "fullExports": "Експорт PDF, HTML та DOCX",
+    "watermarkIncluded": "Водяний знак у звітах",
+    "noWatermark": "Без водяного знака у звітах"
   },
   "analyzer_content": {
     "cms": {

@@ -14,11 +14,12 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
+import { useSession } from "next-auth/react";
 import { AnalyzerSection } from "./analyzer-section";
 import { ExportDialog } from "@/components/ui/export-dialog";
 import { cn } from "@/lib/utils";
-import type { AuditResults, SeverityLevel, AnalyzerResult } from "@/types/audit";
-import { SEVERITY_COLORS } from "@/types/audit";
+import { getPlanCapabilities } from "@/lib/plan-capabilities";
+import type { AuditResults, SeverityLevel } from "@/types/audit";
 
 interface AuditResultsViewProps {
   results: AuditResults;
@@ -32,6 +33,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations("audit");
+  const { data: session } = useSession();
   const [filter, setFilter] = useState<FilterMode>("all");
   const [search, setSearch] = useState("");
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
@@ -43,6 +45,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
   const passedChecks = (meta.passed_checks as number) || 0;
   const warnings = (meta.warnings as number) || 0;
   const criticalIssues = (meta.critical_issues as number) || 0;
+  const planCapabilities = getPlanCapabilities(session?.user?.planId);
 
   // Sort analyzers: errors first, then warnings, then success, then info
   const severityOrder: Record<SeverityLevel, number> = {
@@ -233,6 +236,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
             onExport={handleExport}
             loading={exportingFormat !== null}
             defaultLang={locale}
+            formatOptions={planCapabilities.allowedExportFormats}
           />
         </div>
 

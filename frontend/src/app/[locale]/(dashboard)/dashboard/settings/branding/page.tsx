@@ -20,7 +20,7 @@ export default function BrandingPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
 
-  const isPro = session?.user?.planId === "pro" || session?.user?.planId === "agency";
+  const isAgency = session?.user?.planId === "agency";
 
   // Reset image error state when logoUrl changes (e.g., after loading from API)
   useEffect(() => {
@@ -42,8 +42,8 @@ export default function BrandingPage() {
         }
       } catch { /* ignore */ }
     }
-    if (isPro) load();
-  }, [isPro]);
+    if (isAgency) load();
+  }, [isAgency]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -103,7 +103,7 @@ export default function BrandingPage() {
         setUploadError(data.error || "Upload failed");
         setPreviewUrl(null); // Clear preview on error
       }
-    } catch (error) {
+    } catch {
       setUploadError(t("networkError"));
       setPreviewUrl(null);
     } finally {
@@ -111,7 +111,7 @@ export default function BrandingPage() {
     }
   }
 
-  if (!isPro) {
+  if (!isAgency) {
     return (
       <div className="mx-auto max-w-2xl py-12 text-center">
         <Lock className="mx-auto mb-4 h-12 w-12 text-gray-300 dark:text-gray-600" />

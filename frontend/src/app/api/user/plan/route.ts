@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getPlanCapabilities } from "@/lib/plan-capabilities";
 
 export async function GET() {
   const session = await auth();
@@ -24,6 +25,8 @@ export async function GET() {
       maxPages: user.plan.maxPages,
       auditsPerMonth: user.plan.auditsPerMonth,
       whiteLabel: user.plan.whiteLabel,
+      price: user.plan.price,
+      ...getPlanCapabilities(user.plan.id),
     },
   });
 }

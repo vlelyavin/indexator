@@ -3,12 +3,15 @@
 import copy
 import logging
 from datetime import datetime
+from html import unescape
 from pathlib import Path
+from urllib.request import Request, urlopen
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
 
 import re
+import unicodedata
 from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup, escape
 
@@ -779,7 +782,7 @@ class ReportGenerator:
 
         return str(report_path)
 
-    async def generate_pdf(self, audit: AuditResult, brand: dict | None = None) -> str:
+    async def generate_pdf(self, audit: AuditResult, brand: dict | None = None, show_watermark: bool = True) -> str:
         """Generate PDF report and return file path."""
         try:
             from weasyprint import HTML, CSS
@@ -838,8 +841,17 @@ class ReportGenerator:
         pdf_filename = f"audit_{audit.id}.pdf"
         pdf_path = Path(settings.REPORTS_DIR) / pdf_filename
 
+        watermark_css = """
+                @bottom-right {
+                    content: "seo-audit.online";
+                    font-size: 8pt;
+                    color: #D1D5DB;
+                    font-family: Inter, sans-serif;
+                }
+        """ if show_watermark else ""
+
         # Print-specific CSS
-        print_css = CSS(string="""
+        print_css_string = """
             @page {
                 size: A4;
                 margin: 1.5cm 1.5cm 2cm 1.5cm;
@@ -849,12 +861,7 @@ class ReportGenerator:
                     color: #9CA3AF;
                     font-family: Inter, sans-serif;
                 }
-                @bottom-right {
-                    content: "seo-audit.online";
-                    font-size: 8pt;
-                    color: #D1D5DB;
-                    font-family: Inter, sans-serif;
-                }
+                __WATERMARK__
             }
             .sidebar {
                 display: none !important;
@@ -903,10 +910,10 @@ class ReportGenerator:
                 align-items: center !important;
             }
             .issue {
-                margin-bottom: 6px !important;
+                margin-bottom: 8px !important;
             }
             .theory-block {
-                margin-bottom: 8px !important;
+                margin-bottom: 10px !important;
             }
             /* Allow ALL content to split across pages — no gaps */
             .section, .section-header, .issue, .issue-header,
@@ -1024,7 +1031,9 @@ class ReportGenerator:
                 max-width: 300px !important;
                 word-break: normal !important;
             }
-        """)
+        """
+        print_css_string = print_css_string.replace("__WATERMARK__", watermark_css)
+        print_css = CSS(string=print_css_string)
 
         # Force all details elements to be open for PDF
         html_content = html_content.replace('<details class="theory-block">', '<details class="theory-block" open>')
@@ -1195,6 +1204,38 @@ class ReportGenerator:
         hyperlink.append(new_run)
         paragraph._p.append(hyperlink)
 
+    @staticmethod
+    def _strip_docx_decorations(text: str) -> str:
+        """Remove decorative symbol/emoji prefixes from DOCX text labels."""
+        if not text:
+            return text
+        index = 0
+        for ch in text:
+            category = unicodedata.category(ch)
+            if ch.isspace():
+                index += 1
+                continue
+            if category[0] in ("L", "N"):
+                break
+            index += 1
+        return text[index:].lstrip() or text
+
+    @staticmethod
+    def _fetch_logo_bytes(logo_url: str):
+        """Fetch logo bytes for DOCX rendering; returns None on failure."""
+        if not logo_url:
+            return None
+        try:
+            req = Request(logo_url, headers={"User-Agent": "seo-audit-docx"})
+            with urlopen(req, timeout=6) as response:
+                content_type = (response.headers.get("Content-Type") or "").lower()
+                if not content_type.startswith("image/"):
+                    return None
+                return response.read()
+        except Exception as exc:
+            logger.warning(f"Failed to fetch branding logo for DOCX: {exc}")
+            return None
+
     def _docx_add_formatted_cell(self, paragraph, value, font_size_pt: int = 9):
         """Add formatted text to a table cell: colored ✓/✗/⚠ icons and clickable URLs."""
         import re as _re
@@ -1263,6 +1304,7 @@ class ReportGenerator:
 
         if not theory_html:
             return
+        theory_html = unescape(theory_html)
 
         # Create a single-cell table for gray background
         table = doc.add_table(rows=1, cols=1)
@@ -1270,6 +1312,7 @@ class ReportGenerator:
         cell = table.rows[0].cells[0]
         self._docx_remove_cell_borders(cell)
         self._docx_set_cell_shading(cell, 'F0F4F8')
+        self._docx_set_cell_margins(cell, top=80, right=120, bottom=100, left=120)
 
         # Clear default paragraph
         cell.text = ''
@@ -1327,16 +1370,9 @@ class ReportGenerator:
             SeverityLevel.SUCCESS: (16, 150, 100),
             SeverityLevel.INFO: (59, 130, 246),
         }
-        severity_icons = {
-            SeverityLevel.SUCCESS: "✓",
-            SeverityLevel.WARNING: "⚠",
-            SeverityLevel.ERROR: "✗",
-            SeverityLevel.INFO: "ℹ",
-        }
 
         bg_color = severity_colors.get(issue.severity, 'F3F4F6')
         text_color = severity_text_colors.get(issue.severity, (31, 41, 55))
-        icon = severity_icons.get(issue.severity, "")
 
         # Create single-cell table for the card
         table = doc.add_table(rows=1, cols=1)
@@ -1344,28 +1380,29 @@ class ReportGenerator:
         cell = table.rows[0].cells[0]
         self._docx_remove_cell_borders(cell)
         self._docx_set_cell_shading(cell, bg_color)
+        self._docx_set_cell_margins(cell, top=120, right=140, bottom=140, left=140)
 
         # Issue message (bold, colored)
         cell.text = ''
         p = cell.paragraphs[0]
-        p.paragraph_format.space_before = Pt(4)
+        p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(4)
-        run = p.add_run(f"{icon} {issue.message}")
+        run = p.add_run(issue.message)
         self._docx_set_font(run, size_pt=10, bold=True, color_rgb=text_color)
 
         # Details
         if issue.details:
             p = cell.add_paragraph()
-            p.paragraph_format.space_before = Pt(2)
-            p.paragraph_format.space_after = Pt(2)
+            p.paragraph_format.space_before = Pt(0)
+            p.paragraph_format.space_after = Pt(3)
             run = p.add_run(issue.details)
             self._docx_set_font(run, size_pt=9, color_rgb=(55, 65, 81))
 
         # Recommendation
         if issue.recommendation:
             p = cell.add_paragraph()
-            p.paragraph_format.space_before = Pt(4)
-            p.paragraph_format.space_after = Pt(2)
+            p.paragraph_format.space_before = Pt(1)
+            p.paragraph_format.space_after = Pt(3)
             rec_label = t_labels.get("recommendation", "Рекомендація")
             run = p.add_run(f"{rec_label}: ")
             self._docx_set_font(run, size_pt=9, bold=True, color_rgb=(55, 65, 81))
@@ -1376,22 +1413,23 @@ class ReportGenerator:
         if issue.affected_urls:
             examples_label = t_labels.get("examples", "Приклади")
             p = cell.add_paragraph()
-            p.paragraph_format.space_before = Pt(4)
+            p.paragraph_format.space_before = Pt(1)
+            p.paragraph_format.space_after = Pt(1)
             run = p.add_run(f"{examples_label}:")
             self._docx_set_font(run, size_pt=8, bold=True, color_rgb=(75, 85, 99))
             for url in issue.affected_urls:
                 p = cell.add_paragraph()
                 p.paragraph_format.space_before = Pt(0)
-                p.paragraph_format.space_after = Pt(0)
+                p.paragraph_format.space_after = Pt(1)
                 run = p.add_run("  \u2022 ")
                 self._docx_set_font(run, size_pt=8, color_rgb=(55, 65, 81))
                 self._docx_add_hyperlink(p, url, url, font_size_pt=8, color_rgb=(55, 65, 81))
 
-    async def generate_docx(self, audit: AuditResult, brand: dict | None = None) -> str:
+    async def generate_docx(self, audit: AuditResult, brand: dict | None = None, show_watermark: bool = True) -> str:
         """Generate styled DOCX report and return file path."""
         try:
             from docx import Document
-            from docx.shared import Inches, Pt, RGBColor, Cm
+            from docx.shared import Inches, Pt, RGBColor
             from docx.enum.text import WD_ALIGN_PARAGRAPH
             from docx.oxml.ns import qn
         except ImportError:
@@ -1456,15 +1494,32 @@ class ReportGenerator:
             if len(hex_val) == 6:
                 brand_primary_hex = hex_val.upper()
                 brand_primary_rgb = (int(hex_val[0:2], 16), int(hex_val[2:4], 16), int(hex_val[4:6], 16))
+        brand_company = (brand or {}).get("company_name")
+        brand_logo_url = (brand or {}).get("logo_url")
 
         # =============================================
         # HEADER
         # =============================================
+        if brand_logo_url:
+            logo_bytes = self._fetch_logo_bytes(brand_logo_url)
+            if logo_bytes:
+                try:
+                    from io import BytesIO
+                    doc.add_picture(BytesIO(logo_bytes), width=Inches(1.5))
+                except Exception as exc:
+                    logger.warning(f"Failed to embed branding logo in DOCX: {exc}")
+
+        if brand_company:
+            brand_para = doc.add_paragraph()
+            brand_para.paragraph_format.space_after = Pt(2)
+            run = brand_para.add_run(brand_company)
+            self._docx_set_font(run, size_pt=9, bold=True, color_rgb=(75, 85, 99))
+
         # Title
         title_para = doc.add_paragraph()
         title_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
         title_para.paragraph_format.space_after = Pt(2)
-        run = title_para.add_run(t("report.express_title"))
+        run = title_para.add_run(self._strip_docx_decorations(t("report.express_title")))
         self._docx_set_font(run, size_pt=22, bold=True, color_rgb=(17, 24, 39))
 
         # Website
@@ -1530,6 +1585,7 @@ class ReportGenerator:
                 title = t(f"analyzers.{name}.name")
                 if title == f"analyzers.{name}.name":
                     title = result.display_name
+                title = self._strip_docx_decorations(title)
                 docx_sections.append({"id": name, "title": title, "severity": result.severity, "result": result})
 
         # =============================================
@@ -1538,7 +1594,7 @@ class ReportGenerator:
         if audit.homepage_screenshot:
             import base64 as b64
             from io import BytesIO
-            hp_title = t_labels.get("homepage_screenshot_title", "Homepage")
+            hp_title = self._strip_docx_decorations(t_labels.get("homepage_screenshot_title", "Homepage"))
             hp_heading = doc.add_heading(hp_title, level=1)
             hp_heading.paragraph_format.space_after = Pt(12)
             try:
@@ -1650,10 +1706,10 @@ class ReportGenerator:
         ]
 
         severity_badge_text = {
-            SeverityLevel.SUCCESS: ("✓", (16, 185, 129)),
-            SeverityLevel.WARNING: ("⚠", (245, 158, 11)),
-            SeverityLevel.ERROR: ("✗", (239, 68, 68)),
-            SeverityLevel.INFO: ("ℹ", brand_primary_rgb),
+            SeverityLevel.SUCCESS: (t("report.badge_ok"), (16, 185, 129)),
+            SeverityLevel.WARNING: (t("report.badge_warning"), (245, 158, 11)),
+            SeverityLevel.ERROR: (t("report.badge_error"), (239, 68, 68)),
+            SeverityLevel.INFO: (t("report.badge_info"), brand_primary_rgb),
         }
         section_index = 0
 
@@ -1672,6 +1728,7 @@ class ReportGenerator:
             section_title = t(f"analyzers.{name}.name")
             if section_title == f"analyzers.{name}.name":
                 section_title = result.display_name
+            section_title = self._strip_docx_decorations(section_title)
 
             # Section heading
             heading = doc.add_heading(f"{section_index}. {section_title}", level=1)
@@ -1680,10 +1737,10 @@ class ReportGenerator:
             heading.paragraph_format.space_after = Pt(4)
 
             # Add severity badge after heading
-            badge_text, badge_color = severity_badge_text.get(
-                result.severity, ("ℹ", (59, 130, 246))
+            badge_label, badge_color = severity_badge_text.get(
+                result.severity, (t("report.badge_info"), (59, 130, 246))
             )
-            run = heading.add_run(f"  [{badge_text}]")
+            run = heading.add_run(f"  ({badge_label})")
             self._docx_set_font(run, size_pt=12, bold=False, color_rgb=badge_color)
 
             # Summary
@@ -1710,11 +1767,11 @@ class ReportGenerator:
                     self._docx_add_issue_card(doc, issue, t_labels)
                     # Small spacing between cards
                     spacer = doc.add_paragraph()
-                    spacer.paragraph_format.space_before = Pt(2)
-                    spacer.paragraph_format.space_after = Pt(2)
+                    spacer.paragraph_format.space_before = Pt(3)
+                    spacer.paragraph_format.space_after = Pt(3)
             elif not result.tables:
                 p = doc.add_paragraph()
-                run = p.add_run(f"✓ {t_labels['no_issues']}")
+                run = p.add_run(t_labels['no_issues'])
                 self._docx_set_font(run, size_pt=10, color_rgb=(16, 185, 129))
 
             # Tables
@@ -1818,8 +1875,9 @@ class ReportGenerator:
         fld_char_end.set(qn('w:fldCharType'), 'end')
         run3._element.append(fld_char_end)
 
-        run4 = footer_para.add_run("    |    seo-audit.online")
-        self._docx_set_font(run4, size_pt=8, color_rgb=(209, 213, 219))
+        if show_watermark:
+            run4 = footer_para.add_run("    |    seo-audit.online")
+            self._docx_set_font(run4, size_pt=8, color_rgb=(209, 213, 219))
 
         # Save document
         docx_filename = f"audit_{audit.id}.docx"

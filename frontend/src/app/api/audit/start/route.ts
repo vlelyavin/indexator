@@ -71,7 +71,8 @@ export async function POST(req: Request) {
     },
   });
 
-  if (auditsThisMonth >= user.plan.auditsPerMonth) {
+  const hasMonthlyLimit = user.plan.id !== "agency";
+  if (hasMonthlyLimit && auditsThisMonth >= user.plan.auditsPerMonth) {
     return NextResponse.json(
       { error: "Monthly audit limit reached. Please upgrade your plan." },
       { status: 429 }

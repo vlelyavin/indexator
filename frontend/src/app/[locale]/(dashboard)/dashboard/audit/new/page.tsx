@@ -23,8 +23,8 @@ export default function NewAuditPage() {
   const [error, setError] = useState("");
 
   // Custom page limit state
-  const [maxPages, setMaxPages] = useState<number>(50); // Default to Free plan limit
-  const [planLimit, setPlanLimit] = useState<number>(50); // User's plan max limit
+  const [maxPages, setMaxPages] = useState<number>(10); // Default to Free plan limit
+  const [planLimit, setPlanLimit] = useState<number>(10); // User's plan max limit
 
   // Fetch user's plan on mount
   useEffect(() => {
@@ -33,7 +33,7 @@ export default function NewAuditPage() {
         const res = await fetch("/api/user/plan");
         if (res.ok) {
           const data = await res.json();
-          const limit = data.plan.maxPages || 50;
+          const limit = data.plan.maxPages || 10;
           setPlanLimit(limit);
           setMaxPages(limit); // Set default to plan max
         }

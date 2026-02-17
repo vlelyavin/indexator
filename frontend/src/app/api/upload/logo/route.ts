@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 
@@ -9,6 +10,15 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { planId: true },
+  });
+
+  if (!user || user.planId !== "agency") {
+    return NextResponse.json({ error: "Agency plan required" }, { status: 403 });
   }
 
   const formData = await req.formData();

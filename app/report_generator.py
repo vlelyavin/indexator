@@ -667,6 +667,25 @@ class ReportGenerator:
 
         return Markup(text)
 
+    @staticmethod
+    def _build_report_heading(t, brand: dict | None = None) -> str:
+        """Return localized top title with optional company name."""
+        company_name = ((brand or {}).get("company_name") or "").strip()
+        if company_name:
+            titled = t("report.website_seo_audit_by", company=company_name)
+            if titled != "report.website_seo_audit_by":
+                return titled
+            return f"Website SEO audit by {company_name}"
+
+        plain = t("report.website_seo_audit")
+        if plain != "report.website_seo_audit":
+            return plain
+
+        legacy = t("report.express_title")
+        if legacy != "report.express_title":
+            return legacy
+        return "Website SEO audit"
+
     async def generate(self, audit: AuditResult, brand: dict | None = None) -> str:
         """Generate HTML report and return file path."""
         template = self.env.get_template("report.html")
@@ -760,6 +779,14 @@ class ReportGenerator:
             "warnings_label": t("report.warning_count"),
         }
 
+        report_title_display = self._build_report_heading(t, brand)
+        template_brand = {}
+        if brand:
+            if brand.get("logo_url"):
+                template_brand["logo_url"] = brand["logo_url"]
+            if brand.get("company_name"):
+                template_brand["company_name"] = brand["company_name"]
+
         # Render template
         html = template.render(
             audit=audit,
@@ -770,7 +797,8 @@ class ReportGenerator:
             SeverityLevel=SeverityLevel,
             t=translations,
             lang=lang,
-            brand=brand or {},
+            brand=template_brand,
+            report_title_display=report_title_display,
         )
 
         # Save report
@@ -819,8 +847,10 @@ class ReportGenerator:
 
         # --- Replace summary header with cover-style content for PDF ---
         generated_at = datetime.now().strftime("%d.%m.%Y")
+        report_title_display = self._build_report_heading(t, brand)
+        safe_report_title = escape(report_title_display)
         cover_header = f'''
-            <h1 class="pdf-cover-title">Express SEO audit</h1>
+            <h1 class="pdf-cover-title">{safe_report_title}</h1>
             <div class="pdf-cover-url">Website: {domain}</div>
             <div class="pdf-cover-meta">{t("report.pages_analyzed", count=audit.pages_crawled)} · {generated_at}</div>
         '''
@@ -1486,15 +1516,8 @@ class ReportGenerator:
                 h_style.font.color.rgb = RGBColor(31, 41, 55)
                 _set_style_font(h_style)
 
-        # Resolve brand primary color for DOCX accents (default: blue #3B82F6)
+        # Keep a fixed accent color for DOCX summaries.
         brand_primary_hex = '3B82F6'
-        brand_primary_rgb = (59, 130, 246)
-        if brand and brand.get('primary_color'):
-            hex_val = brand['primary_color'].lstrip('#')
-            if len(hex_val) == 6:
-                brand_primary_hex = hex_val.upper()
-                brand_primary_rgb = (int(hex_val[0:2], 16), int(hex_val[2:4], 16), int(hex_val[4:6], 16))
-        brand_company = (brand or {}).get("company_name")
         brand_logo_url = (brand or {}).get("logo_url")
 
         # =============================================
@@ -1509,17 +1532,12 @@ class ReportGenerator:
                 except Exception as exc:
                     logger.warning(f"Failed to embed branding logo in DOCX: {exc}")
 
-        if brand_company:
-            brand_para = doc.add_paragraph()
-            brand_para.paragraph_format.space_after = Pt(2)
-            run = brand_para.add_run(brand_company)
-            self._docx_set_font(run, size_pt=9, bold=True, color_rgb=(75, 85, 99))
-
         # Title
+        report_title_display = self._build_report_heading(t, brand)
         title_para = doc.add_paragraph()
         title_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
         title_para.paragraph_format.space_after = Pt(2)
-        run = title_para.add_run(self._strip_docx_decorations(t("report.express_title")))
+        run = title_para.add_run(self._strip_docx_decorations(report_title_display))
         self._docx_set_font(run, size_pt=22, bold=True, color_rgb=(17, 24, 39))
 
         # Website
@@ -1709,7 +1727,7 @@ class ReportGenerator:
             SeverityLevel.SUCCESS: (t("report.badge_ok"), (16, 185, 129)),
             SeverityLevel.WARNING: (t("report.badge_warning"), (245, 158, 11)),
             SeverityLevel.ERROR: (t("report.badge_error"), (239, 68, 68)),
-            SeverityLevel.INFO: (t("report.badge_info"), brand_primary_rgb),
+            SeverityLevel.INFO: (t("report.badge_info"), (59, 130, 246)),
         }
         section_index = 0
 

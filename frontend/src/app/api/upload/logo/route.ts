@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
+import { getUploadsDir } from "@/lib/logo-storage";
 
 const ALLOWED_EXTENSIONS = new Set(["jpg", "jpeg", "png", "gif", "webp", "svg"]);
 
@@ -51,11 +52,11 @@ export async function POST(req: Request) {
   const buffer = Buffer.from(bytes);
 
   const filename = `logo_${session.user.id}.${ext}`;
-  const uploadDir = join(process.cwd(), "public", "uploads");
+  const uploadDir = getUploadsDir();
   await mkdir(uploadDir, { recursive: true });
   const filepath = join(uploadDir, filename);
 
   await writeFile(filepath, buffer);
 
-  return NextResponse.json({ url: `/uploads/${filename}` });
+  return NextResponse.json({ url: `/api/upload/logo/${filename}` });
 }

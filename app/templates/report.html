@@ -75,15 +75,6 @@
             object-fit: contain;
         }
 
-        .sidebar-header .brand-company {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--color-text-light);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 4px;
-        }
-
         .sidebar-nav {
             padding: 8px 0;
         }
@@ -407,15 +398,6 @@
             display: block;
         }
 
-        .report-brand-name {
-            color: var(--color-text-light);
-            font-size: 12px;
-            font-weight: 600;
-            letter-spacing: 0.4px;
-            text-transform: uppercase;
-            margin-bottom: 6px;
-        }
-
         /* Theory Block */
         .theory-block {
             margin-bottom: 14px;
@@ -519,18 +501,6 @@
             .summary-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
-    {% if brand and brand.primary_color %}
-    <style>
-        :root {
-            --color-info: {{ brand.primary_color }};
-            --color-info-bg: {{ brand.primary_color }}1a;
-        }
-        {% if brand.accent_color %}
-        .sidebar { border-right-color: {{ brand.accent_color }}; }
-        .sidebar-header { border-bottom: 2px solid {{ brand.accent_color }}; }
-        {% endif %}
-    </style>
-    {% endif %}
 </head>
 <body>
     <!-- Sidebar Navigation -->
@@ -538,11 +508,8 @@
         <div class="sidebar-header">
             {% if brand and brand.logo_url %}
             <div class="brand-logo-wrap">
-                <img src="{{ brand.logo_url }}" alt="Brand logo" class="brand-logo">
+                <img src="{{ brand.logo_url }}" alt="" class="brand-logo">
             </div>
-            {% endif %}
-            {% if brand and brand.company_name %}
-            <div class="brand-company">{{ brand.company_name }}</div>
             {% endif %}
             <h1>{{ t.report_title if t else 'SEO Audit' }}</h1>
             <div class="domain">{{ domain }}</div>
@@ -581,13 +548,10 @@
         <section id="summary">
             {% if brand and brand.logo_url %}
             <div class="report-brand-hero">
-                <img src="{{ brand.logo_url }}" alt="Brand logo">
+                <img src="{{ brand.logo_url }}" alt="">
             </div>
             {% endif %}
-            {% if brand and brand.company_name %}
-            <div class="report-brand-name">{{ brand.company_name }}</div>
-            {% endif %}
-            <h1 style="font-size: 24px; margin-bottom: 6px;">{{ t.express_title if t else 'Express SEO audit' }}</h1>
+            <h1 style="font-size: 24px; margin-bottom: 6px;">{{ report_title_display if report_title_display else (t.express_title if t else 'Website SEO audit') }}</h1>
             <p style="color: var(--color-text-light); margin-bottom: 4px; font-size: 13px;">Website: {{ domain }}</p>
             <p style="color: var(--color-text-light); margin-bottom: 24px; font-size: 13px;">{{ t.pages_analyzed if t else '{} pages analyzed'.format(audit.pages_crawled) }} · {{ generated_at }}</p>
 

@@ -2,10 +2,18 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { fastapiFetch } from "@/lib/api-client";
+import { access } from "fs/promises";
+import { constants as fsConstants } from "fs";
+import { join } from "path";
 import {
   getPlanCapabilities,
   type ExportFormat,
 } from "@/lib/plan-capabilities";
+import {
+  extractLogoFilenameFromUrl,
+  getUploadsDir,
+  toApiLogoPath,
+} from "@/lib/logo-storage";
 
 const SUPPORTED_FORMATS: ExportFormat[] = ["pdf", "html", "docx"];
 
@@ -61,15 +69,21 @@ export async function GET(
     });
     if (branding) {
       const origin = new URL(req.url).origin;
-      const logoUrl = branding.logoUrl
-        ? branding.logoUrl.startsWith("http://") || branding.logoUrl.startsWith("https://")
-          ? branding.logoUrl
-          : `${origin}${branding.logoUrl.startsWith("/") ? branding.logoUrl : `/${branding.logoUrl}`}`
-        : undefined;
+
+      let logoUrl: string | undefined;
+      const apiLogoPath = toApiLogoPath(branding.logoUrl);
+      const filename = extractLogoFilenameFromUrl(apiLogoPath);
+      if (apiLogoPath && filename) {
+        try {
+          await access(join(getUploadsDir(), filename), fsConstants.R_OK);
+          logoUrl = `${origin}${apiLogoPath}`;
+        } catch {
+          logoUrl = undefined;
+        }
+      }
+
       brand = {
         ...(branding.companyName ? { company_name: branding.companyName } : {}),
-        ...(branding.primaryColor ? { primary_color: branding.primaryColor } : {}),
-        ...(branding.accentColor ? { accent_color: branding.accentColor } : {}),
         ...(logoUrl ? { logo_url: logoUrl } : {}),
       };
       if (Object.keys(brand).length === 0) {
@@ -84,8 +98,6 @@ export async function GET(
   queryParams.set("show_watermark", String(capabilities.showWatermark));
   if (brand) {
     if (brand.company_name) queryParams.set("company_name", brand.company_name);
-    if (brand.primary_color) queryParams.set("primary_color", brand.primary_color);
-    if (brand.accent_color) queryParams.set("accent_color", brand.accent_color);
     if (brand.logo_url) queryParams.set("logo_url", brand.logo_url);
   }
 

@@ -6,10 +6,19 @@ import { useTranslations } from "next-intl";
 import { Save, Upload, Lock, ImageOff } from "lucide-react";
 
 function normalizeLogoUrl(url: string): string {
-  if (url.startsWith("/api/upload/logo/")) {
-    return url.replace("/api/upload/logo/", "/uploads/");
+  if (!url) return "";
+  try {
+    const pathname = new URL(url, "https://placeholder.local").pathname;
+    if (pathname.startsWith("/uploads/")) {
+      return `/api/upload/logo/${pathname.slice("/uploads/".length)}`;
+    }
+    if (pathname.startsWith("/api/upload/logo/")) {
+      return pathname;
+    }
+  } catch {
+    return "";
   }
-  return url;
+  return "";
 }
 
 export default function BrandingPage() {
@@ -17,8 +26,6 @@ export default function BrandingPage() {
   const tCommon = useTranslations("common");
   const { data: session } = useSession();
   const [companyName, setCompanyName] = useState("");
-  const [primaryColor, setPrimaryColor] = useState("#2563eb");
-  const [accentColor, setAccentColor] = useState("#7c3aed");
   const [logoUrl, setLogoUrl] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -26,16 +33,12 @@ export default function BrandingPage() {
   const [uploadError, setUploadError] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
-  const [logoFallbackTried, setLogoFallbackTried] = useState(false);
-  const [logoDisplayUrl, setLogoDisplayUrl] = useState("");
 
   const isAgency = session?.user?.planId === "agency";
 
   // Reset image error state when logoUrl changes (e.g., after loading from API)
   useEffect(() => {
     setImageError(false);
-    setLogoFallbackTried(false);
-    setLogoDisplayUrl(normalizeLogoUrl(logoUrl));
   }, [logoUrl]);
 
   useEffect(() => {
@@ -46,8 +49,6 @@ export default function BrandingPage() {
           const data = await res.json();
           if (data) {
             setCompanyName(data.companyName || "");
-            setPrimaryColor(data.primaryColor || "#2563eb");
-            setAccentColor(data.accentColor || "#7c3aed");
             setLogoUrl(normalizeLogoUrl(data.logoUrl || ""));
           }
         }
@@ -65,7 +66,7 @@ export default function BrandingPage() {
       const res = await fetch("/api/settings/branding", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyName, primaryColor, accentColor, logoUrl }),
+        body: JSON.stringify({ companyName, logoUrl }),
       });
 
       if (res.ok) {
@@ -108,6 +109,7 @@ export default function BrandingPage() {
       if (res.ok) {
         const data = await res.json();
         setLogoUrl(normalizeLogoUrl(data.url));
+        setPreviewUrl(null);
         setMessage(t("logoUploaded"));
       } else {
         const data = await res.json();
@@ -173,23 +175,11 @@ export default function BrandingPage() {
             {(previewUrl || logoUrl) && !imageError && (
               <div className="relative">
                 <img
-                  src={previewUrl || logoDisplayUrl || logoUrl}
+                  src={previewUrl || logoUrl}
                   alt="Logo"
                   className="h-16 w-16 rounded border object-contain dark:border-gray-700"
                   onError={() => {
-                    const originalLogo = normalizeLogoUrl(logoUrl);
-                    const canFallbackToUploads =
-                      !previewUrl &&
-                      !logoFallbackTried &&
-                      logoUrl.startsWith("/api/upload/logo/");
-
-                    if (canFallbackToUploads) {
-                      setLogoDisplayUrl(originalLogo.replace("/api/upload/logo/", "/uploads/"));
-                      setLogoFallbackTried(true);
-                      return;
-                    }
-
-                    console.error("Failed to load logo image:", previewUrl || logoDisplayUrl || logoUrl);
+                    console.error("Failed to load logo image:", previewUrl || logoUrl);
                     setImageError(true);
                   }}
                 />
@@ -227,48 +217,6 @@ export default function BrandingPage() {
           {uploadError && (
             <p className="mt-1 text-sm text-red-600 dark:text-red-400">{uploadError}</p>
           )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {t("primaryColor")}
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={primaryColor}
-                onChange={(e) => setPrimaryColor(e.target.value)}
-                className="h-9 w-12 cursor-pointer rounded border dark:border-gray-700"
-              />
-              <input
-                type="text"
-                value={primaryColor}
-                onChange={(e) => setPrimaryColor(e.target.value)}
-                className="flex-1 rounded-lg border px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              {t("accentColor")}
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={accentColor}
-                onChange={(e) => setAccentColor(e.target.value)}
-                className="h-9 w-12 cursor-pointer rounded border dark:border-gray-700"
-              />
-              <input
-                type="text"
-                value={accentColor}
-                onChange={(e) => setAccentColor(e.target.value)}
-                className="flex-1 rounded-lg border px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              />
-            </div>
-          </div>
         </div>
 
         <button

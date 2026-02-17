@@ -413,11 +413,9 @@ async def download_report(
         audit.language = lang
 
     brand = None
-    if any([company_name, primary_color, accent_color, logo_url]):
+    if company_name or logo_url:
         brand = {
             "company_name": company_name,
-            "primary_color": primary_color,
-            "accent_color": accent_color,
             "logo_url": logo_url,
         }
 
@@ -493,7 +491,16 @@ async def generate_report_from_data(request: Request):
     format_type = body.get("format", "html").lower()
     audit_data = body.get("audit")
     language_override = body.get("language")
-    brand = body.get("brand")
+    raw_brand = body.get("brand")
+    brand = None
+    if isinstance(raw_brand, dict):
+        company_name = raw_brand.get("company_name")
+        logo_url = raw_brand.get("logo_url")
+        if company_name or logo_url:
+            brand = {
+                "company_name": company_name,
+                "logo_url": logo_url,
+            }
     raw_show_watermark = body.get("show_watermark", True)
     if isinstance(raw_show_watermark, str):
         show_watermark = raw_show_watermark.strip().lower() in {"1", "true", "yes", "on"}

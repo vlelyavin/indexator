@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import { join } from "path";
+import { getUploadsDir } from "@/lib/logo-storage";
 
 const MIME_TYPES: Record<string, string> = {
   jpg: "image/jpeg",
@@ -28,7 +29,7 @@ export async function GET(
     return NextResponse.json({ error: "Unsupported format" }, { status: 400 });
   }
 
-  const filepath = join(process.cwd(), "public", "uploads", filename);
+  const filepath = join(getUploadsDir(), filename);
 
   try {
     const buffer = await readFile(filepath);

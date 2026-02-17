@@ -32,7 +32,7 @@ class SeverityLevel(str, Enum):
 class AuditRequest(BaseModel):
     """Request to start a new audit."""
     url: HttpUrl
-    include_screenshots: bool = True
+    include_screenshots: bool = False
     language: str = "en"  # Source language: en (English), uk (Ukrainian), ru (Russian)
     progress_language: Optional[str] = None  # UI locale for progress messages (defaults to language)
     analyzers: Optional[List[str]] = None  # None = all analyzers

@@ -70,6 +70,7 @@
     "analyzers": "Analyzers",
     "selectAll": "Select All",
     "deselectAll": "Deselect All",
+    "screenshotsHint": "(slower)",
     "maxPages": "Maximum Pages",
     "maxPagesHint": "Set how many pages to crawl (your plan allows up to {limit} pages)",
     "startAudit": "Start Audit",

@@ -616,7 +616,10 @@ async def run_audit(audit_id: str, request: AuditRequest):
             logger.info(f"[Audit {audit.id}] Starting Speed Analyzer early (parallel with crawl)")
             speed_task = asyncio.create_task(
                 asyncio.wait_for(
-                    speed_analyzer.analyze({}, str(request.url)),
+                    speed_analyzer.analyze(
+                        {}, str(request.url),
+                        include_screenshots=request.include_screenshots,
+                    ),
                     timeout=600  # 10 min — PageSpeed API is slow, needs retries for both mobile & desktop
                 )
             )

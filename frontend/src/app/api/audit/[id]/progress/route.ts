@@ -52,8 +52,9 @@ export async function GET(
 
     // Atomically update database when terminal state is reached
     if (data.status === "completed" || data.status === "failed") {
+      const failedMessage = data.error_message || data.message || "Audit failed";
       const updateData = data.status === "failed"
-        ? { status: "failed" as const, errorMessage: data.message || "Audit failed", completedAt: new Date() }
+        ? { status: "failed" as const, errorMessage: failedMessage, completedAt: new Date() }
         : { status: "completed" as const, completedAt: new Date() };
 
       const updated = await prisma.audit.updateMany({

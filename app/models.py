@@ -192,6 +192,11 @@ class ProgressEvent(BaseModel):
     stage: Optional[str] = None
     analyzer_name: Optional[str] = None  # Display name of currently running analyzer
     speed_testing: bool = False  # True while PageSpeed test is running in background
+    current_task_type: Optional[str] = None  # crawling | analyzing | speed | report | idle
+    speed_blocking: bool = False  # True when only Speed test remains before results
+    analyzers_total: int = 0
+    analyzers_completed: int = 0
+    analyzer_phase: Optional[str] = None  # running | completed
 
 
 class RobotsTxtData(BaseModel):

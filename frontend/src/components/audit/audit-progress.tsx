@@ -15,20 +15,31 @@ export function AuditProgressView({ progress }: AuditProgressViewProps) {
   const t = useTranslations("audit");
   const pct = progress?.progress || 0;
   const stage = progress?.stage || "crawling";
+  const uiStage = stage === "generating_report" ? "report" : stage;
   const pagesCrawled = progress?.pages_crawled || 0;
 
   function getProgressMessage(): string {
     if (!progress) return t("progressConnecting");
-    const speedSuffix = progress.speed_testing ? ` + ${t("speedTestSuffix")}` : "";
+
+    const speedIsBlocking =
+      progress.speed_blocking ||
+      (progress.current_task_type === "speed" && progress.analyzer_phase === "running");
+    if (speedIsBlocking) {
+      return t("progressSpeedBlocking");
+    }
+
     switch (progress.stage) {
       case "crawling":
         return progress.pages_crawled
-          ? t("progressCrawling", { count: progress.pages_crawled }) + speedSuffix
-          : t("progressCrawlingStart") + speedSuffix;
+          ? t("progressCrawling", { count: progress.pages_crawled })
+          : t("progressCrawlingStart");
       case "analyzing":
-        return progress.analyzer_name
-          ? t("progressAnalyzingName", { name: progress.analyzer_name }) + speedSuffix
-          : t("progressAnalyzing") + speedSuffix;
+        return progress.current_task_type === "analyzing" &&
+          progress.analyzer_name &&
+          progress.analyzer_phase === "running"
+          ? t("progressAnalyzingName", { name: progress.analyzer_name })
+          : t("progressAnalyzing");
+      case "report":
       case "generating_report":
         return t("progressGeneratingReport");
       default:
@@ -81,8 +92,8 @@ export function AuditProgressView({ progress }: AuditProgressViewProps) {
         {/* Stage indicators */}
         <div className="flex items-center justify-between">
           {stages.map((s, i) => {
-            const isActive = s.key === stage;
-            const isPast = stages.findIndex((x) => x.key === stage) > i;
+            const isActive = s.key === uiStage;
+            const isPast = stages.findIndex((x) => x.key === uiStage) > i;
             return (
               <div key={s.key} className="flex flex-1 flex-col items-center gap-1">
                 <div

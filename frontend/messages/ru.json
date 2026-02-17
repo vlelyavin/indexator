@@ -127,6 +127,7 @@
     "progressAnalyzing": "Анализ просканированных страниц...",
     "progressAnalyzingName": "Анализ: {name}...",
     "progressGeneratingReport": "Генерация отчёта...",
+    "progressSpeedBlocking": "Выполняется тест скорости (последний шаг перед результатами)...",
     "speedTestSuffix": "тест скорости"
   },
   "settings": {

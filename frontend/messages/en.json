@@ -127,6 +127,7 @@
     "progressAnalyzing": "Analyzing crawled pages...",
     "progressAnalyzingName": "Analyzing: {name}...",
     "progressGeneratingReport": "Generating report...",
+    "progressSpeedBlocking": "Running Speed test (last step before results)...",
     "speedTestSuffix": "Speed test"
   },
   "settings": {

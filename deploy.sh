@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # ===========================================
 # SEO Audit Tool - VPS Deployment Script
@@ -12,8 +12,13 @@ FRONTEND_DIR="$APP_DIR/frontend"
 APP_USER="seo-audit"
 PYTHON_VERSION="python3.11"
 NODE_MAJOR=20
+PLAYWRIGHT_CACHE_DIR="$APP_DIR/.cache/ms-playwright"
 
 echo "=== SEO Audit Tool - Deployment ==="
+
+run_as_app() {
+    sudo -u "$APP_USER" -H bash -c "$1"
+}
 
 # 1. System dependencies
 echo "[1/11] Installing system dependencies..."
@@ -58,34 +63,39 @@ sudo rm -rf "$APP_DIR/.git"
 if [ ! -f "$APP_DIR/frontend/.env" ]; then
     sudo cp "$APP_DIR/frontend/.env.example" "$APP_DIR/frontend/.env" 2>/dev/null || true
 fi
+sudo chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 
 # 5. Python venv & dependencies
 echo "[5/11] Installing Python dependencies..."
 cd "$APP_DIR"
-sudo $PYTHON_VERSION -m venv venv
-sudo "$APP_DIR/venv/bin/pip" install --upgrade pip
-sudo "$APP_DIR/venv/bin/pip" install -r requirements.txt
+if [ ! -d "$APP_DIR/venv" ]; then
+    run_as_app "$PYTHON_VERSION -m venv '$APP_DIR/venv'"
+fi
+run_as_app "'$APP_DIR/venv/bin/pip' install --upgrade pip"
+run_as_app "'$APP_DIR/venv/bin/pip' install -r '$APP_DIR/requirements.txt'"
 
 # 6. Playwright (Chromium)
 echo "[6/11] Installing Playwright Chromium..."
-sudo "$APP_DIR/venv/bin/playwright" install chromium
+if ! find "$PLAYWRIGHT_CACHE_DIR" -maxdepth 1 -type d -name "chromium-*" 2>/dev/null | grep -q .; then
+    run_as_app "'$APP_DIR/venv/bin/playwright' install chromium"
+else
+    echo "Playwright Chromium already installed, skipping browser download"
+fi
 sudo "$APP_DIR/venv/bin/playwright" install-deps chromium
 
 # 7. Next.js frontend - install ALL dependencies (dev deps needed for build)
 echo "[7/11] Installing Next.js frontend dependencies..."
 cd "$FRONTEND_DIR"
-sudo npm ci
+run_as_app "cd '$FRONTEND_DIR' && npm ci"
 
 # 8. Prisma migrate (database schema)
 echo "[8/11] Running Prisma migrations..."
-cd "$FRONTEND_DIR"
-sudo npx prisma generate
-sudo npx prisma migrate deploy
+run_as_app "cd '$FRONTEND_DIR' && npx prisma generate"
+run_as_app "cd '$FRONTEND_DIR' && npx prisma migrate deploy"
 
 # 9. Next.js frontend - production build
 echo "[9/11] Building Next.js frontend..."
-cd "$FRONTEND_DIR"
-sudo npm run build
+run_as_app "cd '$FRONTEND_DIR' && npm run build"
 
 # 10. Fix permissions
 echo "[10/11] Fixing permissions..."
@@ -105,6 +115,17 @@ sudo systemctl restart seo-audit
 
 sudo systemctl enable nextjs-seo-audit
 sudo systemctl restart nextjs-seo-audit
+
+echo "Running health checks..."
+if ! curl -fsS http://127.0.0.1:8000/health >/dev/null; then
+    echo "ERROR: FastAPI health check failed"
+    exit 1
+fi
+
+if ! curl -fsS http://127.0.0.1:3000 >/dev/null; then
+    echo "ERROR: Next.js health check failed"
+    exit 1
+fi
 
 # Nginx configuration
 if command -v nginx &>/dev/null; then

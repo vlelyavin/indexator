@@ -141,9 +141,9 @@ class FaviconAnalyzer(BaseAnalyzer):
             issues.append(self.create_issue(
                 category="old_favicon_format",
                 severity=SeverityLevel.INFO,
-                message=self.t("analyzer_content.favicon.issues.old_format"),
-                details=self.t("analyzer_content.favicon.details.old_format"),
-                recommendation=self.t("analyzer_content.favicon.recommendations.old_format"),
+                message=self.t("analyzer_content.favicon.issues.old_favicon_format"),
+                details=self.t("analyzer_content.favicon.details.old_favicon_format"),
+                recommendation=self.t("analyzer_content.favicon.recommendations.old_favicon_format"),
             ))
 
         # Summary

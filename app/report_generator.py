@@ -20,6 +20,10 @@ from .utils import extract_domain
 # Singleton instance for ReportGenerator
 _report_generator_instance = None
 
+# DOCX export fonts should stay cross-platform to avoid missing-font warnings
+DOCX_DEFAULT_FONT = "Arial"
+DOCX_MONO_FONT = "Courier New"
+
 
 def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) -> AnalyzerResult:
     """
@@ -995,7 +999,16 @@ class ReportGenerator:
                 max-width: none !important;
             }
             .category-table .badge {
-                width: fit-content !important;
+                display: inline-block !important;
+                width: auto !important;
+                white-space: nowrap !important;
+                line-height: 1.1 !important;
+                vertical-align: middle !important;
+            }
+            .category-table .badge svg {
+                display: inline-block !important;
+                vertical-align: text-bottom !important;
+                margin-right: 4px !important;
             }
             .issue-urls li {
                 white-space: nowrap !important;
@@ -1108,7 +1121,7 @@ class ReportGenerator:
         tc_pr.append(tc_mar)
 
     @staticmethod
-    def _docx_set_font(run, font_name: str = 'Inter', size_pt=None, bold=None, color_rgb=None):
+    def _docx_set_font(run, font_name: str = DOCX_DEFAULT_FONT, size_pt=None, bold=None, color_rgb=None):
         """Configure a run with font settings."""
         from docx.shared import Pt, RGBColor
         from docx.oxml.ns import qn
@@ -1133,7 +1146,7 @@ class ReportGenerator:
             run.font.color.rgb = RGBColor(*color_rgb)
 
     @staticmethod
-    def _docx_add_hyperlink(paragraph, url: str, text: str, font_name: str = 'Inter', font_size_pt: int = 9, color_rgb=None):
+    def _docx_add_hyperlink(paragraph, url: str, text: str, font_name: str = DOCX_DEFAULT_FONT, font_size_pt: int = 9, color_rgb=None):
         """Add a clickable hyperlink to a Word paragraph."""
         from docx.oxml.ns import qn
         from docx.oxml import OxmlElement
@@ -1290,7 +1303,7 @@ class ReportGenerator:
                     self._docx_set_font(run, size_pt=9, bold=True)
                 elif code_match:
                     run = p.add_run(code_match.group(1))
-                    self._docx_set_font(run, font_name='Consolas', size_pt=9, color_rgb=(107, 114, 128))
+                    self._docx_set_font(run, font_name=DOCX_MONO_FONT, size_pt=9, color_rgb=(107, 114, 128))
                 else:
                     # Strip any remaining HTML
                     clean = re.sub(r'<[^>]+>', '', part)
@@ -1410,10 +1423,10 @@ class ReportGenerator:
         # Create document
         doc = Document()
 
-        # --- Setup Inter font for styles ---
+        # --- Setup cross-platform DOCX fonts ---
         from docx.oxml import OxmlElement
 
-        def _set_style_font(s, font_name='Inter'):
+        def _set_style_font(s, font_name=DOCX_DEFAULT_FONT):
             s.font.name = font_name
             rPr = s.element.get_or_add_rPr()
             r_fonts = rPr.find(qn('w:rFonts'))
@@ -1450,12 +1463,14 @@ class ReportGenerator:
         # Title
         title_para = doc.add_paragraph()
         title_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        title_para.paragraph_format.space_after = Pt(2)
         run = title_para.add_run(t("report.express_title"))
         self._docx_set_font(run, size_pt=22, bold=True, color_rgb=(17, 24, 39))
 
         # Website
         site_para = doc.add_paragraph()
         site_para.paragraph_format.space_before = Pt(2)
+        site_para.paragraph_format.space_after = Pt(1)
         run = site_para.add_run(f"Website: {domain}")
         self._docx_set_font(run, size_pt=10, color_rgb=(17, 24, 39))
 
@@ -1463,6 +1478,7 @@ class ReportGenerator:
         generated_at = datetime.now().strftime('%d.%m.%Y')
         meta_para = doc.add_paragraph()
         meta_para.paragraph_format.space_before = Pt(2)
+        meta_para.paragraph_format.space_after = Pt(10)
         pages_text = t("report.pages_analyzed", count=audit.pages_crawled)
         run = meta_para.add_run(f"{pages_text} · {generated_at}")
         self._docx_set_font(run, size_pt=10, color_rgb=(107, 114, 128))
@@ -1537,7 +1553,12 @@ class ReportGenerator:
         # CATEGORY OVERVIEW
         # =============================================
         cat_heading = doc.add_heading(t("report.category_overview"), level=1)
-        cat_heading.paragraph_format.space_after = Pt(12)
+        cat_heading.paragraph_format.space_after = Pt(6)
+
+        cat_desc = doc.add_paragraph()
+        cat_desc.paragraph_format.space_after = Pt(10)
+        run = cat_desc.add_run(t("report.category_overview_description"))
+        self._docx_set_font(run, size_pt=9, color_rgb=(75, 85, 99))
 
         severity_order_map = {SeverityLevel.ERROR: 0, SeverityLevel.WARNING: 1, SeverityLevel.INFO: 2, SeverityLevel.SUCCESS: 3}
         sorted_sections = sorted(docx_sections, key=lambda s: severity_order_map.get(s["severity"], 4))
@@ -1551,9 +1572,11 @@ class ReportGenerator:
             cell = cat_table.rows[0].cells[i]
             cell.text = ''
             p = cell.paragraphs[0]
+            if i in (0, 2, 3, 4):
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = p.add_run(header_text)
             self._docx_set_font(run, size_pt=9, bold=True, color_rgb=(55, 65, 81))
-            self._docx_set_cell_shading(cell, 'F9FAFB')
+            self._docx_set_cell_shading(cell, 'F1F5F9')
 
         badge_text_map = {
             SeverityLevel.SUCCESS: t("report.badge_ok"),
@@ -1574,9 +1597,15 @@ class ReportGenerator:
             warns = sum(1 for iss in result.issues if iss.severity == SeverityLevel.WARNING)
 
             row = cat_table.rows[row_idx]
+
+            if row_idx % 2 == 0:
+                for shaded_cell in row.cells:
+                    self._docx_set_cell_shading(shaded_cell, 'F8FAFC')
+
             # #
             cell = row.cells[0]
             cell.text = ''
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = cell.paragraphs[0].add_run(str(row_idx))
             self._docx_set_font(run, size_pt=9, color_rgb=(156, 163, 175))
             # Category
@@ -1587,6 +1616,7 @@ class ReportGenerator:
             # Status badge
             cell = row.cells[2]
             cell.text = ''
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
             badge = badge_text_map.get(section["severity"], "—")
             badge_clr = badge_color_map.get(section["severity"], (55, 65, 81))
             run = cell.paragraphs[0].add_run(badge)
@@ -1594,11 +1624,13 @@ class ReportGenerator:
             # Critical count
             cell = row.cells[3]
             cell.text = ''
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = cell.paragraphs[0].add_run(str(criticals))
             self._docx_set_font(run, size_pt=9, bold=criticals > 0, color_rgb=(239, 68, 68) if criticals > 0 else (156, 163, 175))
             # Warning count
             cell = row.cells[4]
             cell.text = ''
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = cell.paragraphs[0].add_run(str(warns))
             self._docx_set_font(run, size_pt=9, bold=warns > 0, color_rgb=(245, 158, 11) if warns > 0 else (156, 163, 175))
 
@@ -1623,11 +1655,13 @@ class ReportGenerator:
             SeverityLevel.ERROR: ("✗", (239, 68, 68)),
             SeverityLevel.INFO: ("ℹ", brand_primary_rgb),
         }
+        section_index = 0
 
         for name in section_order:
             if name not in audit.results:
                 continue
 
+            section_index += 1
             result = audit.results[name]
 
             # Translate content if needed
@@ -1640,8 +1674,10 @@ class ReportGenerator:
                 section_title = result.display_name
 
             # Section heading
-            heading = doc.add_heading(section_title, level=1)
+            heading = doc.add_heading(f"{section_index}. {section_title}", level=1)
             heading.paragraph_format.keep_with_next = True
+            heading.paragraph_format.space_before = Pt(10)
+            heading.paragraph_format.space_after = Pt(4)
 
             # Add severity badge after heading
             badge_text, badge_color = severity_badge_text.get(

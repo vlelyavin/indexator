@@ -194,21 +194,21 @@ export default function DashboardPage() {
             {audits.map((audit) => (
               <div
                 key={audit.id}
-                className="group relative flex items-center gap-4 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                className="group relative flex items-center gap-2 px-3 py-2 sm:gap-4 sm:px-4 sm:py-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
               >
                 <Link
                   href={`/${locale}/dashboard/audit/${audit.id}`}
-                  className="flex min-w-0 flex-1 items-center gap-4"
+                  className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4"
                 >
                   <StatusDot status={audit.status} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                    <p className="truncate text-xs font-medium text-gray-900 sm:text-sm dark:text-white">
                       {audit.url}
                     </p>
-                    <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    <div className="mt-0.5 text-[11px] text-gray-500 sm:text-xs dark:text-gray-400">
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                         <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
+                          <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                           {formatDate(audit.startedAt, locale)}
                         </span>
                         {audit.status === "completed" && (
@@ -262,17 +262,17 @@ export default function DashboardPage() {
                         : null
                     }
                   />
-                  <ExternalLink className="h-4 w-4 shrink-0 text-gray-400" />
+                  <ExternalLink className="h-3 w-3 shrink-0 text-gray-400 sm:h-4 sm:w-4" />
                 </Link>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setDeleteAuditId(audit.id);
                   }}
-                  className="shrink-0 rounded-md p-1.5 text-gray-400 opacity-100 sm:opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 sm:group-hover:opacity-100 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                  className="shrink-0 rounded-md p-1 text-gray-400 opacity-100 sm:p-1.5 sm:opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 sm:group-hover:opacity-100 dark:hover:bg-red-900/20 dark:hover:text-red-400"
                   title={t("deleteAudit")}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </button>
               </div>
             ))}

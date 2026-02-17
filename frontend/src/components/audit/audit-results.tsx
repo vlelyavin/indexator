@@ -172,9 +172,9 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
         </div>
 
         {/* Filter bar */}
-        <div className="space-y-2">
-          <div className="w-full sm:w-auto">
-            <div className="flex w-full items-center gap-1 rounded-lg border border-gray-200 bg-gray-100 p-1 dark:border-gray-800 dark:bg-gray-900">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+          <div className="w-full shrink-0 sm:w-auto">
+            <div className="flex w-full items-center gap-1 rounded-lg border border-gray-200 bg-gray-100 p-1 sm:w-auto dark:border-gray-800 dark:bg-gray-900">
               {filterButtons.map((fb) => (
                 <button
                   key={fb.key}
@@ -193,8 +193,8 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="relative min-w-0 flex-1 sm:max-w-xs">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <div className="relative min-w-0 flex-1">
               <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
@@ -212,7 +212,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
                 disabled={exportingFormat !== null}
                 onClick={() => setExportDialogOpen(true)}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium",
+                  "flex h-[34px] items-center gap-1.5 rounded-lg border px-3 text-sm font-medium",
                   exportingFormat
                     ? "cursor-not-allowed opacity-50 border-gray-300 text-gray-500 dark:border-gray-600 dark:text-gray-500"
                     : "text-gray-700 hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"

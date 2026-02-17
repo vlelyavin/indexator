@@ -88,10 +88,29 @@ export default function PlansPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {plans.filter((p) => p.id === "agency").map((plan) => {
+        {plans.map((plan) => {
           const isCurrent = session?.user?.planId === plan.id;
           const isAgency = plan.id === "agency";
           const isSwitching = switching === plan.id;
+          const featureItems = [
+            {
+              text:
+                plan.id === "agency"
+                  ? t("unlimitedAudits")
+                  : t("auditsPerMonth", { count: plan.auditsPerMonth }),
+              highlight: false,
+            },
+            { text: t("maxPages", { count: plan.maxPages }), highlight: false },
+            {
+              text: plan.id === "agency" ? t("fullExports") : t("pdfOnly"),
+              highlight: plan.id === "agency",
+            },
+            {
+              text: plan.id === "free" ? t("watermarkIncluded") : t("noWatermark"),
+              highlight: plan.id === "agency",
+            },
+            ...(plan.id === "agency" ? [{ text: t("whiteLabel"), highlight: true }] : []),
+          ];
 
           return (
             <div
@@ -121,7 +140,7 @@ export default function PlansPage() {
 
               <div className="mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {plan.name}
+                  {t(plan.id)}
                 </h3>
                 <div className="mt-2 flex items-baseline">
                   <span className="text-4xl font-bold text-gray-900 dark:text-white">
@@ -134,17 +153,14 @@ export default function PlansPage() {
               </div>
 
               <ul className="mb-6 space-y-3">
-                <FeatureItem
-                  icon={Check}
-                  text={t("auditsPerMonth", { count: plan.auditsPerMonth })}
-                />
-                <FeatureItem
-                  icon={Check}
-                  text={t("maxPages", { count: plan.maxPages })}
-                />
-                {plan.whiteLabel && (
-                  <FeatureItem icon={Check} text={t("whiteLabel")} highlight />
-                )}
+                {featureItems.map((item) => (
+                  <FeatureItem
+                    key={item.text}
+                    icon={Check}
+                    text={item.text}
+                    highlight={item.highlight}
+                  />
+                ))}
               </ul>
 
               <button
@@ -203,7 +219,7 @@ function FeatureItem({
         className={cn(
           "mt-0.5 h-5 w-5 shrink-0",
           highlight
-            ? "text-purple-600 dark:text-purple-400"
+            ? "text-blue-600 dark:text-blue-400"
             : "text-green-600 dark:text-green-400"
         )}
       />

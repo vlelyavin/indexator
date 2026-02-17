@@ -65,6 +65,25 @@
             word-break: break-all;
         }
 
+        .sidebar-header .brand-logo-wrap {
+            margin-bottom: 8px;
+        }
+
+        .sidebar-header .brand-logo {
+            max-height: 34px;
+            max-width: 120px;
+            object-fit: contain;
+        }
+
+        .sidebar-header .brand-company {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--color-text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
         .sidebar-nav {
             padding: 8px 0;
         }
@@ -303,6 +322,7 @@
             border-radius: 8px;
             margin-top: 10px;
             margin-left: 26px;
+            margin-bottom: 2px;
         }
 
         .issue-recommendation strong {
@@ -373,6 +393,26 @@
             font-weight: 600;
             font-size: 14px;
             margin-top: 20px;
+            margin-bottom: 6px;
+        }
+
+        .report-brand-hero {
+            margin-bottom: 10px;
+        }
+
+        .report-brand-hero img {
+            max-height: 42px;
+            max-width: 220px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .report-brand-name {
+            color: var(--color-text-light);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
             margin-bottom: 6px;
         }
 
@@ -479,7 +519,6 @@
             .summary-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
-    {# Branding disabled for now
     {% if brand and brand.primary_color %}
     <style>
         :root {
@@ -492,17 +531,19 @@
         {% endif %}
     </style>
     {% endif %}
-    #}
 </head>
 <body>
     <!-- Sidebar Navigation -->
     <nav class="sidebar">
         <div class="sidebar-header">
-            {# Branding disabled for now
-            {% if brand and brand.company_name %}
-            <div style="font-size: 11px; font-weight: 600; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">{{ brand.company_name }}</div>
+            {% if brand and brand.logo_url %}
+            <div class="brand-logo-wrap">
+                <img src="{{ brand.logo_url }}" alt="Brand logo" class="brand-logo">
+            </div>
             {% endif %}
-            #}
+            {% if brand and brand.company_name %}
+            <div class="brand-company">{{ brand.company_name }}</div>
+            {% endif %}
             <h1>{{ t.report_title if t else 'SEO Audit' }}</h1>
             <div class="domain">{{ domain }}</div>
             <div class="domain" style="margin-top: 6px; font-size: 12px;">{{ generated_at }}</div>
@@ -538,6 +579,14 @@
     <main class="main">
         <!-- Summary Section -->
         <section id="summary">
+            {% if brand and brand.logo_url %}
+            <div class="report-brand-hero">
+                <img src="{{ brand.logo_url }}" alt="Brand logo">
+            </div>
+            {% endif %}
+            {% if brand and brand.company_name %}
+            <div class="report-brand-name">{{ brand.company_name }}</div>
+            {% endif %}
             <h1 style="font-size: 24px; margin-bottom: 6px;">{{ t.express_title if t else 'Express SEO audit' }}</h1>
             <p style="color: var(--color-text-light); margin-bottom: 4px; font-size: 13px;">Website: {{ domain }}</p>
             <p style="color: var(--color-text-light); margin-bottom: 24px; font-size: 13px;">{{ t.pages_analyzed if t else '{} pages analyzed'.format(audit.pages_crawled) }} · {{ generated_at }}</p>

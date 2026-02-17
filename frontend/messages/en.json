@@ -160,7 +160,7 @@
     "primaryColor": "Primary Color",
     "accentColor": "Accent Color",
     "preview": "Preview",
-    "proRequired": "Pro or Agency plan required",
+    "proRequired": "Agency plan required",
     "brandingSaved": "Branding settings saved",
     "errorSaving": "Error saving",
     "logoUploaded": "Logo uploaded successfully",
@@ -195,7 +195,12 @@
     "perMonth": "/month",
     "noBilling": "Plan switching is instant. No payment processing yet.",
     "planUpdated": "Plan updated successfully!",
-    "updateFailed": "Failed to update plan"
+    "updateFailed": "Failed to update plan",
+    "unlimitedAudits": "Unlimited audits/month",
+    "pdfOnly": "PDF export only",
+    "fullExports": "PDF, HTML, and DOCX exports",
+    "watermarkIncluded": "Watermark in exported reports",
+    "noWatermark": "No watermark in exported reports"
   },
   "analyzer_content": {
     "cms": {

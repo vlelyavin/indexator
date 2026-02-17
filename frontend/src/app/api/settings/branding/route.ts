@@ -10,6 +10,18 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { planId: true },
+  });
+
+  if (!user || user.planId !== "agency") {
+    return NextResponse.json(
+      { error: "Agency plan required" },
+      { status: 403 }
+    );
+  }
+
   const branding = await prisma.brandSettings.findUnique({
     where: { userId: session.user.id },
   });
@@ -29,9 +41,9 @@ export async function PUT(req: Request) {
     select: { planId: true },
   });
 
-  if (!user || (user.planId !== "pro" && user.planId !== "agency")) {
+  if (!user || user.planId !== "agency") {
     return NextResponse.json(
-      { error: "Pro or Agency plan required" },
+      { error: "Agency plan required" },
       { status: 403 }
     );
   }

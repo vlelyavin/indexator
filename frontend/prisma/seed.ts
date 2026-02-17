@@ -5,12 +5,18 @@ const prisma = new PrismaClient();
 async function main() {
   await prisma.plan.upsert({
     where: { id: "free" },
-    update: {},
+    update: {
+      name: "Free",
+      auditsPerMonth: 5,
+      maxPages: 10,
+      whiteLabel: false,
+      price: 0,
+    },
     create: {
       id: "free",
       name: "Free",
-      auditsPerMonth: 1,
-      maxPages: 50,
+      auditsPerMonth: 5,
+      maxPages: 10,
       whiteLabel: false,
       price: 0,
     },
@@ -18,27 +24,39 @@ async function main() {
 
   await prisma.plan.upsert({
     where: { id: "pro" },
-    update: {},
+    update: {
+      name: "Pro",
+      auditsPerMonth: 50,
+      maxPages: 100,
+      whiteLabel: false,
+      price: 20,
+    },
     create: {
       id: "pro",
       name: "Pro",
-      auditsPerMonth: 10,
-      maxPages: 500,
+      auditsPerMonth: 50,
+      maxPages: 100,
       whiteLabel: false,
-      price: 29,
+      price: 20,
     },
   });
 
   await prisma.plan.upsert({
     where: { id: "agency" },
-    update: {},
+    update: {
+      name: "Agency",
+      auditsPerMonth: 999999,
+      maxPages: 500,
+      whiteLabel: true,
+      price: 50,
+    },
     create: {
       id: "agency",
       name: "Agency",
-      auditsPerMonth: 9999,
-      maxPages: 2000,
+      auditsPerMonth: 999999,
+      maxPages: 500,
       whiteLabel: true,
-      price: 99,
+      price: 50,
     },
   });
 

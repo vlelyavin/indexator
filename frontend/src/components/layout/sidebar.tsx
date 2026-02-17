@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import {
+  CreditCard,
   LayoutDashboard,
+  Palette,
   Plus,
   Settings,
   Users,
@@ -37,21 +39,21 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       label: t("newAudit"),
       icon: Plus,
     },
-    // {
-    //   href: `/${locale}/dashboard/plans`,
-    //   label: t("plans"),
-    //   icon: CreditCard,
-    // },
+    {
+      href: `/${locale}/dashboard/plans`,
+      label: t("plans"),
+      icon: CreditCard,
+    },
     {
       href: `/${locale}/dashboard/settings`,
       label: t("settings"),
       icon: Settings,
     },
-    // {
-    //   href: `/${locale}/dashboard/settings/branding`,
-    //   label: t("branding"),
-    //   icon: Palette,
-    // },
+    {
+      href: `/${locale}/dashboard/settings/branding`,
+      label: t("branding"),
+      icon: Palette,
+    },
   ];
 
   const adminItems = isAdmin
@@ -160,7 +162,6 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           )}
         </nav>
 
-        {/* Plan badge — temporarily hidden
         {session?.user && (
           <div className="border-t border-gray-800 p-3">
             <Link
@@ -172,12 +173,11 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 {t("currentPlan")}
               </p>
               <p className="text-sm font-semibold capitalize text-white">
-                {session.user.planId}
+                {session.user.planId === "free" ? "Free" : session.user.planId === "pro" ? "Pro" : "Agency"}
               </p>
             </Link>
           </div>
         )}
-        */}
       </aside>
     </>
   );

@@ -385,11 +385,11 @@ async def download_report(
     audit_id: str,
     format: str = "html",
     lang: Optional[str] = None,
-    # Branding disabled for now
-    # company_name: Optional[str] = None,
-    # primary_color: Optional[str] = None,
-    # accent_color: Optional[str] = None,
-    # logo_url: Optional[str] = None,
+    company_name: Optional[str] = None,
+    primary_color: Optional[str] = None,
+    accent_color: Optional[str] = None,
+    logo_url: Optional[str] = None,
+    show_watermark: bool = True,
 ):
     """
     Download generated report.
@@ -412,15 +412,14 @@ async def download_report(
         audit = copy.copy(audit)
         audit.language = lang
 
-    # Branding disabled for now
     brand = None
-    # if any([company_name, primary_color, accent_color, logo_url]):
-    #     brand = {
-    #         "company_name": company_name,
-    #         "primary_color": primary_color,
-    #         "accent_color": accent_color,
-    #         "logo_url": logo_url,
-    #     }
+    if any([company_name, primary_color, accent_color, logo_url]):
+        brand = {
+            "company_name": company_name,
+            "primary_color": primary_color,
+            "accent_color": accent_color,
+            "logo_url": logo_url,
+        }
 
     # Extract domain for filename
     domain = extract_domain(audit.url)
@@ -449,7 +448,11 @@ async def download_report(
         # Generate PDF on demand
         generator = get_report_generator()
         try:
-            pdf_path = await generator.generate_pdf(audit, brand=brand)
+            pdf_path = await generator.generate_pdf(
+                audit,
+                brand=brand,
+                show_watermark=show_watermark,
+            )
         except ImportError as e:
             raise HTTPException(status_code=500, detail=str(e))
 
@@ -464,7 +467,11 @@ async def download_report(
         # Generate DOCX on demand
         generator = get_report_generator()
         try:
-            docx_path = await generator.generate_docx(audit, brand=brand)
+            docx_path = await generator.generate_docx(
+                audit,
+                brand=brand,
+                show_watermark=show_watermark,
+            )
         except ImportError as e:
             raise HTTPException(status_code=500, detail=str(e))
 
@@ -486,6 +493,12 @@ async def generate_report_from_data(request: Request):
     format_type = body.get("format", "html").lower()
     audit_data = body.get("audit")
     language_override = body.get("language")
+    brand = body.get("brand")
+    raw_show_watermark = body.get("show_watermark", True)
+    if isinstance(raw_show_watermark, str):
+        show_watermark = raw_show_watermark.strip().lower() in {"1", "true", "yes", "on"}
+    else:
+        show_watermark = bool(raw_show_watermark)
 
     if not audit_data:
         raise HTTPException(status_code=400, detail="Missing audit data")
@@ -517,19 +530,27 @@ async def generate_report_from_data(request: Request):
     date_str = datetime.now().strftime("%Y-%m-%d")
 
     if format_type == "html":
-        report_path = await generator.generate(audit)
+        report_path = await generator.generate(audit, brand=brand)
         filename = f"seo-audit_{domain}_{date_str}.html"
         return FileResponse(report_path, filename=filename, media_type="text/html")
     elif format_type == "pdf":
         try:
-            pdf_path = await generator.generate_pdf(audit)
+            pdf_path = await generator.generate_pdf(
+                audit,
+                brand=brand,
+                show_watermark=show_watermark,
+            )
         except ImportError as e:
             raise HTTPException(status_code=500, detail=str(e))
         filename = f"seo-audit_{domain}_{date_str}.pdf"
         return FileResponse(pdf_path, filename=filename, media_type="application/pdf")
     elif format_type == "docx":
         try:
-            docx_path = await generator.generate_docx(audit)
+            docx_path = await generator.generate_docx(
+                audit,
+                brand=brand,
+                show_watermark=show_watermark,
+            )
         except ImportError as e:
             raise HTTPException(status_code=500, detail=str(e))
         filename = f"seo-audit_{domain}_{date_str}.docx"

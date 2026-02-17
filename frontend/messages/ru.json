@@ -160,7 +160,7 @@
     "primaryColor": "Основной цвет",
     "accentColor": "Акцентный цвет",
     "preview": "Предпросмотр",
-    "proRequired": "Требуется план Pro или Agency",
+    "proRequired": "Требуется план Agency",
     "brandingSaved": "Настройки брендинга сохранены",
     "errorSaving": "Ошибка сохранения",
     "logoUploaded": "Логотип успешно загружен",
@@ -195,7 +195,12 @@
     "perMonth": "/месяц",
     "noBilling": "Смена плана происходит мгновенно. Оплата пока не подключена.",
     "planUpdated": "План успешно обновлён!",
-    "updateFailed": "Не удалось обновить план"
+    "updateFailed": "Не удалось обновить план",
+    "unlimitedAudits": "Неограниченное количество аудитов/месяц",
+    "pdfOnly": "Экспорт только в PDF",
+    "fullExports": "Экспорт PDF, HTML и DOCX",
+    "watermarkIncluded": "Водяной знак в экспортируемых отчётах",
+    "noWatermark": "Без водяного знака в отчётах"
   },
   "analyzer_content": {
     "cms": {

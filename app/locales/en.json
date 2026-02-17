@@ -136,6 +136,8 @@
     "no_issues": "No issues found",
     "pagespeed_screenshots": "PageSpeed Insights Screenshots",
     "express_title": "Express Website Audit",
+    "website_seo_audit": "Website SEO audit",
+    "website_seo_audit_by": "Website SEO audit by {company}",
     "homepage_screenshot_title": "Homepage Screenshot",
     "badge_ok": "OK",
     "badge_warning": "Warning",

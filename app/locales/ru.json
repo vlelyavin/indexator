@@ -136,6 +136,8 @@
     "no_issues": "Проблем не обнаружено",
     "pagespeed_screenshots": "Скриншоты PageSpeed Insights",
     "express_title": "Экспресс-аудит сайта",
+    "website_seo_audit": "SEO-аудит сайта",
+    "website_seo_audit_by": "SEO-аудит сайта от {company}",
     "homepage_screenshot_title": "Скриншот главной страницы",
     "badge_ok": "OK",
     "badge_warning": "Предупреждение",

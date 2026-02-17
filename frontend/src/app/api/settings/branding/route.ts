@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-
-const HEX_COLOR_RE = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+import { toApiLogoPath } from "@/lib/logo-storage";
 
 export async function GET() {
   const session = await auth();
@@ -49,7 +48,7 @@ export async function PUT(req: Request) {
   }
 
   const body = await req.json();
-  const { companyName, primaryColor, accentColor, logoUrl } = body;
+  const { companyName, logoUrl } = body;
 
   // Validate companyName
   if (companyName !== undefined && companyName !== null) {
@@ -61,23 +60,13 @@ export async function PUT(req: Request) {
     }
   }
 
-  // Validate colors
-  for (const [name, value] of [["primaryColor", primaryColor], ["accentColor", accentColor]] as const) {
-    if (value !== undefined && value !== null && value !== "") {
-      if (typeof value !== "string" || !HEX_COLOR_RE.test(value)) {
-        return NextResponse.json(
-          { error: `${name} must be a valid hex color (e.g. #FF0000)` },
-          { status: 400 }
-        );
-      }
-    }
-  }
+  let normalizedLogoUrl: string | undefined | null = logoUrl;
 
-  // Validate logoUrl
+  // Validate + normalize logoUrl
   if (logoUrl !== undefined && logoUrl !== null && logoUrl !== "") {
     try {
-      const parsed = new URL(logoUrl, "https://placeholder.local");
-      if (!parsed.pathname.startsWith("/uploads/") && !parsed.pathname.startsWith("/api/upload/logo/")) {
+      normalizedLogoUrl = toApiLogoPath(logoUrl);
+      if (!normalizedLogoUrl) {
         return NextResponse.json(
           { error: "Invalid logo URL" },
           { status: 400 }
@@ -93,13 +82,11 @@ export async function PUT(req: Request) {
 
   const branding = await prisma.brandSettings.upsert({
     where: { userId: session.user.id },
-    update: { companyName, primaryColor, accentColor, logoUrl },
+    update: { companyName, logoUrl: normalizedLogoUrl },
     create: {
       userId: session.user.id,
       companyName,
-      primaryColor,
-      accentColor,
-      logoUrl,
+      logoUrl: normalizedLogoUrl,
     },
   });
 

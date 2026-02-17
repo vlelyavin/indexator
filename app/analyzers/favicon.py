@@ -56,8 +56,16 @@ class FaviconAnalyzer(BaseAnalyzer):
                     break
 
         if home_page and home_page.html_content:
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(home_page.html_content, 'lxml')
+            soup = home_page.get_soup()
+            if soup is None:
+                return AnalyzerResult(
+                    analyzer_id=self.analyzer_id,
+                    severity=SeverityLevel.ERROR,
+                    summary=self.t("analyzer_content.favicon.issues.no_favicon"),
+                    issues=[],
+                    tables=[],
+                    metadata={}
+                )
 
             # Find all favicon links
             for link in soup.find_all('link', rel=True):
@@ -106,8 +114,8 @@ class FaviconAnalyzer(BaseAnalyzer):
                 category="no_favicon_ico",
                 severity=SeverityLevel.WARNING,
                 message=self.t("analyzer_content.favicon.issues.no_ico"),
-                details=self.t("analyzer_content.favicon.issues.no_ico_details"),
-                recommendation=self.t("analyzer_content.favicon.issues.no_ico_recommendation"),
+                details=self.t("analyzer_content.favicon.details.no_ico"),
+                recommendation=self.t("analyzer_content.favicon.recommendations.no_ico"),
             ))
 
         if not has_apple_icon:
@@ -115,8 +123,8 @@ class FaviconAnalyzer(BaseAnalyzer):
                 category="no_apple_touch_icon",
                 severity=SeverityLevel.INFO,
                 message=self.t("analyzer_content.favicon.issues.no_apple"),
-                details=self.t("analyzer_content.favicon.issues.no_apple_details"),
-                recommendation=self.t("analyzer_content.favicon.issues.no_apple_recommendation"),
+                details=self.t("analyzer_content.favicon.details.no_apple"),
+                recommendation=self.t("analyzer_content.favicon.recommendations.no_apple"),
             ))
 
         # Check favicon format recommendations
@@ -134,8 +142,8 @@ class FaviconAnalyzer(BaseAnalyzer):
                 category="old_favicon_format",
                 severity=SeverityLevel.INFO,
                 message=self.t("analyzer_content.favicon.issues.old_format"),
-                details=self.t("analyzer_content.favicon.issues.old_format_details"),
-                recommendation=self.t("analyzer_content.favicon.issues.old_format_recommendation"),
+                details=self.t("analyzer_content.favicon.details.old_format"),
+                recommendation=self.t("analyzer_content.favicon.recommendations.old_format"),
             ))
 
         # Summary

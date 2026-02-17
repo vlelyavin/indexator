@@ -15,7 +15,7 @@ model User {
   password      String?
   image         String?
   role          String         @default("user")
-  planId        String         @default("free")
+  planId        String         @default("agency")
   plan          Plan           @relation(fields: [planId], references: [id])
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -71,7 +71,7 @@ model Plan {
 
 model Audit {
   id             String    @id @default(cuid())
-  fastApiId      String
+  fastApiId      String    @unique
   userId         String
   url            String
   status         String    @default("pending")
@@ -87,6 +87,8 @@ model Audit {
   startedAt      DateTime  @default(now())
   completedAt    DateTime?
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
 }
 
 model BrandSettings {

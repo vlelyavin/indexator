@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ArrowUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 import type { TableData } from "@/types/audit";
 
 interface AnalyzerTableProps {
@@ -12,6 +12,7 @@ interface AnalyzerTableProps {
 export function AnalyzerTable({ table }: AnalyzerTableProps) {
   const [sortCol, setSortCol] = useState<number | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const t = useTranslations("audit");
 
   const headers = table.headers || [];
   // Convert dict rows to arrays (backend compatibility)
@@ -87,7 +88,7 @@ export function AnalyzerTable({ table }: AnalyzerTableProps) {
                     key={ci}
                     className="whitespace-nowrap px-3 py-1.5 text-xs text-gray-900 dark:text-gray-200"
                   >
-                    {renderCell(cell)}
+                    {renderCell(cell, t)}
                   </td>
                 ))}
               </tr>
@@ -96,7 +97,7 @@ export function AnalyzerTable({ table }: AnalyzerTableProps) {
         </table>
         {sortedRows.length === 0 && (
           <div className="px-3 py-4 text-center text-xs text-gray-400">
-            No data
+            {t("noData")}
           </div>
         )}
       </div>
@@ -104,13 +105,60 @@ export function AnalyzerTable({ table }: AnalyzerTableProps) {
   );
 }
 
-function renderCell(val: string | number | boolean | null) {
+const IconCheck = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block align-middle"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 10"/></svg>
+);
+
+const IconCross = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block align-middle"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+);
+
+const IconWarning = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block align-middle"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+);
+
+const ICON_MAP: Record<string, () => React.JSX.Element> = {
+  "\u2713": IconCheck,    // ✓
+  "\u2714": IconCheck,    // ✔
+  "\u2717": IconCross,    // ✗
+  "\u2718": IconCross,    // ✘
+  "\u2716": IconCross,    // ✖
+  "\u26a0\ufe0f": IconWarning, // ⚠️
+  "\u26a0": IconWarning,  // ⚠
+};
+
+const ICON_PATTERN = /[\u2713\u2714\u2717\u2718\u2716]|\u26a0\ufe0f?/g;
+
+function renderCellWithIcons(str: string) {
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = ICON_PATTERN.exec(str)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(str.slice(lastIndex, match.index));
+    }
+    const IconComponent = ICON_MAP[match[0]];
+    if (IconComponent) {
+      parts.push(<IconComponent key={match.index} />);
+    }
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < str.length) {
+    parts.push(str.slice(lastIndex));
+  }
+
+  return <span className="inline-flex items-center gap-0.5">{parts}</span>;
+}
+
+function renderCell(val: string | number | boolean | null, t: (key: string) => string) {
   if (val === null || val === undefined) return "—";
   if (typeof val === "boolean") {
     return val ? (
-      <span className="text-green-600 dark:text-green-400">Yes</span>
+      <span className="text-green-600 dark:text-green-400">{t("yes")}</span>
     ) : (
-      <span className="text-red-600 dark:text-red-400">No</span>
+      <span className="text-red-600 dark:text-red-400">{t("no")}</span>
     );
   }
   const str = String(val);
@@ -126,6 +174,11 @@ function renderCell(val: string | number | boolean | null) {
         {str}
       </a>
     );
+  }
+  // Replace ✓/✗/⚠️ with SVG icons
+  if (ICON_PATTERN.test(str)) {
+    ICON_PATTERN.lastIndex = 0;
+    return renderCellWithIcons(str);
   }
   return str;
 }

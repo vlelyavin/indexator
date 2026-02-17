@@ -29,12 +29,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
         href={`/${locale}/dashboard`}
         className="flex items-center gap-2 font-semibold"
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-black text-sm font-bold">
-          SA
-        </div>
-        <span className="hidden sm:inline text-white">
-          SEO Audit
-        </span>
+        <span className="text-white font-bold text-lg">SEO Audit</span>
       </Link>
 
       <div className="ml-auto flex items-center gap-3">

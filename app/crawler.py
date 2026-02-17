@@ -1,6 +1,8 @@
 """Web crawler for SEO audit using Playwright for JavaScript rendering."""
 
 import asyncio
+import gzip
+import logging
 import re
 import time
 from collections import deque
@@ -14,6 +16,12 @@ from playwright.async_api import async_playwright, Browser, BrowserContext
 from .config import settings
 from .models import ImageData, LinkData, PageData
 
+logger = logging.getLogger(__name__)
+
+# Precompiled regex patterns for performance
+WORD_PATTERN = re.compile(r'\b\w+\b', re.UNICODE)
+WHITESPACE_PATTERN = re.compile(r'\s+', re.UNICODE)
+
 
 class WebCrawler:
     """Async BFS web crawler with Playwright for JavaScript rendering."""
@@ -25,6 +33,7 @@ class WebCrawler:
         timeout: int = None,
         parallel_requests: int = None,
         progress_callback: Optional[Callable] = None,
+        screenshot_callback: Optional[Callable] = None,
     ):
         self.start_url = self._normalize_url(start_url)
         parsed = urlparse(self.start_url)
@@ -35,6 +44,8 @@ class WebCrawler:
         self.timeout = (timeout or settings.PAGE_TIMEOUT) * 1000  # Convert to ms for Playwright
         self.parallel_requests = parallel_requests or settings.PARALLEL_REQUESTS
         self.progress_callback = progress_callback
+        self.screenshot_callback = screenshot_callback
+        self._homepage_screenshot_taken = False
 
         self.visited: Set[str] = set()
         self.queue: deque = deque()
@@ -100,19 +111,19 @@ class WebCrawler:
             return False
 
     def _extract_text_content(self, soup: BeautifulSoup) -> str:
-        """Extract visible text content from page."""
-        # Remove script and style elements
-        for element in soup(['script', 'style', 'noscript', 'header', 'footer', 'nav']):
-            element.decompose()
-
-        text = soup.get_text(separator=' ', strip=True)
-        # Normalize whitespace
-        text = re.sub(r'\s+', ' ', text)
-        return text
+        """Extract visible text content from page (non-destructive)."""
+        EXCLUDED_TAGS = {'script', 'style', 'noscript', 'header', 'footer', 'nav'}
+        texts = []
+        for element in soup.find_all(string=True):
+            if element.parent.name not in EXCLUDED_TAGS:
+                stripped = element.strip()
+                if stripped:
+                    texts.append(stripped)
+        return WHITESPACE_PATTERN.sub(' ', ' '.join(texts))
 
     def _count_words(self, text: str) -> int:
         """Count words in text."""
-        words = re.findall(r'\b\w+\b', text, re.UNICODE)
+        words = WORD_PATTERN.findall(text)
         return len(words)
 
     def _extract_images(self, soup: BeautifulSoup, base_url: str) -> list[ImageData]:
@@ -226,11 +237,27 @@ class WebCrawler:
 
                 # Check content type
                 content_type = response.headers.get('content-type', '')
-                if 'text/html' not in content_type.lower():
-                    return None
+                ct_lower = content_type.lower()
+                is_html = 'text/html' in ct_lower or 'application/xhtml+xml' in ct_lower
 
-                # Get rendered HTML after JavaScript execution
-                html = await page.content()
+                if is_html:
+                    # Standard path: browser rendered the page correctly
+                    html = await page.content()
+                else:
+                    # Content-Type doesn't indicate HTML.
+                    # Chromium treats non-HTML as downloads, so page.content() is an empty skeleton.
+                    # Fall back to raw response body — handle gzip if server omits Content-Encoding.
+                    try:
+                        raw_body = await response.body()
+                        if len(raw_body) > 2 and raw_body[:2] == b'\x1f\x8b':
+                            raw_body = gzip.decompress(raw_body)
+                        html = raw_body.decode('utf-8', errors='replace')
+                        html_lower = html[:500].lower()
+                        if '<html' not in html_lower and '<!doctype' not in html_lower:
+                            return None
+                    except Exception:
+                        return None
+
                 soup = BeautifulSoup(html, 'lxml')
 
                 # Extract title
@@ -258,8 +285,8 @@ class WebCrawler:
                 h5_tags = [h.get_text(strip=True) for h in soup.find_all('h5') if h.get_text(strip=True)]
                 h6_tags = [h.get_text(strip=True) for h in soup.find_all('h6') if h.get_text(strip=True)]
 
-                # Extract text content and count words
-                text_content = self._extract_text_content(BeautifulSoup(html, 'lxml'))
+                # Extract text content and count words (non-destructive, reuses same soup)
+                text_content = self._extract_text_content(soup)
                 word_count = self._count_words(text_content)
 
                 # Extract images
@@ -268,7 +295,7 @@ class WebCrawler:
                 # Extract links
                 internal_links, external_links = self._extract_links(soup, url)
 
-                return PageData(
+                page_data = PageData(
                     url=url,
                     status_code=response.status,
                     title=title,
@@ -294,12 +321,48 @@ class WebCrawler:
                     final_url=final_url,
                 )
 
+                # Cache the parsed soup for analyzers to reuse
+                page_data.set_soup(soup)
+
+                # Capture homepage screenshot during crawl (avoids separate browser launch)
+                if depth == 0 and self.screenshot_callback and not self._homepage_screenshot_taken:
+                    self._homepage_screenshot_taken = True
+                    try:
+                        # Wait briefly for remaining resources to load
+                        await page.wait_for_load_state("networkidle", timeout=5000)
+                    except Exception:
+                        pass  # networkidle timeout is non-fatal
+                    try:
+                        import base64
+                        screenshot_bytes = await page.screenshot(type="png")
+                        screenshot_b64 = base64.b64encode(screenshot_bytes).decode("utf-8")
+                        await self.screenshot_callback(screenshot_b64)
+                    except Exception as e:
+                        logger.warning(f"Homepage screenshot during crawl failed: {e}")
+
+                return page_data
+
             except Exception as e:
+                logger.error(f"Failed to fetch {url}: {e}", exc_info=True)
                 return PageData(url=url, status_code=0, depth=depth)
 
             finally:
                 if page:
                     await page.close()
+
+    async def _fetch_page_with_timeout(
+        self, context: BrowserContext, url: str, depth: int
+    ) -> Optional[PageData]:
+        """Wrap _fetch_page with a hard timeout to prevent hanging."""
+        per_page_timeout = self.timeout / 1000 + 10  # page timeout + 10s buffer
+        try:
+            return await asyncio.wait_for(
+                self._fetch_page(context, url, depth),
+                timeout=per_page_timeout,
+            )
+        except asyncio.TimeoutError:
+            logger.warning(f"Hard timeout ({per_page_timeout}s) for {url}")
+            return PageData(url=url, status_code=0, depth=depth)
 
     async def crawl(self) -> AsyncGenerator[PageData, None]:
         """
@@ -307,51 +370,58 @@ class WebCrawler:
         Yields PageData for each crawled page.
         Uses Playwright for JavaScript rendering.
         """
-        # Note: Timeout is handled by run_audit() wrapper for Python 3.7+ compatibility
         self.queue.append((self.start_url, 0))  # (url, depth)
         self.visited.add(self.start_url)
 
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             context = await browser.new_context(
-                viewport={"width": 1920, "height": 1080},
+                viewport={"width": settings.VIEWPORT_WIDTH, "height": settings.VIEWPORT_HEIGHT},
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             )
 
             try:
                 while self.queue and len(self.pages) < self.max_pages:
-                    # Process batch of URLs
-                    batch_size = min(self.parallel_requests, len(self.queue))
+                    # Process batch of URLs (cap to remaining page budget)
+                    remaining = self.max_pages - len(self.pages)
+                    batch_size = min(self.parallel_requests, len(self.queue), remaining)
                     batch = [self.queue.popleft() for _ in range(batch_size)]
 
-                    # Fetch pages concurrently
-                    tasks = [self._fetch_page(context, url, depth) for url, depth in batch]
-                    results = await asyncio.gather(*tasks)
+                    # Fetch pages concurrently with per-page timeout safety net
+                    tasks = [self._fetch_page_with_timeout(context, url, depth) for url, depth in batch]
+                    results = await asyncio.gather(*tasks, return_exceptions=True)
 
-                    for page in results:
-                        if page is None:
+                    for result in results:
+                        # Skip exceptions and None results
+                        if isinstance(result, BaseException):
+                            logger.warning(f"Batch task failed: {result}")
                             continue
+                        if result is None:
+                            continue
+
+                        page = result
 
                         # Store page data
                         self.pages[page.url] = page
 
-                        # Notify progress
+                        # Notify progress (fire-and-forget to avoid blocking crawl)
                         if self.progress_callback:
-                            await self.progress_callback(page)
+                            asyncio.create_task(self.progress_callback(page))
 
                         yield page
 
                         # Add new internal links to queue
+                        # Note: len(self.pages) < self.max_pages is enforced by the while loop
                         if page.status_code == 200:
                             for link in page.internal_links:
                                 normalized_link = self._normalize_url(link)
                                 if (normalized_link not in self.visited and
-                                    self._is_valid_url(normalized_link) and
-                                    len(self.visited) < self.max_pages):
+                                    self._is_valid_url(normalized_link)):
                                     self.visited.add(normalized_link)
                                     self.queue.append((normalized_link, page.depth + 1))
 
             finally:
+                await context.close()
                 await browser.close()
 
     async def crawl_all(self) -> Dict[str, PageData]:
@@ -364,15 +434,13 @@ class WebCrawler:
 async def check_url_status(url: str, timeout: int = 5) -> int:
     """Check HTTP status of a URL without downloading content."""
     try:
-        connector = aiohttp.TCPConnector(ssl=False)
-        timeout_config = aiohttp.ClientTimeout(total=timeout)
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (compatible; SEOAuditBot/1.0)',
-        }
+        from .http_client import get_session
 
-        async with aiohttp.ClientSession(connector=connector) as session:
-            async with session.head(url, timeout=timeout_config, headers=headers, allow_redirects=True) as response:
-                return response.status
+        session = await get_session()
+        timeout_config = aiohttp.ClientTimeout(total=timeout)
+
+        async with session.head(url, timeout=timeout_config, allow_redirects=True) as response:
+            return response.status
     except asyncio.TimeoutError:
         return 408
     except Exception:
@@ -382,17 +450,15 @@ async def check_url_status(url: str, timeout: int = 5) -> int:
 async def fetch_url_content(url: str, timeout: int = 10) -> tuple[int, Optional[str]]:
     """Fetch URL content and return status code and content."""
     try:
-        connector = aiohttp.TCPConnector(ssl=False)
-        timeout_config = aiohttp.ClientTimeout(total=timeout)
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (compatible; SEOAuditBot/1.0)',
-            'Accept': '*/*',
-        }
+        from .http_client import get_session
 
-        async with aiohttp.ClientSession(connector=connector) as session:
-            async with session.get(url, timeout=timeout_config, headers=headers, allow_redirects=True) as response:
-                content = await response.text()
-                return response.status, content
+        session = await get_session()
+        timeout_config = aiohttp.ClientTimeout(total=timeout)
+        headers = {'Accept': '*/*'}
+
+        async with session.get(url, timeout=timeout_config, headers=headers, allow_redirects=True) as response:
+            content = await response.text()
+            return response.status, content
     except asyncio.TimeoutError:
         return 408, None
     except Exception:
@@ -402,21 +468,19 @@ async def fetch_url_content(url: str, timeout: int = 10) -> tuple[int, Optional[
 async def get_image_size(url: str, timeout: int = 10) -> Optional[int]:
     """Get size of an image in bytes."""
     try:
-        connector = aiohttp.TCPConnector(ssl=False)
+        from .http_client import get_session
+
+        session = await get_session()
         timeout_config = aiohttp.ClientTimeout(total=timeout)
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (compatible; SEOAuditBot/1.0)',
-        }
 
-        async with aiohttp.ClientSession(connector=connector) as session:
-            async with session.head(url, timeout=timeout_config, headers=headers, allow_redirects=True) as response:
-                content_length = response.headers.get('content-length')
-                if content_length:
-                    return int(content_length)
+        async with session.head(url, timeout=timeout_config, allow_redirects=True) as response:
+            content_length = response.headers.get('content-length')
+            if content_length:
+                return int(content_length)
 
-            # If HEAD doesn't return size, try GET
-            async with session.get(url, timeout=timeout_config, headers=headers, allow_redirects=True) as response:
-                content = await response.read()
-                return len(content)
+        # If HEAD doesn't return size, try GET
+        async with session.get(url, timeout=timeout_config, allow_redirects=True) as response:
+            content = await response.read()
+            return len(content)
     except Exception:
         return None

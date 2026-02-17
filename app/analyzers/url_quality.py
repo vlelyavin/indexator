@@ -193,7 +193,7 @@ class URLQualityAnalyzer(BaseAnalyzer):
         # Create table with problematic URLs
         if table_data:
             tables.append({
-                "title": self.t("table_translations.titles.Проблемні URL"),
+                "title": self.t("table_translations.titles.problematic_urls"),
                 "headers": [h_url, h_problem, h_length],
                 "rows": table_data[:10],
             })

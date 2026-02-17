@@ -7,9 +7,7 @@ import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   Plus,
-  CreditCard,
   Settings,
-  Palette,
   Users,
   X,
 } from "lucide-react";
@@ -39,21 +37,21 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       label: t("newAudit"),
       icon: Plus,
     },
-    {
-      href: `/${locale}/dashboard/plans`,
-      label: t("plans"),
-      icon: CreditCard,
-    },
+    // {
+    //   href: `/${locale}/dashboard/plans`,
+    //   label: t("plans"),
+    //   icon: CreditCard,
+    // },
     {
       href: `/${locale}/dashboard/settings`,
       label: t("settings"),
       icon: Settings,
     },
-    {
-      href: `/${locale}/dashboard/settings/branding`,
-      label: t("branding"),
-      icon: Palette,
-    },
+    // {
+    //   href: `/${locale}/dashboard/settings/branding`,
+    //   label: t("branding"),
+    //   icon: Palette,
+    // },
   ];
 
   const adminItems = isAdmin
@@ -78,7 +76,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gray-800 bg-gray-950 transition-transform duration-200 lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gray-800 bg-black transition-transform duration-200 lg:static lg:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -123,7 +121,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-gray-900 text-white border-l-4 border-white"
+                    ? "bg-gray-800 text-white"
                     : "text-gray-300 hover:bg-gray-800"
                 )}
               >
@@ -149,7 +147,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                     className={cn(
                       "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                       isActive
-                        ? "bg-gray-900 text-white border-l-4 border-white"
+                        ? "bg-gray-800 text-white"
                         : "text-gray-300 hover:bg-gray-800"
                     )}
                   >
@@ -162,6 +160,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           )}
         </nav>
 
+        {/* Plan badge — temporarily hidden
         {session?.user && (
           <div className="border-t border-gray-800 p-3">
             <Link
@@ -178,6 +177,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             </Link>
           </div>
         )}
+        */}
       </aside>
     </>
   );

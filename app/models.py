@@ -6,6 +6,9 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, HttpUrl, Field
 import uuid
 
+# Import BeautifulSoup for HTML caching
+from bs4 import BeautifulSoup
+
 
 class AuditStatus(str, Enum):
     """Status of an audit job."""
@@ -29,8 +32,9 @@ class SeverityLevel(str, Enum):
 class AuditRequest(BaseModel):
     """Request to start a new audit."""
     url: HttpUrl
-    include_screenshots: bool = True
-    language: str = "uk"  # Report language: uk (Ukrainian), ru (Russian), en (English)
+    include_screenshots: bool = False
+    language: str = "en"  # Source language: en (English), uk (Ukrainian), ru (Russian)
+    progress_language: Optional[str] = None  # UI locale for progress messages (defaults to language)
     analyzers: Optional[List[str]] = None  # None = all analyzers
     max_pages: Optional[int] = None  # Override MAX_PAGES (plan-enforced limit)
 
@@ -80,6 +84,35 @@ class PageData(BaseModel):
     redirect_chain: List[str] = Field(default_factory=list)
     final_url: Optional[str] = None
 
+    # Cached parsed HTML (not serialized)
+    _soup_cache: Optional[BeautifulSoup] = None
+
+    model_config = {"arbitrary_types_allowed": True}
+
+    def get_soup(self) -> Optional[BeautifulSoup]:
+        """Get cached BeautifulSoup object or create new one if needed.
+
+        Returns:
+            BeautifulSoup object or None if no html_content available
+        """
+        if self._soup_cache is not None:
+            return self._soup_cache
+
+        if self.html_content is None:
+            return None
+
+        self._soup_cache = BeautifulSoup(self.html_content, 'lxml')
+        return self._soup_cache
+
+    def set_soup(self, soup: BeautifulSoup) -> None:
+        """Cache BeautifulSoup object for reuse."""
+        self._soup_cache = soup
+
+    def clear_cache(self) -> None:
+        """Clear cached data to free memory."""
+        self.html_content = None
+        self._soup_cache = None
+
 
 class AuditIssue(BaseModel):
     """A single issue found during audit."""
@@ -120,11 +153,33 @@ class AuditResult(BaseModel):
     warnings: int = 0
     passed_checks: int = 0
     results: Dict[str, AnalyzerResult] = Field(default_factory=dict)
-    pages: Dict[str, PageData] = Field(default_factory=dict)
+    pages: Dict[str, PageData] = Field(default_factory=dict, exclude=True)
     report_path: Optional[str] = None
     error_message: Optional[str] = None
-    language: str = "uk"  # Report language: uk, ru
+    language: str = "en"  # Report language: en, uk, ru
     homepage_screenshot: Optional[str] = None  # base64 homepage screenshot
+
+    @property
+    def overall_score(self) -> int:
+        """Calculate overall SEO score (0-100) from analyzer severities."""
+        if not self.results:
+            return 0
+        weights = {"success": 100, "info": 80, "warning": 40, "error": 0}
+        total = sum(weights.get(r.severity.value, 50) for r in self.results.values())
+        return round(total / len(self.results))
+
+    @property
+    def score_color(self) -> str:
+        """Get color hex for the overall score."""
+        score = self.overall_score
+        if score >= 90:
+            return "#15803D"
+        elif score >= 70:
+            return "#16A34A"
+        elif score >= 40:
+            return "#F59E0B"
+        else:
+            return "#DC2626"
 
 
 class ProgressEvent(BaseModel):
@@ -135,6 +190,13 @@ class ProgressEvent(BaseModel):
     current_url: Optional[str] = None
     pages_crawled: int = 0
     stage: Optional[str] = None
+    analyzer_name: Optional[str] = None  # Display name of currently running analyzer
+    speed_testing: bool = False  # True while PageSpeed test is running in background
+    current_task_type: Optional[str] = None  # crawling | analyzing | speed | report | idle
+    speed_blocking: bool = False  # True when only Speed test remains before results
+    analyzers_total: int = 0
+    analyzers_completed: int = 0
+    analyzer_phase: Optional[str] = None  # running | completed
 
 
 class RobotsTxtData(BaseModel):

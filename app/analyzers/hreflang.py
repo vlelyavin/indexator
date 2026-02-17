@@ -58,8 +58,9 @@ class HreflangAnalyzer(BaseAnalyzer):
             if page.status_code != 200 or not page.html_content:
                 continue
 
-            from bs4 import BeautifulSoup
-            soup = BeautifulSoup(page.html_content, 'lxml')
+            soup = page.get_soup()
+            if soup is None:
+                continue
 
             page_hreflangs: Dict[str, str] = {}
 
@@ -186,6 +187,8 @@ class HreflangAnalyzer(BaseAnalyzer):
         # 5. Validate language codes
         invalid_codes: Set[str] = set()
         for lang in all_languages:
+            if lang == "x-default":
+                continue  # x-default is a directive, not a language code
             # Handle region codes like "uk-UA", "en-US"
             base_lang = lang.split("-")[0] if "-" in lang else lang
             if base_lang not in VALID_LANG_CODES:
@@ -219,18 +222,18 @@ class HreflangAnalyzer(BaseAnalyzer):
                     lang_stats[lang_code] = 0
                 lang_stats[lang_code] += 1
 
-        h_lang = self.t("table_translations.headers.Мова")
-        h_page_count = self.t("table_translations.headers.Кількість сторінок")
+        h_lang = self.t("table_translations.headers.language")
+        h_page_count = self.t("table_translations.headers.page_count")
         h_status = self.t("tables.status")
 
         table_rows = []
         for lang_code in sorted(lang_stats.keys()):
-            status = self.t("table_translations.values.Коректний")
+            status = self.t("table_translations.values.valid")
             base_lang = lang_code.split("-")[0] if "-" in lang_code else lang_code
-            if base_lang not in VALID_LANG_CODES:
-                status = self.t("table_translations.values.Некоректний код")
-            elif lang_code == "x-default":
+            if lang_code == "x-default":
                 status = "x-default"
+            elif base_lang not in VALID_LANG_CODES:
+                status = self.t("table_translations.values.invalid_code")
 
             table_rows.append({
                 h_lang: lang_code,
@@ -239,7 +242,7 @@ class HreflangAnalyzer(BaseAnalyzer):
             })
 
         tables.append({
-            "title": self.t("table_translations.titles.Мовні версії"),
+            "title": self.t("table_translations.titles.language_versions"),
             "headers": [h_lang, h_page_count, h_status],
             "rows": table_rows[:10],
         })

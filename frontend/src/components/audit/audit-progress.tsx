@@ -14,9 +14,38 @@ export function AuditProgressView({ progress }: AuditProgressViewProps) {
   const locale = useLocale();
   const t = useTranslations("audit");
   const pct = progress?.progress || 0;
-  const message = progress?.message || "Connecting...";
   const stage = progress?.stage || "crawling";
+  const uiStage = stage === "generating_report" ? "report" : stage;
   const pagesCrawled = progress?.pages_crawled || 0;
+
+  function getProgressMessage(): string {
+    if (!progress) return t("progressConnecting");
+
+    const speedIsBlocking =
+      progress.speed_blocking ||
+      (progress.current_task_type === "speed" && progress.analyzer_phase === "running");
+    if (speedIsBlocking) {
+      return t("progressSpeedBlocking");
+    }
+
+    switch (progress.stage) {
+      case "crawling":
+        return progress.pages_crawled
+          ? t("progressCrawling", { count: progress.pages_crawled })
+          : t("progressCrawlingStart");
+      case "analyzing":
+        return progress.current_task_type === "analyzing" &&
+          progress.analyzer_name &&
+          progress.analyzer_phase === "running"
+          ? t("progressAnalyzingName", { name: progress.analyzer_name })
+          : t("progressAnalyzing");
+      case "report":
+      case "generating_report":
+        return t("progressGeneratingReport");
+      default:
+        return t("progressConnecting");
+    }
+  }
 
   const stages = [
     { key: "crawling", label: t("stageCrawling") },
@@ -25,7 +54,7 @@ export function AuditProgressView({ progress }: AuditProgressViewProps) {
   ];
 
   return (
-    <div className="mx-auto max-w-xl py-16">
+    <div className="mx-auto max-w-xl py-6 sm:py-16">
       <button
         onClick={() => router.push(`/${locale}/dashboard`)}
         className="mb-4 flex items-center gap-2 text-sm text-gray-400 hover:text-white"
@@ -33,7 +62,7 @@ export function AuditProgressView({ progress }: AuditProgressViewProps) {
         <ArrowLeft className="h-4 w-4" />
         {t("backToDashboard")}
       </button>
-      <div className="rounded-xl border border-gray-800 bg-gray-900 p-8">
+      <div className="rounded-xl border border-gray-800 bg-gray-900 p-4 sm:p-8">
         <div className="mb-6 flex items-center justify-center">
           <Loader2 className="h-10 w-10 animate-spin text-white" />
         </div>
@@ -43,14 +72,14 @@ export function AuditProgressView({ progress }: AuditProgressViewProps) {
         </h2>
 
         <p className="mb-6 text-center text-sm text-gray-400">
-          {message}
+          {getProgressMessage()}
         </p>
 
         {/* Progress bar */}
         <div className="mb-6">
           <div className="mb-1.5 flex items-center justify-between text-xs text-gray-400">
             <span>{Math.round(pct)}%</span>
-            {pagesCrawled > 0 && <span>{pagesCrawled} pages</span>}
+            {pagesCrawled > 0 && <span>{t("pages", { count: pagesCrawled })}</span>}
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-gray-700">
             <div
@@ -63,10 +92,10 @@ export function AuditProgressView({ progress }: AuditProgressViewProps) {
         {/* Stage indicators */}
         <div className="flex items-center justify-between">
           {stages.map((s, i) => {
-            const isActive = s.key === stage;
-            const isPast = stages.findIndex((x) => x.key === stage) > i;
+            const isActive = s.key === uiStage;
+            const isPast = stages.findIndex((x) => x.key === uiStage) > i;
             return (
-              <div key={s.key} className="flex w-24 flex-col items-center gap-1">
+              <div key={s.key} className="flex flex-1 flex-col items-center gap-1">
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium ${
                     isPast

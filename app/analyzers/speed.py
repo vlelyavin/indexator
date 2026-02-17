@@ -54,6 +54,7 @@ class SpeedAnalyzer(BaseAnalyzer):
         base_url: str,
         **kwargs: Any
     ) -> AnalyzerResult:
+        include_screenshots = kwargs.get("include_screenshots", False)
         issues: List[AuditIssue] = []
         tables: List[Dict[str, Any]] = []
 
@@ -125,8 +126,10 @@ class SpeedAnalyzer(BaseAnalyzer):
 
         # Create metrics table
         # Get translated header keys
-        h_metric = self.t("table_translations.headers.Метрика")
-        h_target = self.t("table_translations.headers.Ціль")
+        h_metric = self.t("table_translations.headers.metric")
+        h_target = self.t("table_translations.headers.target")
+        h_mobile = self.t("tables.mobile")
+        h_desktop = self.t("tables.desktop")
 
         table_data = []
 
@@ -134,74 +137,75 @@ class SpeedAnalyzer(BaseAnalyzer):
             m = pagespeed_result.mobile
             table_data.append({
                 h_metric: "Performance Score",
-                "Mobile": f"{m.score}/100 {'✓' if m.score >= 70 else '⚠️' if m.score >= 50 else '✗'}",
-                "Desktop": f"{pagespeed_result.desktop.score}/100 {'✓' if pagespeed_result.desktop.score >= 70 else '⚠️' if pagespeed_result.desktop.score >= 50 else '✗'}" if pagespeed_result.desktop else "-",
+                h_mobile: f"{m.score}/100 {'✓' if m.score >= 70 else '⚠️' if m.score >= 50 else '✗'}",
+                h_desktop: f"{pagespeed_result.desktop.score}/100 {'✓' if pagespeed_result.desktop.score >= 70 else '⚠️' if pagespeed_result.desktop.score >= 50 else '✗'}" if pagespeed_result.desktop else "-",
                 h_target: "≥ 70",
             })
 
             if m.fcp is not None:
                 table_data.append({
                     h_metric: "First Contentful Paint (FCP)",
-                    "Mobile": f"{m.fcp:.1f}s {'✓' if m.fcp <= self.MOBILE_TARGETS['fcp'] else '✗'}",
-                    "Desktop": f"{pagespeed_result.desktop.fcp:.1f}s" if pagespeed_result.desktop and pagespeed_result.desktop.fcp else "-",
+                    h_mobile: f"{m.fcp:.1f}s {'✓' if m.fcp <= self.MOBILE_TARGETS['fcp'] else '✗'}",
+                    h_desktop: f"{pagespeed_result.desktop.fcp:.1f}s" if pagespeed_result.desktop and pagespeed_result.desktop.fcp else "-",
                     h_target: f"≤ {self.MOBILE_TARGETS['fcp']}s / {self.DESKTOP_TARGETS['fcp']}s",
                 })
 
             if m.lcp is not None:
                 table_data.append({
                     h_metric: "Largest Contentful Paint (LCP)",
-                    "Mobile": f"{m.lcp:.1f}s {'✓' if m.lcp <= self.MOBILE_TARGETS['lcp'] else '✗'}",
-                    "Desktop": f"{pagespeed_result.desktop.lcp:.1f}s" if pagespeed_result.desktop and pagespeed_result.desktop.lcp else "-",
+                    h_mobile: f"{m.lcp:.1f}s {'✓' if m.lcp <= self.MOBILE_TARGETS['lcp'] else '✗'}",
+                    h_desktop: f"{pagespeed_result.desktop.lcp:.1f}s" if pagespeed_result.desktop and pagespeed_result.desktop.lcp else "-",
                     h_target: f"≤ {self.MOBILE_TARGETS['lcp']}s / {self.DESKTOP_TARGETS['lcp']}s",
                 })
 
             if m.cls is not None:
                 table_data.append({
                     h_metric: "Cumulative Layout Shift (CLS)",
-                    "Mobile": f"{m.cls:.3f} {'✓' if m.cls <= 0.1 else '✗'}",
-                    "Desktop": f"{pagespeed_result.desktop.cls:.3f}" if pagespeed_result.desktop and pagespeed_result.desktop.cls else "-",
+                    h_mobile: f"{m.cls:.3f} {'✓' if m.cls <= 0.1 else '✗'}",
+                    h_desktop: f"{pagespeed_result.desktop.cls:.3f}" if pagespeed_result.desktop and pagespeed_result.desktop.cls else "-",
                     h_target: "≤ 0.1",
                 })
 
             if m.tbt is not None:
                 table_data.append({
                     h_metric: "Total Blocking Time (TBT)",
-                    "Mobile": f"{m.tbt:.0f}ms {'✓' if m.tbt <= 300 else '✗'}",
-                    "Desktop": f"{pagespeed_result.desktop.tbt:.0f}ms" if pagespeed_result.desktop and pagespeed_result.desktop.tbt else "-",
+                    h_mobile: f"{m.tbt:.0f}ms {'✓' if m.tbt <= 300 else '✗'}",
+                    h_desktop: f"{pagespeed_result.desktop.tbt:.0f}ms" if pagespeed_result.desktop and pagespeed_result.desktop.tbt else "-",
                     h_target: "≤ 300ms",
                 })
 
             if m.speed_index is not None:
                 table_data.append({
                     h_metric: "Speed Index",
-                    "Mobile": f"{m.speed_index:.1f}s {'✓' if m.speed_index <= self.MOBILE_TARGETS['speed_index'] else '✗'}",
-                    "Desktop": f"{pagespeed_result.desktop.speed_index:.1f}s" if pagespeed_result.desktop and pagespeed_result.desktop.speed_index else "-",
+                    h_mobile: f"{m.speed_index:.1f}s {'✓' if m.speed_index <= self.MOBILE_TARGETS['speed_index'] else '✗'}",
+                    h_desktop: f"{pagespeed_result.desktop.speed_index:.1f}s" if pagespeed_result.desktop and pagespeed_result.desktop.speed_index else "-",
                     h_target: f"≤ {self.MOBILE_TARGETS['speed_index']}s / {self.DESKTOP_TARGETS['speed_index']}s",
                 })
 
         if table_data:
             tables.append({
-                "title": self.t("table_translations.titles.Core Web Vitals та метрики швидкості"),
+                "title": self.t("table_translations.titles.core_web_vitals"),
                 "headers": [
                     h_metric,
-                    "Mobile",
-                    "Desktop",
+                    h_mobile,
+                    h_desktop,
                     h_target
                 ],
                 "rows": table_data,
             })
 
-        # Capture PageSpeed screenshots (sequential, single browser session).
+        # Capture PageSpeed screenshots only when requested (opt-in).
         # Called after API results are fetched so pagespeed.web.dev shows cached data.
         mobile_screenshot = None
         desktop_screenshot = None
-        try:
-            from ..screenshots import screenshot_capture
-            logger.info("Capturing PageSpeed screenshots...")
-            mobile_screenshot, desktop_screenshot = await screenshot_capture.capture_pagespeed_both(base_url)
-            logger.info(f"Screenshots captured: mobile={bool(mobile_screenshot)}, desktop={bool(desktop_screenshot)}")
-        except Exception as e:
-            logger.warning(f"Screenshot capture failed (non-fatal): {e}")
+        if include_screenshots:
+            try:
+                from ..screenshots import screenshot_capture
+                logger.info("Capturing PageSpeed screenshots...")
+                mobile_screenshot, desktop_screenshot = await screenshot_capture.capture_pagespeed_both(base_url)
+                logger.info(f"Screenshots captured: mobile={bool(mobile_screenshot)}, desktop={bool(desktop_screenshot)}")
+            except Exception as e:
+                logger.warning(f"Screenshot capture failed (non-fatal): {e}")
 
         # Summary
         mobile_score = pagespeed_result.mobile.score if pagespeed_result.mobile else 0
@@ -294,17 +298,31 @@ class SpeedAnalyzer(BaseAnalyzer):
             max_retries = 3
             for attempt in range(max_retries):
                 try:
-                    timeout = aiohttp.ClientTimeout(total=60)
-                    connector = aiohttp.TCPConnector(ssl=False)
+                    from ..http_client import get_session
 
-                    async with aiohttp.ClientSession(connector=connector) as session:
-                        async with session.get(base_api_url, params=params, timeout=timeout) as response:
+                    session = await get_session()
+                    timeout = aiohttp.ClientTimeout(total=90)
+
+                    async with session.get(base_api_url, params=params, timeout=timeout) as response:
                             if response.status != 200:
                                 error_text = await response.text()
                                 logger.error(f"PageSpeed API error for {strategy}: status={response.status}, response={error_text[:500]}")
 
-                                # Check if it's a quota/rate limit error
+                                # Classify the error
+                                is_key_error = (
+                                    response.status == 403
+                                    and ("API_KEY" in error_text or "PERMISSION_DENIED" in error_text)
+                                )
                                 is_quota_error = response.status == 429 or "Quota" in error_text or "RATE_LIMIT" in error_text
+                                is_server_error = response.status >= 500
+
+                                # API key blocked (wrong restrictions, etc.) — retry without key
+                                if is_key_error and use_key and "key" in params:
+                                    logger.warning(f"API key blocked for {strategy} ({response.status}), retrying without key...")
+                                    params.pop("key", None)
+                                    use_key = None
+                                    await asyncio.sleep(1)
+                                    continue
 
                                 if is_quota_error and attempt < max_retries - 1:
                                     # Try without API key first (separate public quota)
@@ -321,7 +339,14 @@ class SpeedAnalyzer(BaseAnalyzer):
                                     await asyncio.sleep(wait_time)
                                     continue
 
-                                # Parse error message from API response
+                                # Transient server error (or undocumented rate limiting) — retry with backoff
+                                if is_server_error and attempt < max_retries - 1:
+                                    wait_time = (attempt + 1) * 3
+                                    logger.warning(f"Server error ({response.status}) for {strategy}, retry {attempt + 1}/{max_retries} in {wait_time}s...")
+                                    await asyncio.sleep(wait_time)
+                                    continue
+
+                                # Non-retryable error — parse and give up
                                 try:
                                     error_data = json_module.loads(error_text)
                                     api_error = error_data.get("error", {})
@@ -385,7 +410,7 @@ class SpeedAnalyzer(BaseAnalyzer):
                     errors.append(error_msg)
                     return None
                 except asyncio.TimeoutError:
-                    error_msg = f"{strategy}: Timeout (60s exceeded)"
+                    error_msg = f"{strategy}: Timeout (90s exceeded)"
                     logger.error(f"PageSpeed API timeout for {strategy} (60s exceeded)")
                     if attempt < max_retries - 1:
                         await asyncio.sleep((attempt + 1) * 3)
@@ -400,10 +425,10 @@ class SpeedAnalyzer(BaseAnalyzer):
 
             return None
 
-        # Fetch mobile and desktop sequentially to avoid quota issues
-        mobile_result = await fetch_strategy("mobile")
-        await asyncio.sleep(2)  # Delay between requests
-        desktop_result = await fetch_strategy("desktop")
+        # Fetch mobile and desktop in parallel (each has its own retry logic)
+        mobile_task = fetch_strategy("mobile")
+        desktop_task = fetch_strategy("desktop")
+        mobile_result, desktop_result = await asyncio.gather(mobile_task, desktop_task)
 
         result.mobile = mobile_result
         result.desktop = desktop_result

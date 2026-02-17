@@ -135,9 +135,9 @@ class StructureAnalyzer(BaseAnalyzer):
             ))
 
         # Create table with depth distribution
-        h_depth = self.t("table_translations.headers.Глибина")
-        h_page_count = self.t("table_translations.headers.Кількість сторінок")
-        h_example = self.t("table_translations.headers.Приклад")
+        h_depth = self.t("table_translations.headers.depth")
+        h_page_count = self.t("table_translations.headers.page_count")
+        h_example = self.t("table_translations.headers.example")
 
         table_data = []
 
@@ -152,7 +152,7 @@ class StructureAnalyzer(BaseAnalyzer):
 
         if table_data:
             tables.append({
-                "title": self.t("table_translations.titles.Розподіл сторінок за глибиною"),
+                "title": self.t("table_translations.titles.page_distribution_by_depth"),
                 "headers": [h_depth, h_page_count, h_example],
                 "rows": table_data,
             })
@@ -160,7 +160,7 @@ class StructureAnalyzer(BaseAnalyzer):
         # Add orphan pages table if any
         if orphan_pages:
             h_url = self.t("tables.url")
-            h_title = "Title"
+            h_title = self.t("tables.title")
 
             orphan_table = []
             for url in orphan_pages[:15]:
@@ -171,7 +171,7 @@ class StructureAnalyzer(BaseAnalyzer):
                     h_title: title,
                 })
             tables.append({
-                "title": self.t("table_translations.titles.Сирітські сторінки"),
+                "title": self.t("table_translations.titles.orphan_pages"),
                 "headers": [h_url, h_title],
                 "rows": orphan_table,
             })

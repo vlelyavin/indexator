@@ -52,6 +52,13 @@ export interface ProgressEvent {
   current_url?: string | null;
   pages_crawled: number;
   stage?: string | null;
+  analyzer_name?: string | null;
+  speed_testing?: boolean;
+  current_task_type?: "crawling" | "analyzing" | "speed" | "report" | "idle" | null;
+  speed_blocking?: boolean;
+  analyzers_total?: number;
+  analyzers_completed?: number;
+  analyzer_phase?: "running" | "completed" | null;
 }
 
 /** Mirrors Python SpeedMetrics */
@@ -126,6 +133,7 @@ export const ANALYZER_NAMES = [
   "hreflang",
   "duplicates",
   "redirects",
+  "speed_screenshots",
 ] as const;
 
 export type AnalyzerName = (typeof ANALYZER_NAMES)[number];
@@ -153,6 +161,7 @@ export const ANALYZER_LABELS: Record<AnalyzerName, string> = {
   hreflang: "Hreflang",
   duplicates: "Duplicates",
   redirects: "Redirects",
+  speed_screenshots: "PageSpeed Screenshots",
 };
 
 /** Severity badge colors */

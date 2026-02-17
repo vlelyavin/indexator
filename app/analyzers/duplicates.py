@@ -30,15 +30,21 @@ class DuplicatesAnalyzer(BaseAnalyzer):
     def theory(self) -> str:
         return self.t("analyzer_content.duplicates.theory")
 
-    def _extract_text(self, html_content: str) -> str:
-        """Extract and normalize text from HTML."""
-        soup = BeautifulSoup(html_content, "lxml")
-        # Remove script and style elements
-        for element in soup(["script", "style", "noscript"]):
-            element.decompose()
-        text = soup.get_text(separator=" ")
-        # Normalize whitespace
-        text = re.sub(r"\s+", " ", text).strip().lower()
+    _EXCLUDED_TAGS = frozenset({"script", "style", "noscript"})
+
+    def _extract_text(self, soup: 'BeautifulSoup') -> str:
+        """Extract and normalize text from parsed HTML soup (non-destructive).
+
+        Args:
+            soup: BeautifulSoup object (cached from PageData)
+        """
+        texts = []
+        for element in soup.find_all(string=True):
+            if element.parent.name not in self._EXCLUDED_TAGS:
+                stripped = element.strip()
+                if stripped:
+                    texts.append(stripped)
+        text = re.sub(r"\s+", " ", " ".join(texts)).strip().lower()
         return text
 
     def _create_shingles(self, text: str, shingle_size: int = 3) -> set:
@@ -52,7 +58,7 @@ class DuplicatesAnalyzer(BaseAnalyzer):
             shingles.add(shingle)
         return shingles
 
-    def _create_minhash_signature(self, shingles: set, num_hashes: int = 100) -> List[int]:
+    def _create_minhash_signature(self, shingles: set, num_hashes: int = 50) -> List[int]:
         """Create a MinHash signature from shingles."""
         if not shingles:
             return [0] * num_hashes
@@ -90,12 +96,16 @@ class DuplicatesAnalyzer(BaseAnalyzer):
             if page.status_code != 200 or page.word_count <= 50 or not page.html_content:
                 continue
 
-            text = self._extract_text(page.html_content)
+            soup = page.get_soup()
+            if soup is None:
+                continue
+
+            text = self._extract_text(soup)
             shingles = self._create_shingles(text, shingle_size=3)
             if not shingles:
                 continue
 
-            signature = self._create_minhash_signature(shingles, num_hashes=100)
+            signature = self._create_minhash_signature(shingles)
             signatures[url] = signature
             word_counts[url] = page.word_count
 
@@ -204,9 +214,9 @@ class DuplicatesAnalyzer(BaseAnalyzer):
         )
         all_pairs.sort(key=lambda x: x[2], reverse=True)
 
-        h_url1 = "URL 1"
-        h_url2 = "URL 2"
-        h_similarity = self.t("table_translations.headers.Подібність")
+        h_url1 = self.t("tables.url_1")
+        h_url2 = self.t("tables.url_2")
+        h_similarity = self.t("table_translations.headers.similarity")
 
         for url_a, url_b, similarity, dup_type in all_pairs[:10]:
             table_data.append({
@@ -217,7 +227,7 @@ class DuplicatesAnalyzer(BaseAnalyzer):
 
         if table_data:
             tables.append({
-                "title": self.t("table_translations.titles.Дублікати контенту"),
+                "title": self.t("table_translations.titles.content_duplicates"),
                 "headers": [h_url1, h_url2, h_similarity],
                 "rows": table_data,
             })

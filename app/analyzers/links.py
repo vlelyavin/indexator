@@ -63,23 +63,34 @@ class LinksAnalyzer(BaseAnalyzer):
                     }
                 external_links[href]['pages'].append(url)
 
-        # Check internal links status
+        # Check internal links status concurrently (bounded batches)
         broken_internal: List[Dict[str, Any]] = []
+        internal_items = list(internal_links.items())
 
-        for link, source_pages in internal_links.items():
+        async def check_internal(link: str, source_pages: List[str]) -> tuple[str, int, List[str]]:
             # Check if page was crawled
             if link in pages:
                 status = pages[link].status_code
             else:
                 # Page wasn't crawled, check its status
                 status = await check_url_status(link)
+            return link, status, source_pages
 
-            if status >= 400 or status == 0:
-                broken_internal.append({
-                    'url': link,
-                    'status': status,
-                    'source_pages': source_pages[:5],
-                })
+        internal_batch_size = 20
+        for i in range(0, len(internal_items), internal_batch_size):
+            batch = internal_items[i:i + internal_batch_size]
+            tasks = [check_internal(link, source_pages) for link, source_pages in batch]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            for result in results:
+                if isinstance(result, tuple):
+                    link, status, source_pages = result
+                    if status >= 400 or status == 0:
+                        broken_internal.append({
+                            'url': link,
+                            'status': status,
+                            'source_pages': source_pages[:5],
+                        })
 
         # Check external links (limited)
         broken_external: List[Dict[str, Any]] = []
@@ -112,9 +123,9 @@ class LinksAnalyzer(BaseAnalyzer):
                 category="broken_internal",
                 severity=SeverityLevel.ERROR,
                 message=self.t("analyzer_content.links.issues.broken_internal", count=len(broken_internal)),
-                details=self.t("analyzer_content.links.issues.broken_internal_details"),
+                details=self.t("analyzer_content.links.details.broken_internal"),
                 affected_urls=[link['url'] for link in broken_internal[:20]],
-                recommendation=self.t("analyzer_content.links.issues.broken_internal_recommendation"),
+                recommendation=self.t("analyzer_content.links.recommendations.broken_internal"),
                 count=len(broken_internal),
             ))
 
@@ -124,9 +135,9 @@ class LinksAnalyzer(BaseAnalyzer):
                 category="broken_external",
                 severity=SeverityLevel.WARNING,
                 message=self.t("analyzer_content.links.issues.broken_external", count=len(broken_external)),
-                details=self.t("analyzer_content.links.issues.broken_external_details"),
+                details=self.t("analyzer_content.links.details.broken_external"),
                 affected_urls=[link['url'] for link in broken_external[:20]],
-                recommendation=self.t("analyzer_content.links.issues.broken_external_recommendation"),
+                recommendation=self.t("analyzer_content.links.recommendations.broken_external"),
                 count=len(broken_external),
             ))
 

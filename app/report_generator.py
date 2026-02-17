@@ -1,15 +1,24 @@
 """HTML report generator."""
 
 import copy
+import logging
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
+logger = logging.getLogger(__name__)
+
+import re
 from jinja2 import Environment, FileSystemLoader
+from markupsafe import Markup, escape
 
 from .config import settings
-from .i18n import get_translator, _
+from .i18n import get_translator, load_translations, _
 from .models import AnalyzerResult, AuditResult, SeverityLevel
+from .utils import extract_domain
+
+# Singleton instance for ReportGenerator
+_report_generator_instance = None
 
 
 def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) -> AnalyzerResult:
@@ -17,13 +26,13 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
     Translate analyzer result content to target language.
 
     This function handles translation at render time, allowing the analyzer
-    code to remain in Ukrainian (source language) while supporting multiple
-    output languages.
+    code to remain in English (source language) while supporting multiple
+    output languages (uk, ru).
     """
     import re
 
-    if lang == 'uk':
-        return result  # Ukrainian is the source language
+    if lang == 'en':
+        return result  # English is the source language
 
     # Create a deep copy to avoid modifying the original
     translated = copy.deepcopy(result)
@@ -50,15 +59,15 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
     # Translate summary - handle special cases for different analyzers
     if result.summary:
         if name == "cms":
-            # Extract CMS name from Ukrainian summary
-            cms_match = re.search(r'використовується (.+)$', result.summary)
+            # Extract CMS name from English summary
+            cms_match = re.search(r'using (.+)$', result.summary)
             if cms_match:
                 cms_name = cms_match.group(1)
                 summary_key = f"analyzer_content.{name}.summary.cms_detected"
                 translated_summary = translator.get(summary_key, "")
                 if translated_summary and "{cms}" in translated_summary:
                     translated.summary = translated_summary.format(cms=cms_name)
-            elif "не вдалося" in result.summary:
+            elif "could not be identified" in result.summary:
                 summary_key = f"analyzer_content.{name}.summary.cms_unknown"
                 translated_summary = translator.get(summary_key, "")
                 if translated_summary:
@@ -66,9 +75,8 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
 
         elif name == "meta_tags":
             # Handle meta_tags summary with dynamic numbers
-            if "Відсутні мета-теги:" in result.summary:
-                # Extract numbers: "Відсутні мета-теги: X Title, Y Description"
-                match = re.search(r'Відсутні мета-теги: (\d+) Title, (\d+) Description', result.summary)
+            if "Missing meta tags:" in result.summary:
+                match = re.search(r'Missing meta tags: (\d+) Title, (\d+) Description', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.missing"
                     translated_summary = translator.get(summary_key, "")
@@ -78,7 +86,7 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                             missing_descriptions=match.group(2)
                         )
                         # Handle duplicates part if present
-                        dup_match = re.search(r'Дублікати: (\d+) Title, (\d+) Description', result.summary)
+                        dup_match = re.search(r'Duplicates: (\d+) Title, (\d+) Description', result.summary)
                         if dup_match:
                             dup_key = f"analyzer_content.{name}.summary.duplicates"
                             dup_trans = translator.get(dup_key, "")
@@ -87,8 +95,8 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                                     duplicate_titles=dup_match.group(1),
                                     duplicate_descriptions=dup_match.group(2)
                                 )
-            elif "Дублікати:" in result.summary:
-                dup_match = re.search(r'Дублікати: (\d+) Title, (\d+) Description', result.summary)
+            elif "Duplicates:" in result.summary:
+                dup_match = re.search(r'Duplicates: (\d+) Title, (\d+) Description', result.summary)
                 if dup_match:
                     dup_key = f"analyzer_content.{name}.summary.duplicates"
                     translated_summary = translator.get(dup_key, "")
@@ -97,8 +105,8 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                             duplicate_titles=dup_match.group(1),
                             duplicate_descriptions=dup_match.group(2)
                         )
-            elif "Всі" in result.summary and "мають коректні мета-теги" in result.summary:
-                match = re.search(r'Всі (\d+) сторінок', result.summary)
+            elif "have correct meta tags" in result.summary:
+                match = re.search(r'All (\d+) pages', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.all_ok"
                     translated_summary = translator.get(summary_key, "")
@@ -106,15 +114,15 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                         translated.summary = translated_summary.format(total_pages=match.group(1))
 
         elif name == "headings":
-            if "Знайдено проблеми:" in result.summary:
-                match = re.search(r'Знайдено проблеми: (.+)$', result.summary)
+            if "Issues found:" in result.summary:
+                match = re.search(r'Issues found: (.+)$', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.problems_found"
                     translated_summary = translator.get(summary_key, "")
                     if translated_summary:
                         translated.summary = translated_summary.format(problems=match.group(1))
-            elif "мають коректний H1" in result.summary:
-                match = re.search(r'Всі (\d+) сторінок', result.summary)
+            elif "have a correct H1" in result.summary:
+                match = re.search(r'All (\d+) pages', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.all_ok"
                     translated_summary = translator.get(summary_key, "")
@@ -123,13 +131,13 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
 
         elif name == "page_404":
             summary_map = {
-                "налаштована коректно": "ok",
-                "створити або виправити": "missing",
-                "потребує покращень": "needs_improvement",
-                "Не вдалося перевірити": "check_failed"
+                "configured correctly": "ok",
+                "created or fixed": "missing",
+                "needs improvement": "needs_improvement",
+                "Could not check": "check_failed"
             }
-            for ukr_text, key in summary_map.items():
-                if ukr_text in result.summary:
+            for eng_text, key in summary_map.items():
+                if eng_text in result.summary:
                     summary_key = f"analyzer_content.{name}.summary.{key}"
                     translated_summary = translator.get(summary_key, "")
                     if translated_summary:
@@ -141,11 +149,11 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
             match = re.search(r'Mobile: (\d+)/100, Desktop: (\d+)/100', result.summary)
             if match:
                 mobile, desktop = match.group(1), match.group(2)
-                if "в нормі" in result.summary:
+                if "within normal range" in result.summary:
                     key = "ok"
-                elif "Потрібна оптимізація" in result.summary:
+                elif "Optimization needed" in result.summary:
                     key = "needs_optimization"
-                elif "Критичні" in result.summary:
+                elif "Critical" in result.summary:
                     key = "critical"
                 else:
                     key = None
@@ -154,22 +162,22 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                     translated_summary = translator.get(summary_key, "")
                     if translated_summary:
                         translated.summary = translated_summary.format(mobile=mobile, desktop=desktop)
-            elif "Не вдалося" in result.summary:
+            elif "Could not retrieve" in result.summary:
                 summary_key = f"analyzer_content.{name}.summary.failed"
                 translated_summary = translator.get(summary_key, "")
                 if translated_summary:
                     translated.summary = translated_summary
 
         elif name == "images":
-            if "Всі" in result.summary and "оптимізовані" in result.summary:
-                match = re.search(r'Всі (\d+) зображень', result.summary)
+            if "are optimized" in result.summary:
+                match = re.search(r'All (\d+) images', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.all_ok"
                     translated_summary = translator.get(summary_key, "")
                     if translated_summary:
                         translated.summary = translated_summary.format(count=match.group(1))
-            elif "Знайдено" in result.summary:
-                match = re.search(r'Знайдено (\d+) зображень\. Проблеми: (.+)$', result.summary)
+            elif "Found" in result.summary and "images" in result.summary:
+                match = re.search(r'Found (\d+) images\. Issues: (.+)$', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.problems"
                     translated_summary = translator.get(summary_key, "")
@@ -177,15 +185,15 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                         translated.summary = translated_summary.format(count=match.group(1), problems=match.group(2))
 
         elif name == "content":
-            if "мають достатньо контенту" in result.summary:
-                match = re.search(r'Всі (\d+) сторінок.*Середня кількість слів: (\d+)', result.summary)
+            if "have sufficient content" in result.summary:
+                match = re.search(r'All (\d+) pages.*Average word count: (\d+)', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.all_ok"
                     translated_summary = translator.get(summary_key, "")
                     if translated_summary:
                         translated.summary = translated_summary.format(total_pages=match.group(1), avg_words=match.group(2))
-            elif "Проблеми з контентом:" in result.summary:
-                match = re.search(r'Проблеми з контентом: (.+)\. Середня кількість слів: (\d+)', result.summary)
+            elif "Content issues:" in result.summary:
+                match = re.search(r'Content issues: (.+)\. Average word count: (\d+)', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.problems"
                     translated_summary = translator.get(summary_key, "")
@@ -193,15 +201,15 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                         translated.summary = translated_summary.format(problems=match.group(1), avg_words=match.group(2))
 
         elif name == "links":
-            if "Проблем не знайдено" in result.summary:
-                match = re.search(r'Перевірено (\d+) внутрішніх та (\d+) зовнішніх', result.summary)
+            if "No issues found" in result.summary:
+                match = re.search(r'Checked (\d+) internal and (\d+) external', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.no_broken"
                     translated_summary = translator.get(summary_key, "")
                     if translated_summary:
                         translated.summary = translated_summary.format(internal=match.group(1), external=match.group(2))
-            elif "Знайдено битих посилань:" in result.summary:
-                match = re.search(r'Знайдено битих посилань: (.+)$', result.summary)
+            elif "Broken links found:" in result.summary:
+                match = re.search(r'Broken links found: (.+)$', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.broken_found"
                     translated_summary = translator.get(summary_key, "")
@@ -210,12 +218,12 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
 
         elif name == "favicon":
             summary_map = {
-                "налаштовано коректно": "ok",
-                "відсутній": "missing",
-                "можна покращити": "needs_improvement"
+                "configured correctly": "ok",
+                "is missing": "missing",
+                "can be improved": "needs_improvement"
             }
-            for ukr_text, key in summary_map.items():
-                if ukr_text in result.summary:
+            for eng_text, key in summary_map.items():
+                if eng_text in result.summary:
                     summary_key = f"analyzer_content.{name}.summary.{key}"
                     translated_summary = translator.get(summary_key, "")
                     if translated_summary:
@@ -223,14 +231,14 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                     break
 
         elif name == "external_links":
-            match = re.search(r'Знайдено (\d+) зовнішніх посилань на (\d+) доменів', result.summary)
+            match = re.search(r'Found (\d+) external links to (\d+) domains', result.summary)
             if match:
                 summary_key = f"analyzer_content.{name}.summary.ok"
                 translated_summary = translator.get(summary_key, "")
                 if translated_summary:
                     translated.summary = translated_summary.format(count=match.group(1), domains=match.group(2))
             else:
-                match = re.search(r'Знайдено (\d+) зовнішніх посилань\. Попереджень: (\d+), інфо: (\d+)', result.summary)
+                match = re.search(r'Found (\d+) external links\. Warnings: (\d+), info: (\d+)', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.with_warnings"
                     translated_summary = translator.get(summary_key, "")
@@ -238,13 +246,13 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                         translated.summary = translated_summary.format(count=match.group(1), warnings=match.group(2), info=match.group(3))
 
         elif name == "robots":
-            if "в порядку" in result.summary:
+            if "in order" in result.summary:
                 summary_key = f"analyzer_content.{name}.summary.ok"
                 translated_summary = translator.get(summary_key, "")
                 if translated_summary:
                     translated.summary = translated_summary
-            elif "Проблеми з індексацією:" in result.summary:
-                match = re.search(r'Проблеми з індексацією: (.+)$', result.summary)
+            elif "Indexation issues:" in result.summary:
+                match = re.search(r'Indexation issues: (.+)$', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.problems"
                     translated_summary = translator.get(summary_key, "")
@@ -252,15 +260,15 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                         translated.summary = translated_summary.format(problems=match.group(1))
 
         elif name == "structure":
-            if "оптимальна" in result.summary:
-                match = re.search(r'Максимальна глибина: (\d+) рівнів', result.summary)
+            if "is optimal" in result.summary:
+                match = re.search(r'Maximum depth: (\d+) levels', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.ok"
                     translated_summary = translator.get(summary_key, "")
                     if translated_summary:
                         translated.summary = translated_summary.format(depth=match.group(1))
             else:
-                match = re.search(r'Максимальна глибина: (\d+)\. Проблеми: (.+)$', result.summary)
+                match = re.search(r'Maximum depth: (\d+)\. Issues: (.+)$', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.problems"
                     translated_summary = translator.get(summary_key, "")
@@ -268,36 +276,36 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                         translated.summary = translated_summary.format(depth=match.group(1), problems=match.group(2))
 
         elif name == "content_sections":
-            if "Виявлено:" in result.summary:
-                match = re.search(r'Виявлено: (.+)$', result.summary)
+            if "Detected:" in result.summary:
+                match = re.search(r'Detected: (.+)$', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.detected"
                     translated_summary = translator.get(summary_key, "")
                     if translated_summary:
                         translated.summary = translated_summary.format(sections=match.group(1))
-            elif "не виявлено" in result.summary:
+            elif "No informational sections" in result.summary:
                 summary_key = f"analyzer_content.{name}.summary.not_detected"
                 translated_summary = translator.get(summary_key, "")
                 if translated_summary:
                     translated.summary = translated_summary
 
         elif name == "schema":
-            if "Знайдено" in result.summary and "типів" in result.summary:
-                match = re.search(r'Знайдено (\d+) типів Schema\.org на (\d+) сторінках', result.summary)
+            if "Found" in result.summary and "Schema.org types" in result.summary:
+                match = re.search(r'Found (\d+) Schema\.org types across (\d+) pages', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.found"
                     translated_summary = translator.get(summary_key, "")
                     if translated_summary:
                         translated.summary = translated_summary.format(types=match.group(1), pages=match.group(2))
-            elif "відсутні" in result.summary:
+            elif "is missing" in result.summary:
                 summary_key = f"analyzer_content.{name}.summary.missing"
                 translated_summary = translator.get(summary_key, "")
                 if translated_summary:
                     translated.summary = translated_summary
 
         elif name == "social_tags":
-            if "OG теги:" in result.summary:
-                match = re.search(r'OG теги: (\d+)/(\d+).*Twitter Cards: (\d+)/(\d+)', result.summary)
+            if "OG tags:" in result.summary:
+                match = re.search(r'OG tags: (\d+)/(\d+).*Twitter Cards: (\d+)/(\d+)', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.stats"
                     translated_summary = translator.get(summary_key, "")
@@ -305,20 +313,20 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                         translated.summary = translated_summary.format(
                             og=match.group(1), total=match.group(2),
                             twitter=match.group(3), total2=match.group(4))
-            elif "Немає сторінок" in result.summary:
+            elif "No pages" in result.summary:
                 summary_key = f"analyzer_content.{name}.summary.no_pages"
                 translated_summary = translator.get(summary_key, "")
                 if translated_summary:
                     translated.summary = translated_summary
 
         elif name == "security":
-            if "в нормі" in result.summary:
+            if "in order" in result.summary:
                 summary_key = f"analyzer_content.{name}.summary.ok"
                 translated_summary = translator.get(summary_key, "")
                 if translated_summary:
                     translated.summary = translated_summary
-            elif "Знайдено проблем:" in result.summary:
-                match = re.search(r'Знайдено проблем: (.+)$', result.summary)
+            elif "Issues found:" in result.summary:
+                match = re.search(r'Issues found: (.+)$', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.problems"
                     translated_summary = translator.get(summary_key, "")
@@ -326,15 +334,15 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                         translated.summary = translated_summary.format(problems=match.group(1))
 
         elif name == "mobile":
-            if "мають viewport" in result.summary:
-                match = re.search(r'Всі (\d+) сторінок', result.summary)
+            if "have a viewport" in result.summary:
+                match = re.search(r'All (\d+) pages', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.ok"
                     translated_summary = translator.get(summary_key, "")
                     if translated_summary:
                         translated.summary = translated_summary.format(count=match.group(1))
-            elif "Проблеми:" in result.summary:
-                match = re.search(r'Проблеми: (.+)$', result.summary)
+            elif "Issues:" in result.summary:
+                match = re.search(r'Issues: (.+)$', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.problems"
                     translated_summary = translator.get(summary_key, "")
@@ -342,13 +350,13 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                         translated.summary = translated_summary.format(problems=match.group(1))
 
         elif name == "url_quality":
-            if "Всі URL якісні" in result.summary:
+            if "All URLs are well-structured" in result.summary:
                 summary_key = f"analyzer_content.{name}.summary.ok"
                 translated_summary = translator.get(summary_key, "")
                 if translated_summary:
                     translated.summary = translated_summary
-            elif "Знайдено проблем:" in result.summary:
-                match = re.search(r'Знайдено проблем: (.+)$', result.summary)
+            elif "Issues found:" in result.summary:
+                match = re.search(r'Issues found: (.+)$', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.problems"
                     translated_summary = translator.get(summary_key, "")
@@ -356,13 +364,13 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                         translated.summary = translated_summary.format(problems=match.group(1))
 
         elif name == "hreflang":
-            if "відсутні" in result.summary:
+            if "are missing" in result.summary:
                 summary_key = f"analyzer_content.{name}.summary.missing"
                 translated_summary = translator.get(summary_key, "")
                 if translated_summary:
                     translated.summary = translated_summary
-            elif "Знайдено" in result.summary:
-                match = re.search(r'Знайдено (\d+) мовних версій на (\d+) сторінках', result.summary)
+            elif "Found" in result.summary and "language versions" in result.summary:
+                match = re.search(r'Found (\d+) language versions across (\d+) pages', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.found"
                     translated_summary = translator.get(summary_key, "")
@@ -370,94 +378,64 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
                         translated.summary = translated_summary.format(langs=match.group(1), pages=match.group(2))
 
         elif name == "duplicates":
-            if "Знайдено" in result.summary and "груп" in result.summary:
-                match = re.search(r'Знайдено (\d+) груп', result.summary)
+            if "Found" in result.summary and "duplicate groups" in result.summary:
+                match = re.search(r'Found (\d+) duplicate groups', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.found"
                     translated_summary = translator.get(summary_key, "")
                     if translated_summary:
                         translated.summary = translated_summary.format(count=match.group(1))
-            elif "не виявлено" in result.summary:
+            elif "No duplicates" in result.summary:
                 summary_key = f"analyzer_content.{name}.summary.ok"
                 translated_summary = translator.get(summary_key, "")
                 if translated_summary:
                     translated.summary = translated_summary
 
         elif name == "redirects":
-            if "Знайдено" in result.summary and "ланцюжків" in result.summary:
-                match = re.search(r'Знайдено (\d+) ланцюжків', result.summary)
+            if "Found" in result.summary and "redirect chains" in result.summary:
+                match = re.search(r'Found (\d+) redirect chains', result.summary)
                 if match:
                     summary_key = f"analyzer_content.{name}.summary.found"
                     translated_summary = translator.get(summary_key, "")
                     if translated_summary:
                         translated.summary = translated_summary.format(count=match.group(1))
-            elif "не знайдено" in result.summary:
+            elif "No redirect issues" in result.summary:
                 summary_key = f"analyzer_content.{name}.summary.ok"
                 translated_summary = translator.get(summary_key, "")
                 if translated_summary:
                     translated.summary = translated_summary
 
-        # Post-process: replace remaining Ukrainian words in summary
+        # Post-process: replace remaining English words in summary
         # (injected via {problems}, {broken}, {sections} placeholders)
-        if lang == 'en' and translated.summary:
-            _summary_word_map_en = {
-                'декілька H1': 'multiple H1',
-                'дублів H1': 'duplicate H1',
-                'порушень ієрархії': 'hierarchy violations',
-                'без H1': 'no H1',
-                'завеликі': 'too large',
-                'застарілий формат': 'outdated format',
-                'порожніх': 'empty',
-                'з малим контентом': 'with thin content',
-                'внутрішніх': 'internal',
-                'зовнішніх': 'external',
-                'глибоких сторінок': 'deep pages',
-                'сирітських': 'orphan',
-                'помилок': 'errors',
-                'попереджень': 'warnings',
-                'без viewport': 'no viewport',
-                'Flash-контент': 'Flash content',
-                'некоректний viewport': 'incorrect viewport',
-                'довгих URL': 'long URLs',
-                'великі літери': 'uppercase letters',
-                'спецсимволи': 'special characters',
-                'підкреслення': 'underscores',
-                'подвійні слеші': 'double slashes',
-                'параметри': 'parameters',
-            }
-            for ukr, eng in _summary_word_map_en.items():
-                if ukr in translated.summary:
-                    translated.summary = translated.summary.replace(ukr, eng)
-
-        if lang == 'ru' and translated.summary:
+        if translated.summary:
             _summary_word_map = {
-                'декілька H1': 'несколько H1',
-                'дублів H1': 'дублей H1',
-                'порушень ієрархії': 'нарушений иерархии',
-                'без H1': 'без H1',
-                'завеликі': 'слишком большие',
-                'застарілий формат': 'устаревший формат',
-                'порожніх': 'пустых',
-                'з малим контентом': 'с малым контентом',
-                'внутрішніх': 'внутренних',
-                'зовнішніх': 'внешних',
-                'глибоких сторінок': 'глубоких страниц',
-                'сирітських': 'сиротских',
-                'помилок': 'ошибок',
-                'попереджень': 'предупреждений',
-                'без viewport': 'без viewport',
-                'Flash-контент': 'Flash-контент',
-                'некоректний viewport': 'некорректный viewport',
-                'довгих URL': 'длинных URL',
-                'великі літери': 'заглавные буквы',
-                'спецсимволи': 'спецсимволы',
-                'підкреслення': 'подчёркивания',
-                'подвійні слеші': 'двойные слэши',
-                'параметри': 'параметры',
+                'multiple H1': {'uk': 'декілька H1', 'ru': 'несколько H1'},
+                'duplicate H1': {'uk': 'дублів H1', 'ru': 'дублей H1'},
+                'hierarchy violations': {'uk': 'порушень ієрархії', 'ru': 'нарушений иерархии'},
+                'no H1': {'uk': 'без H1', 'ru': 'без H1'},
+                'too large': {'uk': 'завеликі', 'ru': 'слишком большие'},
+                'outdated format': {'uk': 'застарілий формат', 'ru': 'устаревший формат'},
+                'empty': {'uk': 'порожніх', 'ru': 'пустых'},
+                'with thin content': {'uk': 'з малим контентом', 'ru': 'с малым контентом'},
+                'internal': {'uk': 'внутрішніх', 'ru': 'внутренних'},
+                'external': {'uk': 'зовнішніх', 'ru': 'внешних'},
+                'deep pages': {'uk': 'глибоких сторінок', 'ru': 'глубоких страниц'},
+                'orphan': {'uk': 'сирітських', 'ru': 'сиротских'},
+                'errors': {'uk': 'помилок', 'ru': 'ошибок'},
+                'warnings': {'uk': 'попереджень', 'ru': 'предупреждений'},
+                'no viewport': {'uk': 'без viewport', 'ru': 'без viewport'},
+                'Flash content': {'uk': 'Flash-контент', 'ru': 'Flash-контент'},
+                'incorrect viewport': {'uk': 'некоректний viewport', 'ru': 'некорректный viewport'},
+                'long URLs': {'uk': 'довгих URL', 'ru': 'длинных URL'},
+                'uppercase letters': {'uk': 'великі літери', 'ru': 'заглавные буквы'},
+                'special characters': {'uk': 'спецсимволи', 'ru': 'спецсимволы'},
+                'underscores': {'uk': 'підкреслення', 'ru': 'подчёркивания'},
+                'double slashes': {'uk': 'подвійні слеші', 'ru': 'двойные слэши'},
+                'parameters': {'uk': 'параметри', 'ru': 'параметры'},
             }
-            for ukr, rus in _summary_word_map.items():
-                if ukr in translated.summary:
-                    translated.summary = translated.summary.replace(ukr, rus)
+            for eng, translations in _summary_word_map.items():
+                if eng in translated.summary and lang in translations:
+                    translated.summary = translated.summary.replace(eng, translations[lang])
 
     # Translate issues
     for issue in translated.issues:
@@ -469,24 +447,21 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
             try:
                 # Handle CMS-specific translations with dynamic CMS name
                 if name == "cms" and issue.category == "cms_detected":
-                    cms_match = re.search(r'використовується (.+)$', issue.message)
+                    cms_match = re.search(r'using (.+)$', issue.message)
                     if cms_match and "{cms}" in translated_msg:
                         issue.message = translated_msg.format(cms=cms_match.group(1))
                 elif name == "cms" and issue.category == "multiple_cms":
-                    cms_match = re.search(r'ознаки: (.+)$', issue.message)
+                    cms_match = re.search(r'detected: (.+)$', issue.message)
                     if cms_match and "{cms_list}" in translated_msg:
                         issue.message = translated_msg.format(cms_list=cms_match.group(1))
-                # Try to format with count if available
-                elif issue.count is not None and "{count}" in translated_msg and "{" in translated_msg.replace("{count}", ""):
-                    # Has {count} plus other placeholders — skip, handled below
-                    pass
-                elif issue.count is not None and "{count}" in translated_msg:
+                # Try to format with count if available (only {count}, no other placeholders)
+                elif issue.count is not None and "{count}" in translated_msg and "{" not in translated_msg.replace("{count}", ""):
                     issue.message = translated_msg.format(count=issue.count)
                 elif "{" not in translated_msg:
                     # No placeholders, use as-is
                     issue.message = translated_msg
                 else:
-                    # General fallback: extract dynamic values from Ukrainian message
+                    # General fallback: extract dynamic values from English message
                     format_kwargs = {}
                     numbers = re.findall(r'\d+', issue.message)
 
@@ -502,11 +477,11 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
 
                     # Extract domain for external_links many_links_same_domain
                     if '{domain}' in translated_msg:
-                        domain_match = re.search(r'на (.+?):', issue.message)
+                        domain_match = re.search(r'to (.+?):', issue.message)
                         if domain_match:
                             format_kwargs['domain'] = domain_match.group(1)
-                        # Also try to get count from "domain: N шт."
-                        count_match = re.search(r':\s*(\d+)\s*шт', issue.message)
+                        # Also try to get count from "domain: N"
+                        count_match = re.search(r':\s*(\d+)', issue.message)
                         if count_match:
                             format_kwargs['count'] = count_match.group(1)
 
@@ -522,7 +497,7 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
         if translated_details:
             if name == "cms" and issue.category == "cms_detected":
                 # Extract evidence from original details
-                evidence_match = re.search(r'ознаки: (.+)$', issue.details or "")
+                evidence_match = re.search(r'indicators: (.+)$', issue.details or "")
                 if evidence_match and "{evidence}" in translated_details:
                     evidence = evidence_match.group(1)
                     issue.details = translated_details.format(evidence=evidence)
@@ -535,43 +510,40 @@ def translate_analyzer_content(result: AnalyzerResult, lang: str, translator) ->
         if translated_rec and "{" not in translated_rec:
             issue.recommendation = translated_rec
 
-    # Post-process: replace remaining Ukrainian words in issue messages
+    # Post-process: replace remaining English words in issue messages
     # (speed FCP/LCP/CLS metrics, content_sections missing features, etc.)
-    if lang == 'en':
-        _issue_word_map_en = {
-            'повільний': 'slow',
-            'високий': 'high',
-            'ціль': 'target',
-            'відсутні елементи:': 'missing elements:',
-            'дати публікації': 'publication dates',
-            'категорії': 'categories',
-        }
-        for issue in translated.issues:
-            if issue.message:
-                for ukr, eng in _issue_word_map_en.items():
-                    if ukr in issue.message:
-                        issue.message = issue.message.replace(ukr, eng)
-
-    if lang == 'ru':
+    if translated.issues:
         _issue_word_map = {
-            'повільний': 'медленный',
-            'високий': 'высокий',
-            'ціль': 'цель',
-            'відсутні елементи:': 'отсутствуют элементы:',
-            'дати публікації': 'даты публикации',
-            'категорії': 'категории',
+            'slow': {'uk': 'повільний', 'ru': 'медленный'},
+            'high': {'uk': 'високий', 'ru': 'высокий'},
+            'target': {'uk': 'ціль', 'ru': 'цель'},
+            'missing elements:': {'uk': 'відсутні елементи:', 'ru': 'отсутствуют элементы:'},
+            'publication dates': {'uk': 'дати публікації', 'ru': 'даты публикации'},
+            'categories': {'uk': 'категорії', 'ru': 'категории'},
         }
         for issue in translated.issues:
             if issue.message:
-                for ukr, rus in _issue_word_map.items():
-                    if ukr in issue.message:
-                        issue.message = issue.message.replace(ukr, rus)
+                for eng, translations in _issue_word_map.items():
+                    if eng in issue.message and lang in translations:
+                        issue.message = issue.message.replace(eng, translations[lang])
 
     # Translate tables
-    table_titles = translator.translations.get("table_translations", {}).get("titles", {})
-    table_headers = translator.translations.get("table_translations", {}).get("headers", {})
-    table_values = translator.translations.get("table_translations", {}).get("values", {})
-    table_patterns = translator.translations.get("table_translations", {}).get("patterns", {})
+    # Build reverse maps: English value → target translation (keyed by snake_case keys)
+    en_translations = load_translations("en")
+    en_tt = en_translations.get("table_translations", {})
+    target_tt = translator.translations.get("table_translations", {})
+
+    def build_reverse_map(en_section: dict, target_section: dict) -> dict:
+        result = {}
+        for key in en_section:
+            if key in target_section:
+                result[en_section[key]] = target_section[key]
+        return result
+
+    table_titles = build_reverse_map(en_tt.get("titles", {}), target_tt.get("titles", {}))
+    table_headers = build_reverse_map(en_tt.get("headers", {}), target_tt.get("headers", {}))
+    table_values = build_reverse_map(en_tt.get("values", {}), target_tt.get("values", {}))
+    table_patterns = build_reverse_map(en_tt.get("patterns", {}), target_tt.get("patterns", {}))
 
     for table in translated.tables:
         # Translate table title
@@ -628,15 +600,16 @@ class ReportGenerator:
         self.env.filters['status_icon'] = self.status_icon
         self.env.filters['severity_class'] = self.severity_class
         self.env.filters['format_number'] = self.format_number
+        self.env.filters['format_cell'] = self.format_cell
 
     @staticmethod
     def status_icon(severity: SeverityLevel) -> str:
-        """Convert severity to status icon."""
+        """Convert severity to inline SVG icon."""
         icons = {
-            SeverityLevel.SUCCESS: '✓',
-            SeverityLevel.WARNING: '⚠️',
-            SeverityLevel.ERROR: '✗',
-            SeverityLevel.INFO: 'ℹ️',
+            SeverityLevel.SUCCESS: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+            SeverityLevel.WARNING: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+            SeverityLevel.ERROR: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+            SeverityLevel.INFO: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
         }
         return icons.get(severity, '')
 
@@ -656,18 +629,49 @@ class ReportGenerator:
         """Format number with thousands separator."""
         return f"{value:,}".replace(",", " ")
 
-    async def generate(self, audit: AuditResult) -> str:
+    @staticmethod
+    def format_cell(value) -> Markup:
+        """Format table cell: replace ✓/✗/⚠️ with SVG icons, make URLs clickable."""
+        text = str(value) if value is not None else ""
+
+        # HTML-escape the text first to prevent XSS
+        text = str(escape(text))
+
+        # SVG icons (14×14) matching the report's existing icon style
+        icon_check = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 10"/></svg>'
+        icon_cross = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
+        icon_warning = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'
+
+        # Replace Unicode symbols and emojis with SVG icons
+        text = text.replace("\u2713", icon_check)     # ✓
+        text = text.replace("\u2714", icon_check)     # ✔
+        text = text.replace("\u2717", icon_cross)     # ✗
+        text = text.replace("\u2718", icon_cross)     # ✘
+        text = text.replace("\u2716", icon_cross)     # ✖
+        text = text.replace("\u26a0\ufe0f", icon_warning)  # ⚠️ (with variation selector)
+        text = text.replace("\u26a0", icon_warning)   # ⚠ (without variation selector)
+
+        # Make URLs clickable
+        text = re.sub(
+            r'(https?://[^\s<>&"\']+)',
+            r'<a href="\1" target="_blank" rel="noopener noreferrer">\1</a>',
+            text,
+        )
+
+        return Markup(text)
+
+    async def generate(self, audit: AuditResult, brand: dict | None = None) -> str:
         """Generate HTML report and return file path."""
         template = self.env.get_template("report.html")
 
         # Get translator for the audit language
-        lang = getattr(audit, 'language', 'uk') or 'uk'
+        lang = getattr(audit, 'language', 'en') or 'en'
         t = get_translator(lang)
 
         # Prepare sections for navigation with translated names
         sections = []
         section_order = [
-            "cms", "meta_tags", "headings", "page_404", "speed",
+            "cms", "speed", "meta_tags", "headings", "page_404",
             "images", "content", "links", "favicon", "external_links",
             "robots", "structure", "content_sections",
             "schema", "social_tags", "security", "mobile",
@@ -678,8 +682,8 @@ class ReportGenerator:
             if name in audit.results:
                 result = audit.results[name]
 
-                # Translate analyzer content if not Ukrainian
-                if lang != 'uk':
+                # Translate analyzer content if not English
+                if lang != 'en':
                     result = translate_analyzer_content(result, lang, t)
 
                 # Get translated title, fallback to display_name from result
@@ -696,11 +700,33 @@ class ReportGenerator:
                 })
 
         # Extract domain
-        domain = urlparse(audit.url).netloc.replace("www.", "")
+        domain = extract_domain(audit.url)
+
+        # Compute category overview data (sorted by severity)
+        severity_order = {SeverityLevel.ERROR: 0, SeverityLevel.WARNING: 1, SeverityLevel.INFO: 2, SeverityLevel.SUCCESS: 3}
+        badge_text_map = {
+            SeverityLevel.SUCCESS: t("report.badge_ok"),
+            SeverityLevel.WARNING: t("report.badge_warning"),
+            SeverityLevel.ERROR: t("report.badge_error"),
+            SeverityLevel.INFO: t("report.badge_info"),
+        }
+        category_overview = []
+        for section in sorted(sections, key=lambda s: severity_order.get(s["severity"], 4)):
+            result = section["result"]
+            criticals = sum(1 for iss in result.issues if iss.severity == SeverityLevel.ERROR)
+            warns = sum(1 for iss in result.issues if iss.severity == SeverityLevel.WARNING)
+            category_overview.append({
+                "title": section["title"],
+                "severity": section["severity"],
+                "badge_text": badge_text_map.get(section["severity"], "—"),
+                "criticals": criticals,
+                "warns": warns,
+            })
 
         # Prepare translations for template
         translations = {
             "report_title": t("report.title"),
+            "express_title": t("report.express_title"),
             "overview": t("report.overview"),
             "pages_crawled": t("report.pages_crawled"),
             "passed_checks": t("report.passed_checks"),
@@ -714,6 +740,17 @@ class ReportGenerator:
             "collapse": t("common.collapse"),
             "pagespeed_screenshots": t("report.pagespeed_screenshots"),
             "homepage_screenshot_title": t("report.homepage_screenshot_title"),
+            "badge_ok": t("report.badge_ok"),
+            "badge_warning": t("report.badge_warning"),
+            "badge_error": t("report.badge_error"),
+            "badge_info": t("report.badge_info"),
+            "pages_analyzed": t("report.pages_analyzed", count=audit.pages_crawled),
+            "category_overview": t("report.category_overview"),
+            "category_overview_desc": t("report.category_overview_description"),
+            "category_label": t("report.category"),
+            "status_label": t("report.status"),
+            "critical_label": t("report.critical_count"),
+            "warnings_label": t("report.warning_count"),
         }
 
         # Render template
@@ -721,10 +758,12 @@ class ReportGenerator:
             audit=audit,
             domain=domain,
             sections=sections,
+            category_overview=category_overview,
             generated_at=datetime.now().strftime("%d.%m.%Y %H:%M"),
             SeverityLevel=SeverityLevel,
             t=translations,
             lang=lang,
+            brand=brand or {},
         )
 
         # Save report
@@ -736,29 +775,82 @@ class ReportGenerator:
 
         return str(report_path)
 
-    async def generate_pdf(self, audit: AuditResult) -> str:
+    async def generate_pdf(self, audit: AuditResult, brand: dict | None = None) -> str:
         """Generate PDF report and return file path."""
         try:
             from weasyprint import HTML, CSS
         except ImportError:
             raise ImportError("weasyprint is required for PDF export. Install it with: pip install weasyprint")
 
-        # First generate HTML
-        html_path = await self.generate(audit)
+        # Get translator and sections (same logic as generate())
+        lang = getattr(audit, 'language', 'en') or 'en'
+        t = get_translator(lang)
+        domain = extract_domain(audit.url)
 
-        # Read the HTML content
+        sections = []
+        section_order = [
+            "cms", "speed", "meta_tags", "headings", "page_404",
+            "images", "content", "links", "favicon", "external_links",
+            "robots", "structure", "content_sections",
+            "schema", "social_tags", "security", "mobile",
+            "url_quality", "hreflang", "duplicates", "redirects",
+        ]
+        for name in section_order:
+            if name in audit.results:
+                result = audit.results[name]
+                if lang != 'en':
+                    result = translate_analyzer_content(result, lang, t)
+                title = t(f"analyzers.{name}.name")
+                if title == f"analyzers.{name}.name":
+                    title = result.display_name
+                sections.append({"id": name, "title": title, "severity": result.severity, "result": result})
+
+        # First generate HTML (for the detailed findings)
+        html_path = await self.generate(audit, brand=brand)
         with open(html_path, "r", encoding="utf-8") as f:
             html_content = f.read()
+
+        # --- Replace summary header with cover-style content for PDF ---
+        generated_at = datetime.now().strftime("%d.%m.%Y")
+        cover_header = f'''
+            <h1 class="pdf-cover-title">Express SEO audit</h1>
+            <div class="pdf-cover-url">Website: {domain}</div>
+            <div class="pdf-cover-meta">{t("report.pages_analyzed", count=audit.pages_crawled)} · {generated_at}</div>
+        '''
+        # Replace the original h1 + two p tags header in the summary section
+        html_content = re.sub(
+            r'<h1 style="font-size: 24px; margin-bottom: 6px;">.*?</h1>\s*'
+            r'<p style="color: var\(--color-text-light\); margin-bottom: 4px; font-size: 13px;">.*?</p>\s*'
+            r'<p style="color: var\(--color-text-light\); margin-bottom: 24px; font-size: 13px;">.*?</p>',
+            cover_header,
+            html_content,
+            flags=re.DOTALL,
+        )
+
+        # --- Change 4: Limit URL lists to 10 items for PDF ---
+        html_content = self._limit_pdf_urls(html_content)
 
         # Create PDF
         pdf_filename = f"audit_{audit.id}.pdf"
         pdf_path = Path(settings.REPORTS_DIR) / pdf_filename
 
-        # Add print-specific CSS to hide sidebar and adjust layout
+        # Print-specific CSS
         print_css = CSS(string="""
             @page {
                 size: A4;
-                margin: 1.5cm;
+                margin: 1.5cm 1.5cm 2cm 1.5cm;
+                @bottom-center {
+                    content: counter(page);
+                    font-size: 9pt;
+                    color: #9CA3AF;
+                    font-family: Inter, sans-serif;
+                }
+                @bottom-right {
+                    content: "seo-audit.online";
+                    font-size: 8pt;
+                    color: #D1D5DB;
+                    font-family: Inter, sans-serif;
+                }
             }
             .sidebar {
                 display: none !important;
@@ -770,14 +862,81 @@ class ReportGenerator:
             }
             body {
                 background: white !important;
-                font-size: 11pt !important;
+                font-size: 10pt !important;
+                color: #333 !important;
             }
+
+            /* === Cover Header (merged into first page) === */
+            .pdf-cover-title {
+                font-size: 22pt;
+                font-weight: 700;
+                color: #111827;
+                margin: 0 0 8px 0;
+            }
+            .pdf-cover-url {
+                font-size: 10pt;
+                color: #111827;
+                margin-bottom: 2px;
+            }
+            .pdf-cover-meta {
+                font-size: 10pt;
+                color: #111827;
+                margin-bottom: 4px;
+            }
+
+            /* === Category Overview === */
+            #category-overview {
+                page-break-after: always;
+            }
+
+            /* === Detailed Findings === */
             .section {
-                page-break-inside: avoid;
-                break-inside: avoid;
+                margin-bottom: 18px !important;
             }
+            .section-header {
+                margin-bottom: 10px !important;
+                padding-bottom: 8px !important;
+                align-items: center !important;
+            }
+            .issue {
+                margin-bottom: 6px !important;
+            }
+            .theory-block {
+                margin-bottom: 8px !important;
+            }
+            /* Allow ALL content to split across pages — no gaps */
+            .section, .section-header, .issue, .issue-header,
+            .theory-block, .table-wrapper, .summary-grid, .screenshots-grid {
+                page-break-inside: auto !important;
+                break-inside: auto !important;
+                page-break-before: auto !important;
+                break-before: auto !important;
+                page-break-after: auto !important;
+                break-after: auto !important;
+            }
+            /* Summary cards: compact for A4 */
             .summary-grid {
                 grid-template-columns: repeat(4, 1fr) !important;
+                margin-top: 24px !important;
+            }
+            .summary-card {
+                padding: 10px !important;
+                gap: 10px !important;
+            }
+            .summary-card .icon-circle {
+                width: 32px !important;
+                height: 32px !important;
+                min-width: 32px !important;
+            }
+            .summary-card .icon-circle svg {
+                width: 16px !important;
+                height: 16px !important;
+            }
+            .summary-card .number {
+                font-size: 20px !important;
+            }
+            .summary-card .label {
+                font-size: 10px !important;
             }
             .screenshots-grid {
                 grid-template-columns: 1fr !important;
@@ -785,8 +944,21 @@ class ReportGenerator:
             .screenshot-card img {
                 max-width: 100% !important;
             }
-            .theory-block {
-                page-break-inside: avoid;
+            /* Badge pill styling for WeasyPrint */
+            .badge {
+                display: inline-flex !important;
+                align-items: center !important;
+                gap: 4px !important;
+                padding: 3px 10px !important;
+                border-radius: 9999px !important;
+                font-size: 12px !important;
+                font-weight: 500 !important;
+                vertical-align: middle !important;
+                line-height: 1 !important;
+            }
+            .badge svg {
+                display: inline-block !important;
+                vertical-align: middle !important;
             }
             /* Force details open and hide interactive elements for PDF */
             details {
@@ -809,6 +981,36 @@ class ReportGenerator:
             .urls-hidden {
                 display: block !important;
             }
+            /* === Truncation: single-line URLs and table cells === */
+            .data-table {
+                table-layout: fixed !important;
+            }
+            .category-table {
+                table-layout: auto !important;
+            }
+            .category-table td {
+                white-space: normal !important;
+                overflow: visible !important;
+                text-overflow: clip !important;
+                max-width: none !important;
+            }
+            .category-table .badge {
+                width: fit-content !important;
+            }
+            .issue-urls li {
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                max-width: 100% !important;
+                word-break: normal !important;
+            }
+            .data-table td {
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                max-width: 300px !important;
+                word-break: normal !important;
+            }
         """)
 
         # Force all details elements to be open for PDF
@@ -817,6 +1019,32 @@ class ReportGenerator:
         HTML(string=html_content).write_pdf(pdf_path, stylesheets=[print_css])
 
         return str(pdf_path)
+
+    @staticmethod
+    def _limit_pdf_urls(html: str, max_urls: int = 10) -> str:
+        """Limit URL lists in PDF to max_urls items per issue."""
+        def replace_ul(match):
+            full = match.group(0)
+            items = re.findall(r'<li>.*?</li>', full, re.DOTALL)
+            if len(items) <= max_urls:
+                return full
+            kept = '\n'.join(items[:max_urls])
+            remaining = len(items) - max_urls
+            more_text = f'<li style="color: #6B7280; font-style: italic;">... and {remaining} more</li>'
+            return re.sub(
+                r'(<ul[^>]*>)(.*?)(</ul>)',
+                lambda m: m.group(1) + '\n' + kept + '\n' + more_text + '\n' + m.group(3),
+                full,
+                count=0,
+                flags=re.DOTALL,
+            )
+
+        return re.sub(
+            r'<ul[^>]*>(?:\s*<li>.*?</li>\s*)+</ul>',
+            replace_ul,
+            html,
+            flags=re.DOTALL,
+        )
 
     # --- DOCX Helper Methods ---
 
@@ -903,6 +1131,117 @@ class ReportGenerator:
             run.font.bold = bold
         if color_rgb is not None:
             run.font.color.rgb = RGBColor(*color_rgb)
+
+    @staticmethod
+    def _docx_add_hyperlink(paragraph, url: str, text: str, font_name: str = 'Inter', font_size_pt: int = 9, color_rgb=None):
+        """Add a clickable hyperlink to a Word paragraph."""
+        from docx.oxml.ns import qn
+        from docx.oxml import OxmlElement
+        from docx.shared import Pt, RGBColor
+
+        part = paragraph.part
+        r_id = part.relate_to(url, 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink', is_external=True)
+
+        hyperlink = OxmlElement('w:hyperlink')
+        hyperlink.set(qn('r:id'), r_id)
+
+        new_run = OxmlElement('w:r')
+        rPr = OxmlElement('w:rPr')
+
+        # Font
+        rFonts = OxmlElement('w:rFonts')
+        rFonts.set(qn('w:ascii'), font_name)
+        rFonts.set(qn('w:hAnsi'), font_name)
+        rFonts.set(qn('w:cs'), font_name)
+        rPr.append(rFonts)
+
+        # Size
+        sz = OxmlElement('w:sz')
+        sz.set(qn('w:val'), str(font_size_pt * 2))  # Half-points
+        rPr.append(sz)
+        szCs = OxmlElement('w:szCs')
+        szCs.set(qn('w:val'), str(font_size_pt * 2))
+        rPr.append(szCs)
+
+        # Color
+        rgb = color_rgb or (59, 130, 246)  # Default blue
+        color = OxmlElement('w:color')
+        color.set(qn('w:val'), '{:02X}{:02X}{:02X}'.format(*rgb))
+        rPr.append(color)
+
+        # Underline
+        u = OxmlElement('w:u')
+        u.set(qn('w:val'), 'single')
+        rPr.append(u)
+
+        new_run.append(rPr)
+        new_run_text = OxmlElement('w:t')
+        new_run_text.set(qn('xml:space'), 'preserve')
+        new_run_text.text = text
+        new_run.append(new_run_text)
+        hyperlink.append(new_run)
+        paragraph._p.append(hyperlink)
+
+    def _docx_add_formatted_cell(self, paragraph, value, font_size_pt: int = 9):
+        """Add formatted text to a table cell: colored ✓/✗/⚠ icons and clickable URLs."""
+        import re as _re
+        from docx.shared import RGBColor
+
+        text = str(value) if value is not None else ""
+
+        # Icon character → color mapping
+        icon_colors = {
+            '\u2713': (16, 185, 129),   # ✓ green
+            '\u2714': (16, 185, 129),   # ✔ green
+            '\u2717': (239, 68, 68),    # ✗ red
+            '\u2718': (239, 68, 68),    # ✘ red
+            '\u2716': (239, 68, 68),    # ✖ red
+        }
+        warning_chars = {'\u26a0'}  # ⚠
+        warning_color = (245, 158, 11)  # amber
+
+        # If the entire value is a URL, render as hyperlink
+        stripped = text.strip()
+        if _re.match(r'^https?://', stripped) and ' ' not in stripped:
+            self._docx_add_hyperlink(paragraph, stripped, stripped, font_size_pt=font_size_pt)
+            return
+
+        # Split text into segments around icon characters
+        # Build a regex pattern for all icon chars (including ⚠️ with variation selector)
+        icon_pattern = _re.compile('([\u2713\u2714\u2716\u2717\u2718]|\u26a0\ufe0f?)')
+        segments = icon_pattern.split(text)
+
+        for segment in segments:
+            if not segment:
+                continue
+
+            # Check if this segment is an icon character
+            clean = segment.replace('\ufe0f', '')  # Remove variation selector
+            if clean in icon_colors:
+                run = paragraph.add_run(clean)
+                self._docx_set_font(run, size_pt=font_size_pt, color_rgb=icon_colors[clean])
+            elif clean in warning_chars:
+                run = paragraph.add_run(clean)
+                self._docx_set_font(run, size_pt=font_size_pt, color_rgb=warning_color)
+            else:
+                # Regular text — check if it contains a URL
+                url_match = _re.search(r'(https?://[^\s]+)', segment)
+                if url_match:
+                    # Text before URL
+                    before = segment[:url_match.start()]
+                    if before:
+                        run = paragraph.add_run(before)
+                        self._docx_set_font(run, size_pt=font_size_pt)
+                    # URL as hyperlink
+                    self._docx_add_hyperlink(paragraph, url_match.group(1), url_match.group(1), font_size_pt=font_size_pt)
+                    # Text after URL
+                    after = segment[url_match.end():]
+                    if after:
+                        run = paragraph.add_run(after)
+                        self._docx_set_font(run, size_pt=font_size_pt)
+                else:
+                    run = paragraph.add_run(segment)
+                    self._docx_set_font(run, size_pt=font_size_pt)
 
     def _docx_parse_theory(self, doc, theory_html: str):
         """Parse theory HTML into Word paragraphs with formatting."""
@@ -1027,14 +1366,15 @@ class ReportGenerator:
             p.paragraph_format.space_before = Pt(4)
             run = p.add_run(f"{examples_label}:")
             self._docx_set_font(run, size_pt=8, bold=True, color_rgb=(75, 85, 99))
-            for url in issue.affected_urls[:5]:
+            for url in issue.affected_urls:
                 p = cell.add_paragraph()
                 p.paragraph_format.space_before = Pt(0)
                 p.paragraph_format.space_after = Pt(0)
-                run = p.add_run(f"  • {url}")
+                run = p.add_run("  \u2022 ")
                 self._docx_set_font(run, size_pt=8, color_rgb=(55, 65, 81))
+                self._docx_add_hyperlink(p, url, url, font_size_pt=8, color_rgb=(55, 65, 81))
 
-    async def generate_docx(self, audit: AuditResult) -> str:
+    async def generate_docx(self, audit: AuditResult, brand: dict | None = None) -> str:
         """Generate styled DOCX report and return file path."""
         try:
             from docx import Document
@@ -1045,7 +1385,7 @@ class ReportGenerator:
             raise ImportError("python-docx is required for Word export. Install it with: pip install python-docx")
 
         # Setup i18n
-        lang = getattr(audit, 'language', 'uk') or 'uk'
+        lang = getattr(audit, 'language', 'en') or 'en'
         t = get_translator(lang)
 
         t_labels = {
@@ -1065,7 +1405,7 @@ class ReportGenerator:
         }
 
         # Extract domain
-        domain = urlparse(audit.url).netloc.replace("www.", "")
+        domain = extract_domain(audit.url)
 
         # Create document
         doc = Document()
@@ -1095,43 +1435,50 @@ class ReportGenerator:
                 h_style.font.color.rgb = RGBColor(31, 41, 55)
                 _set_style_font(h_style)
 
-        # --- Title ---
-        title_text = f"{t_labels['express_title']}: {domain}"
-        title_para = doc.add_heading(title_text, 0)
-        title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        for run in title_para.runs:
-            self._docx_set_font(run, size_pt=22, bold=True, color_rgb=(31, 41, 55))
+        # Resolve brand primary color for DOCX accents (default: blue #3B82F6)
+        brand_primary_hex = '3B82F6'
+        brand_primary_rgb = (59, 130, 246)
+        if brand and brand.get('primary_color'):
+            hex_val = brand['primary_color'].lstrip('#')
+            if len(hex_val) == 6:
+                brand_primary_hex = hex_val.upper()
+                brand_primary_rgb = (int(hex_val[0:2], 16), int(hex_val[2:4], 16), int(hex_val[4:6], 16))
 
-        # Subtitle with date
-        subtitle = doc.add_paragraph()
-        subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = subtitle.add_run(f"{t_labels['generated_at']}: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
-        self._docx_set_font(run, size_pt=11, color_rgb=(128, 128, 128))
+        # =============================================
+        # HEADER
+        # =============================================
+        # Title
+        title_para = doc.add_paragraph()
+        title_para.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        run = title_para.add_run(t("report.express_title"))
+        self._docx_set_font(run, size_pt=22, bold=True, color_rgb=(17, 24, 39))
 
-        # URL
-        url_para = doc.add_paragraph()
-        url_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = url_para.add_run(audit.url)
-        self._docx_set_font(run, size_pt=10, color_rgb=(59, 130, 246))
+        # Website
+        site_para = doc.add_paragraph()
+        site_para.paragraph_format.space_before = Pt(2)
+        run = site_para.add_run(f"Website: {domain}")
+        self._docx_set_font(run, size_pt=10, color_rgb=(17, 24, 39))
 
-        doc.add_paragraph()
+        # Meta line (pages · date)
+        generated_at = datetime.now().strftime('%d.%m.%Y')
+        meta_para = doc.add_paragraph()
+        meta_para.paragraph_format.space_before = Pt(2)
+        pages_text = t("report.pages_analyzed", count=audit.pages_crawled)
+        run = meta_para.add_run(f"{pages_text} · {generated_at}")
+        self._docx_set_font(run, size_pt=10, color_rgb=(107, 114, 128))
 
-        # --- Summary Section ---
-        overview_heading = doc.add_heading(t_labels['overview'], level=1)
-        overview_heading.paragraph_format.space_after = Pt(16)
-
+        # Summary stats table
         summary_table = doc.add_table(rows=2, cols=4)
         summary_table.style = 'Table Grid'
 
         summary_items = [
-            (t_labels['pages_crawled'], str(audit.pages_crawled), '3B82F6'),
+            (t_labels['pages_crawled'], str(audit.pages_crawled), brand_primary_hex),
             (t_labels['passed_checks'], str(audit.passed_checks), '10B981'),
             (t_labels['warnings'], str(audit.warnings), 'F59E0B'),
             (t_labels['critical_issues'], str(audit.critical_issues), 'EF4444'),
         ]
 
         for i, (label, value, color) in enumerate(summary_items):
-            # Header cell
             header_cell = summary_table.rows[0].cells[i]
             header_cell.text = ''
             p = header_cell.paragraphs[0]
@@ -1140,7 +1487,6 @@ class ReportGenerator:
             self._docx_set_cell_left_border(header_cell, color, '24')
             self._docx_set_cell_margins(header_cell, top=40, right=80, bottom=0, left=80)
 
-            # Value cell
             value_cell = summary_table.rows[1].cells[i]
             value_cell.text = ''
             p = value_cell.paragraphs[0]
@@ -1151,7 +1497,28 @@ class ReportGenerator:
 
         doc.add_paragraph()
 
-        # --- Homepage Screenshot ---
+        # Build sections list for category overview and detailed findings
+        section_order = [
+            "cms", "speed", "meta_tags", "headings", "page_404",
+            "images", "content", "links", "favicon", "external_links",
+            "robots", "structure", "content_sections",
+            "schema", "social_tags", "security", "mobile",
+            "url_quality", "hreflang", "duplicates", "redirects",
+        ]
+        docx_sections = []
+        for name in section_order:
+            if name in audit.results:
+                result = audit.results[name]
+                if lang != 'en':
+                    result = translate_analyzer_content(result, lang, t)
+                title = t(f"analyzers.{name}.name")
+                if title == f"analyzers.{name}.name":
+                    title = result.display_name
+                docx_sections.append({"id": name, "title": title, "severity": result.severity, "result": result})
+
+        # =============================================
+        # HOMEPAGE SCREENSHOT
+        # =============================================
         if audit.homepage_screenshot:
             import base64 as b64
             from io import BytesIO
@@ -1162,13 +1529,88 @@ class ReportGenerator:
                 img_bytes = b64.b64decode(audit.homepage_screenshot)
                 img_stream = BytesIO(img_bytes)
                 doc.add_picture(img_stream, width=Inches(6.0))
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Failed to add homepage screenshot to DOCX: {e}")
             doc.add_paragraph()
+
+        # =============================================
+        # CATEGORY OVERVIEW
+        # =============================================
+        cat_heading = doc.add_heading(t("report.category_overview"), level=1)
+        cat_heading.paragraph_format.space_after = Pt(12)
+
+        severity_order_map = {SeverityLevel.ERROR: 0, SeverityLevel.WARNING: 1, SeverityLevel.INFO: 2, SeverityLevel.SUCCESS: 3}
+        sorted_sections = sorted(docx_sections, key=lambda s: severity_order_map.get(s["severity"], 4))
+
+        cat_table = doc.add_table(rows=1 + len(sorted_sections), cols=5)
+        cat_table.style = 'Table Grid'
+
+        # Header row
+        headers = ["#", t("report.category"), t("report.status"), t("report.critical_count"), t("report.warning_count")]
+        for i, header_text in enumerate(headers):
+            cell = cat_table.rows[0].cells[i]
+            cell.text = ''
+            p = cell.paragraphs[0]
+            run = p.add_run(header_text)
+            self._docx_set_font(run, size_pt=9, bold=True, color_rgb=(55, 65, 81))
+            self._docx_set_cell_shading(cell, 'F9FAFB')
+
+        badge_text_map = {
+            SeverityLevel.SUCCESS: t("report.badge_ok"),
+            SeverityLevel.WARNING: t("report.badge_warning"),
+            SeverityLevel.ERROR: t("report.badge_error"),
+            SeverityLevel.INFO: t("report.badge_info"),
+        }
+        badge_color_map = {
+            SeverityLevel.SUCCESS: (6, 95, 70),
+            SeverityLevel.WARNING: (146, 64, 14),
+            SeverityLevel.ERROR: (153, 27, 27),
+            SeverityLevel.INFO: (30, 64, 175),
+        }
+
+        for row_idx, section in enumerate(sorted_sections, 1):
+            result = section["result"]
+            criticals = sum(1 for iss in result.issues if iss.severity == SeverityLevel.ERROR)
+            warns = sum(1 for iss in result.issues if iss.severity == SeverityLevel.WARNING)
+
+            row = cat_table.rows[row_idx]
+            # #
+            cell = row.cells[0]
+            cell.text = ''
+            run = cell.paragraphs[0].add_run(str(row_idx))
+            self._docx_set_font(run, size_pt=9, color_rgb=(156, 163, 175))
+            # Category
+            cell = row.cells[1]
+            cell.text = ''
+            run = cell.paragraphs[0].add_run(section["title"])
+            self._docx_set_font(run, size_pt=9, color_rgb=(55, 65, 81))
+            # Status badge
+            cell = row.cells[2]
+            cell.text = ''
+            badge = badge_text_map.get(section["severity"], "—")
+            badge_clr = badge_color_map.get(section["severity"], (55, 65, 81))
+            run = cell.paragraphs[0].add_run(badge)
+            self._docx_set_font(run, size_pt=9, bold=True, color_rgb=badge_clr)
+            # Critical count
+            cell = row.cells[3]
+            cell.text = ''
+            run = cell.paragraphs[0].add_run(str(criticals))
+            self._docx_set_font(run, size_pt=9, bold=criticals > 0, color_rgb=(239, 68, 68) if criticals > 0 else (156, 163, 175))
+            # Warning count
+            cell = row.cells[4]
+            cell.text = ''
+            run = cell.paragraphs[0].add_run(str(warns))
+            self._docx_set_font(run, size_pt=9, bold=warns > 0, color_rgb=(245, 158, 11) if warns > 0 else (156, 163, 175))
+
+        doc.add_paragraph()
+
+        # =============================================
+        # DETAILED FINDINGS
+        # =============================================
 
         # --- Results Sections ---
         section_order = [
-            "cms", "meta_tags", "headings", "page_404", "speed",
+            "cms", "speed", "meta_tags", "headings", "page_404",
             "images", "content", "links", "favicon", "external_links",
             "robots", "structure", "content_sections",
             "schema", "social_tags", "security", "mobile",
@@ -1179,7 +1621,7 @@ class ReportGenerator:
             SeverityLevel.SUCCESS: ("✓", (16, 185, 129)),
             SeverityLevel.WARNING: ("⚠", (245, 158, 11)),
             SeverityLevel.ERROR: ("✗", (239, 68, 68)),
-            SeverityLevel.INFO: ("ℹ", (59, 130, 246)),
+            SeverityLevel.INFO: ("ℹ", brand_primary_rgb),
         }
 
         for name in section_order:
@@ -1189,7 +1631,7 @@ class ReportGenerator:
             result = audit.results[name]
 
             # Translate content if needed
-            if lang != 'uk':
+            if lang != 'en':
                 result = translate_analyzer_content(result, lang, t)
 
             # Get translated section title
@@ -1277,8 +1719,7 @@ class ReportGenerator:
                             cell = table.rows[row_idx + 1].cells[col_idx]
                             cell.text = ''
                             p = cell.paragraphs[0]
-                            run = p.add_run(str(value))
-                            self._docx_set_font(run, size_pt=9)
+                            self._docx_add_formatted_cell(p, value, font_size_pt=9)
                             self._docx_set_cell_margins(cell, top=40, right=80, bottom=40, left=80)
                             # Alternating row shading
                             if row_idx % 2 == 1:
@@ -1309,10 +1750,40 @@ class ReportGenerator:
                                 img_bytes = b64.b64decode(ss_data)
                                 img_stream = BytesIO(img_bytes)
                                 doc.add_picture(img_stream, width=Inches(6.0))
-                            except Exception:
-                                pass
+                            except Exception as e:
+                                logger.warning(f"Failed to add PageSpeed screenshot to DOCX: {e}")
 
             doc.add_paragraph()  # spacing between sections
+
+        # Add footer with page numbers and branding
+        from docx.oxml import OxmlElement
+        section = doc.sections[0]
+        footer = section.footer
+        footer.is_linked_to_previous = False
+        footer_para = footer.paragraphs[0] if footer.paragraphs else footer.add_paragraph()
+        footer_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        # Page number field
+        run = footer_para.add_run()
+        self._docx_set_font(run, size_pt=8, color_rgb=(156, 163, 175))
+        fld_char_begin = OxmlElement('w:fldChar')
+        fld_char_begin.set(qn('w:fldCharType'), 'begin')
+        run._element.append(fld_char_begin)
+
+        run2 = footer_para.add_run()
+        self._docx_set_font(run2, size_pt=8, color_rgb=(156, 163, 175))
+        instr_text = OxmlElement('w:instrText')
+        instr_text.set(qn('xml:space'), 'preserve')
+        instr_text.text = ' PAGE '
+        run2._element.append(instr_text)
+
+        run3 = footer_para.add_run()
+        fld_char_end = OxmlElement('w:fldChar')
+        fld_char_end.set(qn('w:fldCharType'), 'end')
+        run3._element.append(fld_char_end)
+
+        run4 = footer_para.add_run("    |    seo-audit.online")
+        self._docx_set_font(run4, size_pt=8, color_rgb=(209, 213, 219))
 
         # Save document
         docx_filename = f"audit_{audit.id}.docx"
@@ -1320,3 +1791,11 @@ class ReportGenerator:
         doc.save(docx_path)
 
         return str(docx_path)
+
+
+def get_report_generator() -> 'ReportGenerator':
+    """Get singleton ReportGenerator instance to cache Jinja2 environment."""
+    global _report_generator_instance
+    if _report_generator_instance is None:
+        _report_generator_instance = ReportGenerator()
+    return _report_generator_instance

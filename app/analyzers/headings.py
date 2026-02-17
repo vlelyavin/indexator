@@ -71,9 +71,9 @@ class HeadingsAnalyzer(BaseAnalyzer):
                 category="missing_h1",
                 severity=SeverityLevel.ERROR,
                 message=self.t("analyzer_content.headings.issues.missing_h1", count=len(missing_h1)),
-                details=self.t("analyzer_content.headings.issues.missing_h1_details"),
+                details=self.t("analyzer_content.headings.details.missing_h1"),
                 affected_urls=missing_h1[:20],
-                recommendation=self.t("analyzer_content.headings.issues.missing_h1_recommendation"),
+                recommendation=self.t("analyzer_content.headings.recommendations.missing_h1"),
                 count=len(missing_h1),
             ))
 
@@ -82,9 +82,9 @@ class HeadingsAnalyzer(BaseAnalyzer):
                 category="multiple_h1",
                 severity=SeverityLevel.WARNING,
                 message=self.t("analyzer_content.headings.issues.multiple_h1", count=len(multiple_h1)),
-                details=self.t("analyzer_content.headings.issues.multiple_h1_details"),
+                details=self.t("analyzer_content.headings.details.multiple_h1"),
                 affected_urls=[url for url, _ in multiple_h1[:20]],
-                recommendation=self.t("analyzer_content.headings.issues.multiple_h1_recommendation"),
+                recommendation=self.t("analyzer_content.headings.recommendations.multiple_h1"),
                 count=len(multiple_h1),
             ))
 
@@ -93,9 +93,9 @@ class HeadingsAnalyzer(BaseAnalyzer):
                 category="empty_h1",
                 severity=SeverityLevel.ERROR,
                 message=self.t("analyzer_content.headings.issues.empty_h1", count=len(empty_h1)),
-                details=self.t("analyzer_content.headings.issues.empty_h1_details"),
+                details=self.t("analyzer_content.headings.details.empty_h1"),
                 affected_urls=empty_h1[:20],
-                recommendation=self.t("analyzer_content.headings.issues.empty_h1_recommendation"),
+                recommendation=self.t("analyzer_content.headings.recommendations.empty_h1"),
                 count=len(empty_h1),
             ))
 
@@ -109,9 +109,9 @@ class HeadingsAnalyzer(BaseAnalyzer):
                 category="duplicate_h1",
                 severity=SeverityLevel.WARNING,
                 message=self.t("analyzer_content.headings.issues.duplicate_h1", count=len(duplicate_h1s)),
-                details=self.t("analyzer_content.headings.issues.duplicate_h1_details"),
+                details=self.t("analyzer_content.headings.details.duplicate_h1"),
                 affected_urls=dup_urls[:20],
-                recommendation=self.t("analyzer_content.headings.issues.duplicate_h1_recommendation"),
+                recommendation=self.t("analyzer_content.headings.recommendations.duplicate_h1"),
                 count=sum(duplicate_h1s.values()),
             ))
 
@@ -142,16 +142,16 @@ class HeadingsAnalyzer(BaseAnalyzer):
                 category="hierarchy_violation",
                 severity=SeverityLevel.WARNING,
                 message=self.t("analyzer_content.headings.issues.hierarchy_violation", count=len(hierarchy_violations)),
-                details=self.t("analyzer_content.headings.issues.hierarchy_violation_details"),
+                details=self.t("analyzer_content.headings.details.hierarchy_violation"),
                 affected_urls=[url for url, _, _ in hierarchy_violations[:20]],
-                recommendation=self.t("analyzer_content.headings.issues.hierarchy_violation_recommendation"),
+                recommendation=self.t("analyzer_content.headings.recommendations.hierarchy_violation"),
                 count=len(hierarchy_violations),
             ))
 
         # Create table with problematic pages
         h_url = self.t("tables.url")
         h_problem = self.t("tables.problem")
-        h_h1 = "H1"
+        h_h1 = self.t("tables.h1")
 
         table_data = []
 

@@ -54,6 +54,11 @@ export interface ProgressEvent {
   stage?: string | null;
   analyzer_name?: string | null;
   speed_testing?: boolean;
+  current_task_type?: "crawling" | "analyzing" | "speed" | "report" | "idle" | null;
+  speed_blocking?: boolean;
+  analyzers_total?: number;
+  analyzers_completed?: number;
+  analyzer_phase?: "running" | "completed" | null;
 }
 
 /** Mirrors Python SpeedMetrics */

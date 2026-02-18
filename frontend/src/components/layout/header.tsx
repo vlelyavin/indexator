@@ -43,12 +43,16 @@ export function Header({ sidebarOpen, onSidebarToggle }: HeaderProps) {
   const t = useTranslations("nav");
   const locale = useLocale();
   const { data: session } = useSession();
+  const rawName = session?.user?.name?.trim();
+  const firstName = rawName ? rawName.split(/\s+/)[0] : undefined;
+  const emailLocal = session?.user?.email?.split("@")[0];
+  const displayName = firstName || emailLocal || "";
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-gray-800 bg-black/80 px-4 backdrop-blur-sm lg:px-6">
       <button
         onClick={onSidebarToggle}
-        className="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-950 hover:text-white"
+        className="flex h-8 w-8 items-center justify-center rounded-md text-white transition-colors hover:bg-gray-950"
         aria-label={sidebarOpen ? t("closeSidebar") : t("openSidebar")}
         aria-expanded={sidebarOpen}
         aria-controls="dashboard-sidebar"
@@ -69,12 +73,12 @@ export function Header({ sidebarOpen, onSidebarToggle }: HeaderProps) {
 
         {session?.user ? (
           <div className="flex items-center gap-2">
-            <span className="hidden sm:inline text-sm text-gray-400">
-              {session.user.name || session.user.email}
+            <span className="hidden sm:inline text-sm text-white">
+              {displayName}
             </span>
             <button
               onClick={() => signOut({ callbackUrl: `/${locale}/login` })}
-              className="rounded-md p-2 text-gray-500 hover:bg-gray-950"
+              className="rounded-md p-2 text-white hover:bg-gray-950"
               title={t("logout")}
             >
               <LogOut className="h-4 w-4" />

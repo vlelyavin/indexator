@@ -9,7 +9,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { cn } from "@/lib/utils";
 
 const SIDEBAR_STORAGE_KEY = "seo-audit.sidebar.open";
-const SIDEBAR_WIDTH_MOBILE_CLASS = "translate-x-52";
+const SIDEBAR_WIDTH_MOBILE_CLASS = "translate-x-56";
 const SIDEBAR_TRANSITION = "duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]";
 
 export default function DashboardLayout({
@@ -95,7 +95,7 @@ export default function DashboardLayout({
           "relative z-30 h-[calc(100%-3.5rem)] transition-[padding-left,transform]",
           SIDEBAR_TRANSITION,
           sidebarOpen ? SIDEBAR_WIDTH_MOBILE_CLASS : "translate-x-0",
-          sidebarOpen ? "lg:pl-52 lg:translate-x-0" : "lg:pl-0 lg:translate-x-0"
+          sidebarOpen ? "lg:pl-56 lg:translate-x-0" : "lg:pl-0 lg:translate-x-0"
         )}
       >
         <main className="h-full overflow-y-auto p-4 lg:p-6">{children}</main>

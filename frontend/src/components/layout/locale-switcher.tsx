@@ -42,7 +42,7 @@ export function LocaleSwitcher() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-gray-300 hover:bg-gray-800"
+        className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-white hover:bg-gray-800"
       >
         <Globe className="h-4 w-4" />
         {localeLabels[locale]}
@@ -57,7 +57,7 @@ export function LocaleSwitcher() {
                 "block w-full whitespace-nowrap px-3 py-1.5 text-left text-sm",
                 loc === locale
                   ? "bg-gray-800 text-white"
-                  : "text-gray-300 hover:bg-gray-800"
+                  : "text-white hover:bg-gray-800"
               )}
             >
               {localeLabels[loc]} — {loc === "en" ? "English" : loc === "ru" ? "Русский" : "Українська"}

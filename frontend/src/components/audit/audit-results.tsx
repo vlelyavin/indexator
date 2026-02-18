@@ -127,7 +127,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
       {/* Back button */}
       <button
         onClick={() => router.push(`/${locale}/dashboard`)}
-        className="mb-4 flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+        className="mb-4 flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
         {t("backToDashboard")}
@@ -137,14 +137,11 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
         {/* Left sidebar nav */}
         <aside className="hidden w-56 shrink-0 xl:block">
         <div className="sticky top-20 space-y-1">
-          <p className="mb-2 px-2 text-xs font-medium uppercase text-gray-600 dark:text-gray-500">
-            {t("sections")}
-          </p>
           {Object.entries(results).map(([name, result]) => (
             <button
               key={name}
               onClick={() => scrollTo(name)}
-              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-[calc(var(--spacing)*0.8)] text-left text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
             >
               <span
                 className={cn(
@@ -172,7 +169,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
         </div>
 
         {/* Filter bar */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-4">
           <div className="w-full overflow-x-auto sm:w-auto">
             <div className="inline-flex h-11 min-w-max items-center gap-1 whitespace-nowrap rounded-lg border border-gray-200 bg-gray-100 p-1 dark:border-gray-800 dark:bg-gray-900">
               {filterButtons.map((fb) => (
@@ -193,7 +190,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="flex min-w-0 flex-1 items-center gap-4">
             <div className="relative min-w-0 flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input

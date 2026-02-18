@@ -116,10 +116,10 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
   }
 
   const filterButtons: { key: FilterMode; label: string; icon: React.ReactNode }[] = [
-    { key: "all", label: t("filterAll"), icon: <Filter className="h-3.5 w-3.5" /> },
-    { key: "error", label: t("filterErrors"), icon: <XCircle className="h-3.5 w-3.5" /> },
-    { key: "warning", label: t("filterWarnings"), icon: <AlertTriangle className="h-3.5 w-3.5" /> },
-    { key: "success", label: t("filterPassed"), icon: <CheckCircle className="h-3.5 w-3.5" /> },
+    { key: "all", label: t("filterAll"), icon: <Filter className="h-3.5 w-3.5 shrink-0" /> },
+    { key: "error", label: t("filterErrors"), icon: <XCircle className="h-3.5 w-3.5 shrink-0" /> },
+    { key: "warning", label: t("filterWarnings"), icon: <AlertTriangle className="h-3.5 w-3.5 shrink-0" /> },
+    { key: "success", label: t("filterPassed"), icon: <CheckCircle className="h-3.5 w-3.5 shrink-0" /> },
   ];
 
   return (
@@ -186,7 +186,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
                       : "border border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                   )}
                 >
-                  {fb.icon}
+                  <span className="shrink-0">{fb.icon}</span>
                   <span className="truncate">{fb.label}</span>
                 </button>
               ))}

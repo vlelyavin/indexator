@@ -116,7 +116,7 @@ run_as_app "cd '$FRONTEND_DIR' && npm ci"
 # 8. Prisma migrate (database schema) + seed
 echo "[8/11] Running Prisma migrations..."
 run_as_app "cd '$FRONTEND_DIR' && npx prisma generate"
-run_as_app "cd '$FRONTEND_DIR' && npx prisma migrate deploy"
+run_as_app "cd '$FRONTEND_DIR' && npx prisma db push"
 run_as_app "cd '$FRONTEND_DIR' && npx tsx prisma/seed.ts"
 
 # 9. Next.js frontend - production build

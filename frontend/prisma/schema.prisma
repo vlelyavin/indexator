@@ -1,5 +1,5 @@
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -8,14 +8,14 @@ generator client {
 }
 
 model User {
-  id                      String               @id @default(cuid())
+  id                      String               @id @default(cuid()) @db.VarChar(191)
   name                    String?
-  email                   String               @unique
+  email                   String               @unique @db.VarChar(191)
   emailVerified           DateTime?
   password                String?
-  image                   String?
-  role                    String               @default("user")
-  planId                  String               @default("free")
+  image                   String?              @db.Text
+  role                    String               @default("user") @db.VarChar(50)
+  planId                  String               @default("free") @db.VarChar(191)
   plan                    Plan                 @relation(fields: [planId], references: [id])
   createdAt               DateTime             @default(now())
   updatedAt               DateTime             @updatedAt
@@ -36,13 +36,13 @@ model User {
 }
 
 model CreditTransaction {
-  id           String   @id @default(cuid())
-  userId       String
+  id           String   @id @default(cuid()) @db.VarChar(191)
+  userId       String   @db.VarChar(191)
   amount       Int
   balanceAfter Int
-  type         String
-  description  String
-  lsOrderId    String?
+  type         String   @db.VarChar(50)
+  description  String   @db.Text
+  lsOrderId    String?  @db.VarChar(191)
   createdAt    DateTime @default(now())
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -51,17 +51,17 @@ model CreditTransaction {
 }
 
 model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
+  id                String  @id @default(cuid()) @db.VarChar(191)
+  userId            String  @db.VarChar(191)
+  type              String  @db.VarChar(50)
+  provider          String  @db.VarChar(191)
+  providerAccountId String  @db.VarChar(191)
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
+  token_type        String? @db.VarChar(50)
+  scope             String? @db.Text
+  id_token          String? @db.Text
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -69,24 +69,24 @@ model Account {
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
+  id           String   @id @default(cuid()) @db.VarChar(191)
+  sessionToken String   @unique @db.VarChar(191)
+  userId       String   @db.VarChar(191)
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
-  identifier String
-  token      String   @unique
+  identifier String @db.VarChar(191)
+  token      String @unique @db.VarChar(191)
   expires    DateTime
 
   @@unique([identifier, token])
 }
 
 model Plan {
-  id             String  @id
-  name           String
+  id             String  @id @db.VarChar(191)
+  name           String  @db.VarChar(100)
   auditsPerMonth Int
   maxPages       Int
   whiteLabel     Boolean @default(false)
@@ -95,20 +95,20 @@ model Plan {
 }
 
 model Audit {
-  id             String    @id @default(cuid())
-  fastApiId      String    @unique
-  userId         String
-  url            String
-  status         String    @default("pending")
-  language       String    @default("en")
+  id             String    @id @default(cuid()) @db.VarChar(191)
+  fastApiId      String    @unique @db.VarChar(191)
+  userId         String    @db.VarChar(191)
+  url            String    @db.Text
+  status         String    @default("pending") @db.VarChar(50)
+  language       String    @default("en") @db.VarChar(10)
   pagesCrawled   Int       @default(0)
   totalIssues    Int       @default(0)
   criticalIssues Int       @default(0)
   warnings       Int       @default(0)
   passedChecks   Int       @default(0)
-  resultJson     String?
-  reportPath     String?
-  errorMessage   String?
+  resultJson     String?   @db.LongText
+  reportPath     String?   @db.Text
+  errorMessage   String?   @db.Text
   startedAt      DateTime  @default(now())
   completedAt    DateTime?
   user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -117,24 +117,24 @@ model Audit {
 }
 
 model BrandSettings {
-  id           String  @id @default(cuid())
-  userId       String  @unique
+  id           String  @id @default(cuid()) @db.VarChar(191)
+  userId       String  @unique @db.VarChar(191)
   companyName  String?
-  logoUrl      String?
-  primaryColor String  @default("#2563eb")
-  accentColor  String  @default("#7c3aed")
+  logoUrl      String? @db.Text
+  primaryColor String  @default("#2563eb") @db.VarChar(20)
+  accentColor  String  @default("#7c3aed") @db.VarChar(20)
   user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Site {
-  id                 String        @id @default(cuid())
-  userId             String
-  domain             String
-  gscPermissionLevel String?
+  id                 String        @id @default(cuid()) @db.VarChar(191)
+  userId             String        @db.VarChar(191)
+  domain             String        @db.VarChar(191)
+  gscPermissionLevel String?       @db.VarChar(50)
   autoIndexGoogle    Boolean       @default(false)
   autoIndexBing      Boolean       @default(false)
-  sitemapUrl         String?
-  indexnowKey        String?
+  sitemapUrl         String?       @db.Text
+  indexnowKey        String?       @db.VarChar(191)
   lastSyncedAt       DateTime?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
@@ -146,19 +146,19 @@ model Site {
 }
 
 model IndexedUrl {
-  id               String        @id @default(cuid())
-  siteId           String
-  url              String
-  gscStatus        String?
-  indexingStatus   String        @default("none")
-  submissionMethod String        @default("none")
+  id               String        @id @default(cuid()) @db.VarChar(191)
+  siteId           String        @db.VarChar(191)
+  url              String        @db.VarChar(500)
+  gscStatus        String?       @db.VarChar(100)
+  indexingStatus   String        @default("none") @db.VarChar(50)
+  submissionMethod String        @default("none") @db.VarChar(50)
   submittedAt      DateTime?
   lastSyncedAt     DateTime?
-  errorMessage     String?
+  errorMessage     String?       @db.Text
   httpStatus       Int?
   isNew            Boolean       @default(false)
   isChanged        Boolean       @default(false)
-  lastmod          String?
+  lastmod          String?       @db.VarChar(50)
   retryCount       Int           @default(0)
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
@@ -169,20 +169,20 @@ model IndexedUrl {
 }
 
 model IndexingLog {
-  id             String      @id @default(cuid())
-  indexedUrlId   String?
-  userId         String
-  action         String
-  details        String?
+  id             String      @id @default(cuid()) @db.VarChar(191)
+  indexedUrlId   String?     @db.VarChar(191)
+  userId         String      @db.VarChar(191)
+  action         String      @db.VarChar(100)
+  details        String?     @db.Text
   createdAt      DateTime    @default(now())
   indexedUrl     IndexedUrl? @relation(fields: [indexedUrlId], references: [id], onDelete: SetNull)
   user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model UserDailyQuota {
-  id                 String   @id @default(cuid())
-  userId             String
-  date               String
+  id                 String   @id @default(cuid()) @db.VarChar(191)
+  userId             String   @db.VarChar(191)
+  date               String   @db.VarChar(20)
   googleSubmissions  Int      @default(0)
   inspectionsUsed    Int      @default(0)
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -191,10 +191,10 @@ model UserDailyQuota {
 }
 
 model DailyReport {
-  id                    String   @id @default(cuid())
-  siteId                String
-  userId                String
-  reportDate            String
+  id                    String   @id @default(cuid()) @db.VarChar(191)
+  siteId                String   @db.VarChar(191)
+  userId                String   @db.VarChar(191)
+  reportDate            String   @db.VarChar(20)
   newPagesFound         Int      @default(0)
   changedPagesFound     Int      @default(0)
   removedPagesFound     Int      @default(0)
@@ -207,7 +207,7 @@ model DailyReport {
   totalUrls             Int      @default(0)
   creditsUsed           Int      @default(0)
   creditsRemaining      Int      @default(0)
-  details               String?
+  details               String?  @db.Text
   createdAt             DateTime @default(now())
   site                  Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -217,10 +217,10 @@ model DailyReport {
 }
 
 model CronJobLog {
-  id          String   @id @default(cuid())
-  jobName     String   @unique
+  id          String   @id @default(cuid()) @db.VarChar(191)
+  jobName     String   @unique @db.VarChar(191)
   lastRunAt   DateTime
-  lastResult  String
-  lastSummary String?
+  lastResult  String   @db.Text
+  lastSummary String?  @db.Text
   updatedAt   DateTime @updatedAt
 }

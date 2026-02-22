@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
-import { getToken } from "next-auth/jwt";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
 const locales = routing.locales;
+
+/**
+ * Check for Auth.js v5 session cookie. This is a lightweight presence
+ * check — actual JWT verification happens in page/API auth() calls.
+ */
+function hasSessionCookie(req: NextRequest): boolean {
+  return !!(
+    req.cookies.get("authjs.session-token") ||
+    req.cookies.get("__Secure-authjs.session-token")
+  );
+}
 
 function stripLocale(pathname: string): string {
   for (const locale of locales) {
@@ -31,8 +41,7 @@ export default async function middleware(req: NextRequest) {
 
   // Dashboard routes: require authentication
   if (path.startsWith("/dashboard")) {
-    const token = await getToken({ req });
-    if (!token) {
+    if (!hasSessionCookie(req)) {
       const locale = getLocale(pathname);
       return NextResponse.redirect(new URL(`/${locale}/login`, req.url));
     }
@@ -40,8 +49,7 @@ export default async function middleware(req: NextRequest) {
 
   // Auth pages: redirect authenticated users to dashboard
   if (path === "/login" || path === "/register") {
-    const token = await getToken({ req });
-    if (token) {
+    if (hasSessionCookie(req)) {
       const locale = getLocale(pathname);
       return NextResponse.redirect(new URL(`/${locale}/dashboard`, req.url));
     }

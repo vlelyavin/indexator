@@ -18,17 +18,7 @@ export async function POST(
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // Clear GSC tokens from the Google account record
-  await prisma.account.updateMany({
-    where: { userId, provider: "google" },
-    data: {
-      refresh_token: null,
-      access_token: null,
-      expires_at: null,
-    },
-  });
-
-  // Mark GSC as disconnected
+  // Mark GSC as disconnected (don't clear Account tokens — they're shared with Google auth)
   await prisma.user.update({
     where: { id: userId },
     data: {

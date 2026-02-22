@@ -15,6 +15,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
+      allowDangerousEmailAccountLinking: true,
     }),
     // Credentials auth disabled — Google only
     // Credentials({
@@ -63,6 +64,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.role = "admin";
         }
       }
+
+      // Force logout if Google account was revoked by admin
+      if (token.id && !user) {
+        const linkedAccount = await prisma.account.findFirst({
+          where: { userId: token.id as string, provider: "google" },
+        });
+        if (!linkedAccount) {
+          return null;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {

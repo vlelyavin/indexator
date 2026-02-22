@@ -15,13 +15,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
-      authorization: {
-        params: {
-          scope:
-            "openid email profile https://www.googleapis.com/auth/webmasters https://www.googleapis.com/auth/indexing",
-          access_type: "offline",
-        },
-      },
     }),
     // Credentials auth disabled — Google only
     // Credentials({

@@ -231,6 +231,10 @@ export default function IndexingPage() {
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Polling refs
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const expandedSiteRef = useRef<string | null>(null);
+
   const showToast = useCallback((msg: string, ok = true) => {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 3500);
@@ -333,21 +337,40 @@ export default function IndexingPage() {
     await Promise.all([loadSiteStats(siteId), loadSiteQuota(siteId)]);
   };
 
-  const loadSiteStats = async (siteId: string) => {
+  const loadSiteStats = useCallback(async (siteId: string) => {
     const res = await fetch(`/api/indexing/sites/${siteId}/stats`);
     if (res.ok) {
       const data = await res.json();
       setSiteStats((prev) => ({ ...prev, [siteId]: data }));
     }
-  };
+  }, []);
 
-  const loadSiteQuota = async (siteId: string) => {
+  const loadSiteQuota = useCallback(async (siteId: string) => {
     const res = await fetch(`/api/indexing/sites/${siteId}/quota`);
     if (res.ok) {
       const data = await res.json();
       setSiteQuotas((prev) => ({ ...prev, [siteId]: data }));
     }
-  };
+  }, []);
+
+  // Keep ref in sync with expanded site state (avoids stale closure in polling)
+  useEffect(() => {
+    expandedSiteRef.current = expandedSite;
+  }, [expandedSite]);
+
+  // Poll every 10 s while the page is open; clean up on unmount
+  useEffect(() => {
+    pollIntervalRef.current = setInterval(() => {
+      void loadSites();
+      void loadCredits();
+      const siteId = expandedSiteRef.current;
+      if (siteId) void loadSiteStats(siteId);
+    }, 10_000);
+
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, [loadSites, loadCredits, loadSiteStats]);
 
   // ── Sync URLs for a site ──────────────────────────────────────────────────
 
@@ -1963,7 +1986,7 @@ function Toggle({
       </div>
       <span className="text-sm text-gray-300">{label}</span>
       {tooltip && (
-        <div className="relative">
+        <div className="relative flex items-center">
           <button
             type="button"
             onMouseEnter={() => setShowTooltip(true)}

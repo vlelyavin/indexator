@@ -258,6 +258,7 @@ export default function IndexingPage() {
   const [expandedSite, setExpandedSite] = useState<string | null>(null);
   const [siteStats, setSiteStats] = useState<Record<string, SiteStats>>({});
   const [siteQuotas, setSiteQuotas] = useState<Record<string, Quota>>({});
+  const [globalQuota, setGlobalQuota] = useState<Quota | null>(null);
   const [syncing, setSyncing] = useState<Record<string, boolean>>({});
   const [running, setRunning] = useState<Record<string, boolean>>({});
   const [runStatuses, setRunStatuses] = useState<Record<string, RunStatus>>({});
@@ -332,6 +333,13 @@ export default function IndexingPage() {
     loadCredits();
     loadCreditPacks();
   }, [loadStatus, loadSites, loadCredits, loadCreditPacks]);
+
+  // Load global quota from the first available site when sites load
+  useEffect(() => {
+    if (sites.length > 0 && !globalQuota) {
+      loadSiteQuota(sites[0].id);
+    }
+  }, [sites, globalQuota, loadSiteQuota]);
 
   // ── Reconnect / Disconnect ────────────────────────────────────────────────
 
@@ -411,6 +419,7 @@ export default function IndexingPage() {
     if (res.ok) {
       const data = await res.json();
       setSiteQuotas((prev) => ({ ...prev, [siteId]: data }));
+      setGlobalQuota(data);
     }
   }, []);
 
@@ -753,6 +762,25 @@ export default function IndexingPage() {
             </>
           )}
         </div>
+
+        {/* Quota — account-level, shown once globally below the sync button */}
+        {isConnected && globalQuota && (
+          <div className="mt-5 rounded-lg border border-gray-800 bg-gray-950 p-4 space-y-2">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">
+              {t("quota")}
+            </p>
+            <QuotaBar
+              label={t("googleQuota")}
+              used={globalQuota.googleSubmissions.used}
+              limit={globalQuota.googleSubmissions.limit}
+            />
+            <QuotaBar
+              label={t("inspectionQuota")}
+              used={globalQuota.inspections.used}
+              limit={globalQuota.inspections.limit}
+            />
+          </div>
+        )}
       </div>
 
       {/* Sites list — shown when connected OR when data was retained after disconnect */}

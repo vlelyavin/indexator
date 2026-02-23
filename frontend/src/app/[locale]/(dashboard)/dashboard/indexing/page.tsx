@@ -24,6 +24,8 @@ import {
   BarChart3,
   X,
   Trash2,
+  Key,
+  Send,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -784,17 +786,21 @@ export default function IndexingPage() {
             onClick={() => setShowCreditModal(false)}
           />
           <div className="relative z-10 w-full max-w-md rounded-xl border border-gray-800 bg-gray-900 p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">
-                {t("creditPacks")}
-              </h3>
-              <button
-                onClick={() => setShowCreditModal(false)}
-                className="rounded-md p-1 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
+            {/* Close button */}
+            <button
+              onClick={() => setShowCreditModal(false)}
+              className="absolute right-4 top-4 rounded-md p-1 text-gray-400 hover:bg-gray-800 hover:text-gray-200 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            {/* Icon */}
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-copper/10">
+              <CreditCard className="h-6 w-6 text-copper" />
             </div>
+            {/* Title */}
+            <h3 className="mb-2 text-lg font-semibold text-white">
+              {t("creditPacks")}
+            </h3>
             <p className="text-sm text-gray-400 mb-5">{t("creditPacksDesc")}</p>
             {credits !== null && (
               <p className="text-sm text-gray-300 mb-4">
@@ -846,10 +852,23 @@ export default function IndexingPage() {
             onClick={() => !submitting && setConfirmState(null)}
           />
           <div className="relative z-10 w-full max-w-sm rounded-xl border border-gray-800 bg-gray-900 p-6 shadow-xl">
-            <h3 className="text-base font-semibold text-white mb-3">
+            {/* Close button */}
+            <button
+              onClick={() => !submitting && setConfirmState(null)}
+              disabled={submitting}
+              className="absolute right-4 top-4 rounded-md p-1 text-gray-400 hover:bg-gray-800 hover:text-gray-200 disabled:opacity-50 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            {/* Icon */}
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-copper/10">
+              <Send className="h-6 w-6 text-copper" />
+            </div>
+            {/* Title */}
+            <h3 className="mb-2 text-base font-semibold text-white">
               {t("confirmSubmitTitle")}
             </h3>
-            <p className="text-sm text-gray-300 mb-5">
+            <p className="mb-5 text-sm text-gray-300">
               {confirmState.engines.includes("google") &&
               !confirmState.engines.includes("bing")
                 ? t("confirmSubmitGoogle", {
@@ -861,23 +880,24 @@ export default function IndexingPage() {
                   ? t("confirmSubmitBing", { count: confirmState.count })
                   : `Submit ${confirmState.count} URLs to Google & Bing?`}
             </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setConfirmState(null)}
-                disabled={submitting}
-                className="rounded-md border border-gray-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
-              >
-                {t("cancel")}
-              </button>
+            {/* Actions: primary LEFT, cancel RIGHT */}
+            <div className="flex gap-3">
               <button
                 onClick={executeSubmit}
                 disabled={submitting}
-                className="flex items-center gap-2 rounded-md bg-gradient-to-r from-copper to-copper-light px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="flex flex-1 items-center justify-center gap-2 rounded-md bg-gradient-to-r from-copper to-copper-light px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {submitting && (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 )}
                 {t("confirm")}
+              </button>
+              <button
+                onClick={() => setConfirmState(null)}
+                disabled={submitting}
+                className="flex-1 rounded-md border border-gray-700 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-800 disabled:opacity-50"
+              >
+                {t("cancel")}
               </button>
             </div>
           </div>
@@ -2385,18 +2405,21 @@ function IndexNowVerifyModal({
         onClick={onClose}
       />
       <div className="relative z-10 w-full max-w-md rounded-xl border border-gray-800 bg-gray-900 p-6 shadow-xl">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-white">
-            Verify IndexNow Key
-          </h3>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-md p-1 text-gray-400 hover:bg-gray-800 hover:text-gray-200 transition-colors"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        {/* Icon */}
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-copper/10">
+          <Key className="h-6 w-6 text-copper" />
         </div>
+        {/* Title */}
+        <h3 className="mb-2 text-base font-semibold text-white">
+          Verify IndexNow Key
+        </h3>
 
         <p className="text-sm text-gray-400 mb-5">
           To submit pages to Bing via IndexNow, place a verification file on your server once.
@@ -2469,20 +2492,20 @@ function IndexNowVerifyModal({
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="rounded-md border border-gray-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-800"
-          >
-            Cancel
-          </button>
+        {/* Footer: primary LEFT, cancel RIGHT */}
+        <div className="mt-6 flex gap-3">
           <button
             onClick={onProceed}
             disabled={!verified}
-            className="flex items-center gap-2 rounded-md bg-gradient-to-r from-copper to-copper-light px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="flex-1 rounded-md bg-gradient-to-r from-copper to-copper-light px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             Proceed to Submit →
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-md border border-gray-700 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-gray-800"
+          >
+            Cancel
           </button>
         </div>
       </div>

@@ -1559,12 +1559,6 @@ function SiteCard({
                     </button>
                   )}
                   <button
-                    onClick={bulkInspect}
-                    className="rounded-md border border-gray-600 px-3 py-1 text-xs font-medium text-gray-300 transition-colors hover:text-white hover:bg-gray-700"
-                  >
-                    {t("inspect")}
-                  </button>
-                  <button
                     onClick={() => setSelectedUrls(new Set())}
                     className="ml-auto rounded-md p-1 text-gray-400 hover:bg-gray-700 hover:text-white transition-colors"
                   >
@@ -1712,17 +1706,17 @@ function SiteCard({
                                 {relativeTime(url.lastSyncedAt)}
                               </td>
                               <td className="px-4 py-3">
-                                <div className="flex items-center gap-1.5">
+                                <div className="flex items-center gap-1">
                                   <button
                                     onClick={() => inspectUrl(url.url)}
                                     disabled={isInspecting}
                                     title={t("inspect")}
-                                    className="rounded-md border border-gray-700 px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-gray-800 hover:text-white disabled:opacity-50"
+                                    className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-700 text-gray-400 transition-colors hover:bg-gray-800 hover:text-white disabled:opacity-50"
                                   >
                                     {isInspecting ? (
-                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                     ) : (
-                                      <Search className="h-3 w-3" />
+                                      <Search className="h-3.5 w-3.5" />
                                     )}
                                   </button>
                                   <button
@@ -1738,7 +1732,7 @@ function SiteCard({
                                     disabled={
                                       quota?.googleSubmissions.remaining === 0
                                     }
-                                    className="rounded-md border border-gray-700 px-2 py-1 text-xs font-medium text-gray-400 transition-colors hover:bg-copper/20 hover:text-copper-light hover:border-copper/30 disabled:opacity-50"
+                                    className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-700 text-xs font-semibold text-gray-400 transition-colors hover:bg-copper/20 hover:text-copper-light hover:border-copper/30 disabled:opacity-50"
                                   >
                                     G
                                   </button>
@@ -1750,7 +1744,7 @@ function SiteCard({
                                         )
                                       }
                                       title={t("submitToBing")}
-                                      className="rounded-md border border-gray-700 px-2 py-1 text-xs font-medium text-gray-400 transition-colors hover:bg-gray-800 hover:text-white"
+                                      className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-700 text-xs font-semibold text-gray-400 transition-colors hover:bg-gray-800 hover:text-white"
                                     >
                                       B
                                     </button>
@@ -1762,12 +1756,12 @@ function SiteCard({
                                       url.indexingStatus === "removal_requested"
                                     }
                                     title="Request removal from Google (URL_DELETED). For Bing, use Bing Webmaster Tools."
-                                    className="rounded-md border border-gray-700 px-2 py-1 text-xs font-medium text-gray-400 transition-colors hover:bg-red-900/20 hover:text-red-400 hover:border-red-900/40 disabled:opacity-50"
+                                    className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-700 text-gray-400 transition-colors hover:bg-red-900/20 hover:text-red-400 hover:border-red-900/40 disabled:opacity-50"
                                   >
                                     {removingUrl[url.id] ? (
-                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                     ) : (
-                                      <Trash2 className="h-3 w-3" />
+                                      <Trash2 className="h-3.5 w-3.5" />
                                     )}
                                   </button>
                                 </div>

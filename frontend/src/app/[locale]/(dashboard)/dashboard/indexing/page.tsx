@@ -1404,7 +1404,7 @@ function SiteCard({
       {expanded && (
         <div className="border-t border-gray-800">
           {/* Tabs */}
-          <div className="flex overflow-x-auto scrollbar-none border-b border-gray-800 px-4 sm:px-6">
+          <div className="flex border-b border-gray-800 px-4 sm:px-6">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -1426,7 +1426,7 @@ function SiteCard({
             <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-5">
               {/* Stats row */}
               {stats ? (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="flex flex-wrap gap-3 [&>*]:min-w-[100px] [&>*]:flex-1">
                   <StatBox label={t("total")} value={stats.total} />
                   <StatBox
                     label={t("indexed")}
@@ -1460,7 +1460,7 @@ function SiteCard({
                   />
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="flex flex-wrap gap-3 [&>*]:min-w-[100px] [&>*]:flex-1">
                   {Array.from({ length: 7 }).map((_, i) => (
                     <div
                       key={i}
@@ -1535,7 +1535,7 @@ function SiteCard({
               </div>
 
               {/* Auto-index toggles */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Toggle
                   label={t("autoIndexGoogle")}
                   tooltip="Automatically submits new and updated pages to Google via the Indexing API."

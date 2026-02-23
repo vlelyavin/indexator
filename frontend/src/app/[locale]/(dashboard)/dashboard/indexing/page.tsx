@@ -1326,13 +1326,13 @@ function SiteCard({
       {expanded && (
         <div className="border-t border-gray-800">
           {/* Tabs */}
-          <div className="flex items-center gap-1 border-b border-gray-800 px-4 py-2">
+          <div className="flex items-center gap-1 border-b border-gray-800 overflow-x-auto scrollbar-none px-4 py-1">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  "shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors min-h-[40px]",
                   activeTab === tab.id
                     ? "bg-gradient-to-r from-copper to-copper-light text-white"
                     : "text-gray-400 hover:text-gray-200"
@@ -1345,7 +1345,7 @@ function SiteCard({
 
           {/* ── Overview Tab ─────────────────────────────────────────────── */}
           {activeTab === "overview" && (
-            <div className="px-6 py-5">
+            <div className="px-4 sm:px-6 py-4 sm:py-5">
               <div className="flex flex-col md:flex-row gap-5 items-start">
 
                 {/* ── Left column: stats (60%) ─────────────────────────── */}
@@ -1360,7 +1360,7 @@ function SiteCard({
                         <StatBox label={t("pending")} value={stats.pending} color="yellow" />
                       </div>
                       {/* Row 2: Submitted, Failed, 404 */}
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         <StatBox label={t("submitted")} value={stats.submittedGoogle + stats.submittedBing} color="blue" />
                         <StatBox label={t("failed")} value={stats.failed} color="red" />
                         <StatBox label={t("pages404")} value={stats.is404s} color="orange" />
@@ -1536,16 +1536,33 @@ function SiteCard({
 
           {/* ── URLs Tab ─────────────────────────────────────────────────── */}
           {activeTab === "urls" && (
-            <div className="px-6 py-5 space-y-4">
+            <div className="px-4 sm:px-6 py-4 space-y-4">
               {/* Filter tabs + search row */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex flex-wrap gap-1">
+              <div className="space-y-2">
+                {/* Search + refresh */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={urlSearch}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    placeholder={t("searchUrls")}
+                    className="flex-1 min-w-0 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-white placeholder-gray-500 outline-none transition-colors focus:border-copper focus:ring-2 focus:ring-copper/20"
+                  />
+                  <button
+                    onClick={() => loadUrls(urlFilter, urlCurrentPage, urlSearch)}
+                    className="shrink-0 rounded-md border border-gray-700 p-2 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                {/* Filter chips — horizontally scrollable */}
+                <div className="flex gap-1 overflow-x-auto scrollbar-none pb-0.5">
                   {URL_FILTERS.map((f) => (
                     <button
                       key={f.id}
                       onClick={() => handleFilterChange(f.id)}
                       className={cn(
-                        "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                        "shrink-0 whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
                         urlFilter === f.id
                           ? "bg-gradient-to-r from-copper to-copper-light text-white"
                           : "bg-gray-800 text-gray-400 hover:text-white"
@@ -1555,19 +1572,6 @@ function SiteCard({
                     </button>
                   ))}
                 </div>
-                <input
-                  type="text"
-                  value={urlSearch}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  placeholder={t("searchUrls")}
-                  className="ml-auto w-48 rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none transition-colors focus:border-copper focus:ring-2 focus:ring-copper/20"
-                />
-                <button
-                  onClick={() => loadUrls(urlFilter, urlCurrentPage, urlSearch)}
-                  className="rounded-md border border-gray-700 p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                </button>
               </div>
 
               {/* Bulk action bar */}
@@ -1642,8 +1646,98 @@ function SiteCard({
                 </div>
               ) : (
                 <>
-                  {/* Table */}
-                  <div className="overflow-x-auto rounded-lg border border-gray-800">
+                  {/* Mobile card list */}
+                  <div className="md:hidden space-y-2">
+                    {urlPage.urls.map((url) => {
+                      const gsc = gscStatusColor(url.gscStatus);
+                      const our = ourStatusColor(url.indexingStatus);
+                      const isInspecting = inspecting[url.url] ?? false;
+                      return (
+                        <div key={url.id} className="rounded-lg border border-gray-800 bg-gray-950 p-3">
+                          <div className="flex items-start gap-2.5">
+                            {/* Checkbox */}
+                            <input
+                              type="checkbox"
+                              checked={selectedUrls.has(url.id)}
+                              onChange={() => toggleUrl(url.id)}
+                              className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-600 bg-gray-800"
+                            />
+                            {/* Content */}
+                            <div className="flex-1 min-w-0 space-y-1.5">
+                              {/* URL */}
+                              <div className="flex items-center gap-1.5">
+                                <span className="truncate text-xs text-gray-200 min-w-0" title={url.url}>
+                                  {url.url}
+                                </span>
+                                <a
+                                  href={url.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="shrink-0 text-gray-500 hover:text-white transition"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                              </div>
+                              {/* Status badges */}
+                              <div className="flex flex-wrap gap-1.5">
+                                <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs", gsc.bg, gsc.text)}>
+                                  {gsc.label}
+                                </span>
+                                <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs", our.bg, our.text)}>
+                                  {our.label}
+                                </span>
+                              </div>
+                              {/* Timestamps */}
+                              <div className="flex flex-wrap gap-3 text-xs text-gray-600">
+                                {url.lastSyncedAt && <span>synced {relativeTime(url.lastSyncedAt)}</span>}
+                                {url.lastInspectedAt && <span>inspected {relativeTime(url.lastInspectedAt)}</span>}
+                              </div>
+                            </div>
+                            {/* Action buttons */}
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                onClick={() => inspectUrl(url.url)}
+                                disabled={isInspecting || !gscConnected}
+                                title={!gscConnected ? "Reconnect GSC to use this feature" : t("inspect")}
+                                className="flex h-9 w-9 items-center justify-center rounded-md border border-gray-700 text-gray-400 transition-colors hover:bg-gray-800 hover:text-white disabled:opacity-50"
+                              >
+                                {isInspecting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
+                              </button>
+                              <button
+                                onClick={() => onRequestSubmit(site.id, [url.id], ["google"], 1)}
+                                title={!gscConnected ? "Reconnect GSC to use this feature" : t("submitToGoogle")}
+                                disabled={!gscConnected || quota?.googleSubmissions.remaining === 0}
+                                className="flex h-9 w-9 items-center justify-center rounded-md border border-gray-700 text-xs font-semibold text-gray-400 transition-colors hover:bg-copper/20 hover:text-copper-light hover:border-copper/30 disabled:opacity-50"
+                              >
+                                G
+                              </button>
+                              {site.indexnowKey && (
+                                <button
+                                  onClick={() => bingSubmit(() => onRequestSubmit(site.id, [url.id], ["bing"], 1))}
+                                  title={t("submitToBing")}
+                                  className="flex h-9 w-9 items-center justify-center rounded-md border border-gray-700 text-xs font-semibold text-gray-400 transition-colors hover:bg-gray-800 hover:text-white"
+                                >
+                                  B
+                                </button>
+                              )}
+                              <button
+                                onClick={() => requestRemoval(url.id)}
+                                disabled={removingUrl[url.id] || url.indexingStatus === "removal_requested"}
+                                title="Request removal from Google"
+                                className="flex h-9 w-9 items-center justify-center rounded-md border border-gray-700 text-gray-400 transition-colors hover:bg-red-900/20 hover:text-red-400 hover:border-red-900/40 disabled:opacity-50"
+                              >
+                                {removingUrl[url.id] ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop table */}
+                  <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-800">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-800 bg-gray-950">
@@ -1871,10 +1965,11 @@ function SiteCard({
 
           {/* ── Log Tab ──────────────────────────────────────────────────── */}
           {activeTab === "log" && (
-            <div className="px-6 py-5 space-y-4">
+            <div className="px-4 sm:px-6 py-4 space-y-4">
               {/* Filter + refresh row */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex flex-wrap gap-1">
+              <div className="flex items-center gap-2">
+                {/* Chips — horizontally scrollable */}
+                <div className="flex flex-1 min-w-0 gap-1 overflow-x-auto scrollbar-none pb-0.5">
                   {LOG_FILTERS.map((f) => (
                     <button
                       key={f.id}
@@ -1884,7 +1979,7 @@ function SiteCard({
                         setLogPage(null);
                       }}
                       className={cn(
-                        "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                        "shrink-0 whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
                         logFilter === f.id
                           ? "bg-gradient-to-r from-copper to-copper-light text-white"
                           : "bg-gray-800 text-gray-400 hover:text-white"
@@ -1899,7 +1994,7 @@ function SiteCard({
                     setLogPage(null);
                     loadLog(logFilter, logCurrentPage);
                   }}
-                  className="ml-auto rounded-md border border-gray-700 p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+                  className="shrink-0 rounded-md border border-gray-700 p-2 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
                 </button>
@@ -2005,7 +2100,7 @@ function SiteCard({
 
           {/* ── Report Tab ───────────────────────────────────────────────── */}
           {activeTab === "report" && (
-            <div className="px-6 py-5 space-y-5">
+            <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-5">
               <h3 className="text-sm font-semibold text-white">
                 {t("todayReport")}
               </h3>

@@ -1326,16 +1326,16 @@ function SiteCard({
       {expanded && (
         <div className="border-t border-gray-800">
           {/* Tabs */}
-          <div className="flex items-center gap-1 border-b border-gray-800 overflow-x-auto scrollbar-none px-4 py-1">
+          <div className="flex border-b border-gray-800 px-6">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "shrink-0 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors min-h-[40px]",
+                  "px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px",
                   activeTab === tab.id
-                    ? "bg-gradient-to-r from-copper to-copper-light text-white"
-                    : "text-gray-400 hover:text-gray-200"
+                    ? "border-copper text-white"
+                    : "border-transparent text-gray-400 hover:text-gray-200"
                 )}
               >
                 {tab.label}
@@ -1345,226 +1345,220 @@ function SiteCard({
 
           {/* ── Overview Tab ─────────────────────────────────────────────── */}
           {activeTab === "overview" && (
-            <div className="px-4 sm:px-6 py-4 sm:py-5">
-              <div className="flex flex-col md:flex-row gap-5 items-start">
-
-                {/* ── Left column: stats (60%) ─────────────────────────── */}
-                <div className="w-full md:w-3/5 space-y-2">
-                  {stats ? (
-                    <>
-                      {/* Row 1: Total, Indexed, Not Indexed, Pending */}
-                      <div className="grid grid-cols-2 gap-2">
-                        <StatBox label={t("total")} value={stats.total} />
-                        <StatBox label={t("indexed")} value={stats.indexed} color="green" />
-                        <StatBox label={t("notIndexed")} value={stats.notIndexed} color="red" />
-                        <StatBox label={t("pending")} value={stats.pending} color="yellow" />
-                      </div>
-                      {/* Row 2: Submitted, Failed, 404 */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        <StatBox label={t("submitted")} value={stats.submittedGoogle + stats.submittedBing} color="blue" />
-                        <StatBox label={t("failed")} value={stats.failed} color="red" />
-                        <StatBox label={t("pages404")} value={stats.is404s} color="orange" />
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-2 gap-2">
-                        {Array.from({ length: 4 }).map((_, i) => (
-                          <div key={i} className="h-16 rounded-lg border border-gray-800 bg-gray-950 animate-pulse" />
-                        ))}
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        {Array.from({ length: 3 }).map((_, i) => (
-                          <div key={i} className="h-16 rounded-lg border border-gray-800 bg-gray-950 animate-pulse" />
-                        ))}
-                      </div>
-                    </>
-                  )}
+            <div className="px-6 py-5 space-y-5">
+              {/* Stats row */}
+              {stats ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <StatBox label={t("total")} value={stats.total} />
+                  <StatBox
+                    label={t("indexed")}
+                    value={stats.indexed}
+                    color="green"
+                  />
+                  <StatBox
+                    label={t("notIndexed")}
+                    value={stats.notIndexed}
+                    color="red"
+                  />
+                  <StatBox
+                    label={t("pending")}
+                    value={stats.pending}
+                    color="yellow"
+                  />
+                  <StatBox
+                    label={t("submitted")}
+                    value={stats.submittedGoogle + stats.submittedBing}
+                    color="blue"
+                  />
+                  <StatBox
+                    label={t("failed")}
+                    value={stats.failed}
+                    color="red"
+                  />
+                  <StatBox
+                    label={t("pages404")}
+                    value={stats.is404s}
+                    color="orange"
+                  />
                 </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-16 rounded-lg border border-gray-800 bg-gray-950 animate-pulse"
+                    />
+                  ))}
+                </div>
+              )}
 
-                {/* ── Right column: quota + controls (40%) ─────────────── */}
-                <div className="w-full md:w-2/5 space-y-4">
+              {/* Actions */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={onSyncUrls}
+                  disabled={syncingUrls}
+                  className="flex items-center gap-1.5 rounded-md border border-gray-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
+                >
+                  <RefreshCw
+                    className={cn(
+                      "h-3.5 w-3.5",
+                      syncingUrls && "animate-spin"
+                    )}
+                  />
+                  {t("syncUrls")}
+                </button>
 
-                  {/* Quota */}
-                  {quota && (
-                    <div className="rounded-lg border border-gray-800 bg-gray-950 p-4 space-y-2">
-                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">
-                        {t("quota")}
-                      </p>
-                      <QuotaBar
-                        label={t("googleQuota")}
-                        used={quota.googleSubmissions.used}
-                        limit={quota.googleSubmissions.limit}
-                      />
-                      <QuotaBar
-                        label={t("inspectionQuota")}
-                        used={quota.inspections.used}
-                        limit={quota.inspections.limit}
-                      />
-                    </div>
+                <button
+                  onClick={() =>
+                    onRequestSubmit(
+                      site.id,
+                      [],
+                      ["google"],
+                      stats?.notIndexed ?? 0
+                    )
+                  }
+                  disabled={
+                    !stats?.notIndexed ||
+                    quota?.googleSubmissions.remaining === 0
+                  }
+                  className="flex items-center gap-1.5 rounded-md bg-gradient-to-r from-copper to-copper-light px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  {t("submitAllNotIndexed")} (Google)
+                </button>
+
+                {site.indexnowKey && (
+                  <button
+                    onClick={() =>
+                      bingSubmit(() =>
+                        onRequestSubmit(site.id, [], ["bing"], stats?.notIndexed ?? 0)
+                      )
+                    }
+                    disabled={!stats?.notIndexed}
+                    className="flex items-center gap-1.5 rounded-md border border-gray-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
+                  >
+                    {t("submitAllNotIndexed")} (Bing)
+                  </button>
+                )}
+
+                {(site.autoIndexGoogle || site.autoIndexBing) && (
+                  <button
+                    onClick={onRunNow}
+                    disabled={running}
+                    className="flex items-center gap-1.5 rounded-md border border-gray-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
+                  >
+                    {running ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Play className="h-3.5 w-3.5" />
+                    )}
+                    {running ? "Running…" : t("runNow")}
+                  </button>
+                )}
+              </div>
+
+              {/* Auto-index toggles */}
+              <div className="space-y-2">
+                <Toggle
+                  label={t("autoIndexGoogle")}
+                  tooltip="Automatically submits new and updated pages to Google via the Indexing API."
+                  checked={site.autoIndexGoogle}
+                  onChange={onToggleAutoGoogle}
+                />
+                <Toggle
+                  label={t("autoIndexBing")}
+                  tooltip={
+                    !site.indexnowKeyVerified
+                      ? "Validate domain ownership first — click to set up IndexNow verification."
+                      : "Automatically pings Bing via IndexNow when pages are added or updated. Free."
+                  }
+                  checked={site.autoIndexBing}
+                  onChange={onToggleAutoBing}
+                  disabled={!site.indexnowKeyVerified}
+                  onDisabledClick={() => setIndexNowModal({ action: () => {} })}
+                />
+              </div>
+
+              {/* IndexNow key status badge — shown when already verified */}
+              {site.indexnowKey && site.indexnowKeyVerified && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-900/20 px-3 py-1 text-xs font-medium text-green-400">
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  IndexNow key verified
+                </span>
+              )}
+
+              {/* Run Now status panel */}
+              {runStatus && (
+                <div
+                  className={cn(
+                    "rounded-lg border px-4 py-3 text-sm",
+                    runStatus.phase === "running" &&
+                      "border-gray-700 bg-gray-950 text-gray-300",
+                    runStatus.phase === "done" &&
+                      "border-green-900/40 bg-green-900/10 text-green-300",
+                    runStatus.phase === "error" &&
+                      "border-red-900/40 bg-red-900/10 text-red-400"
                   )}
-
-                  {/* Auto-index toggles */}
-                  <div className="space-y-2">
-                    <Toggle
-                      label={t("autoIndexGoogle")}
-                      tooltip="Automatically submits new and updated pages to Google via the Indexing API."
-                      checked={site.autoIndexGoogle}
-                      onChange={onToggleAutoGoogle}
-                    />
-                    <Toggle
-                      label={t("autoIndexBing")}
-                      tooltip={
-                        !site.indexnowKeyVerified
-                          ? "Validate domain ownership first — click to set up IndexNow verification."
-                          : "Automatically pings Bing via IndexNow when pages are added or updated. Free."
-                      }
-                      checked={site.autoIndexBing}
-                      onChange={onToggleAutoBing}
-                      disabled={!site.indexnowKeyVerified}
-                      onDisabledClick={() => setIndexNowModal({ action: () => {} })}
-                    />
-                  </div>
-
-                  {/* IndexNow key status badge */}
-                  {site.indexnowKey && site.indexnowKeyVerified && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-900/20 px-3 py-1 text-xs font-medium text-green-400">
-                      <CheckCircle className="h-3.5 w-3.5" />
-                      IndexNow key verified
+                >
+                  {runStatus.phase === "running" && (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                      Running auto-index job…
                     </span>
                   )}
-
-                  {/* Actions */}
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={onSyncUrls}
-                      disabled={syncingUrls}
-                      className="flex items-center gap-1.5 rounded-md border border-gray-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
-                    >
-                      <RefreshCw className={cn("h-3.5 w-3.5", syncingUrls && "animate-spin")} />
-                      {t("syncUrls")}
-                    </button>
-
-                    <button
-                      onClick={() => onRequestSubmit(site.id, [], ["google"], stats?.notIndexed ?? 0)}
-                      disabled={!stats?.notIndexed || quota?.googleSubmissions.remaining === 0}
-                      className="flex items-center gap-1.5 rounded-md bg-gradient-to-r from-copper to-copper-light px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                    >
-                      {t("submitAllNotIndexed")} (Google)
-                    </button>
-
-                    {site.indexnowKey && (
-                      <button
-                        onClick={() => bingSubmit(() => onRequestSubmit(site.id, [], ["bing"], stats?.notIndexed ?? 0))}
-                        disabled={!stats?.notIndexed}
-                        className="flex items-center gap-1.5 rounded-md border border-gray-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
-                      >
-                        {t("submitAllNotIndexed")} (Bing)
-                      </button>
-                    )}
-
-                    {(site.autoIndexGoogle || site.autoIndexBing) && (
-                      <button
-                        onClick={onRunNow}
-                        disabled={running}
-                        className="flex items-center gap-1.5 rounded-md border border-gray-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
-                      >
-                        {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                        {running ? "Running…" : t("runNow")}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Run Now status panel */}
-                  {runStatus && (
-                    <div
-                      className={cn(
-                        "rounded-lg border px-4 py-3 text-sm",
-                        runStatus.phase === "running" && "border-gray-700 bg-gray-950 text-gray-300",
-                        runStatus.phase === "done" && "border-green-900/40 bg-green-900/10 text-green-300",
-                        runStatus.phase === "error" && "border-red-900/40 bg-red-900/10 text-red-400"
-                      )}
-                    >
-                      {runStatus.phase === "running" && (
-                        <span className="flex items-center gap-2">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-                          Running auto-index job…
-                        </span>
-                      )}
-                      {runStatus.phase === "done" && (
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 font-medium">
-                            <CheckCircle className="h-3.5 w-3.5 shrink-0" />
-                            <span>
-                              Completed{" "}
-                              <span className="text-xs font-normal text-green-500/70">
-                                {relativeTime(runStatus.ranAt)}
-                              </span>
-                            </span>
-                          </div>
-                          <p className="text-xs text-green-400/80 pl-5">
-                            {runStatus.newUrls} new · {runStatus.changedUrls} changed · {runStatus.removedUrls} removed · {runStatus.submittedGoogle} → Google · {runStatus.submittedBing} → Bing
-                            {(runStatus.failedGoogle ?? 0) + (runStatus.failedBing ?? 0) > 0 && (
-                              <span className="text-red-400"> · {(runStatus.failedGoogle ?? 0) + (runStatus.failedBing ?? 0)} failed</span>
-                            )}
-                          </p>
-                        </div>
-                      )}
-                      {runStatus.phase === "error" && (
-                        <div className="flex items-start gap-2">
-                          <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                          <span>
-                            Failed{" "}
-                            <span className="text-xs font-normal text-red-400/70">
-                              {relativeTime(runStatus.ranAt)}
-                            </span>
-                            {runStatus.errorMsg && (
-                              <span className="block text-xs mt-0.5 text-red-400/80">
-                                {runStatus.errorMsg}
-                              </span>
-                            )}
+                  {runStatus.phase === "done" && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 font-medium">
+                        <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                        <span>
+                          Completed{" "}
+                          <span className="text-xs font-normal text-green-500/70">
+                            {relativeTime(runStatus.ranAt)}
                           </span>
-                        </div>
-                      )}
+                        </span>
+                      </div>
+                      <p className="text-xs text-green-400/80 pl-5">
+                        {runStatus.newUrls} new · {runStatus.changedUrls} changed · {runStatus.removedUrls} removed · {runStatus.submittedGoogle} → Google · {runStatus.submittedBing} → Bing
+                        {(runStatus.failedGoogle ?? 0) + (runStatus.failedBing ?? 0) > 0 && (
+                          <span className="text-red-400"> · {(runStatus.failedGoogle ?? 0) + (runStatus.failedBing ?? 0)} failed</span>
+                        )}
+                      </p>
                     </div>
                   )}
-
+                  {runStatus.phase === "error" && (
+                    <div className="flex items-start gap-2">
+                      <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span>
+                        Failed{" "}
+                        <span className="text-xs font-normal text-red-400/70">
+                          {relativeTime(runStatus.ranAt)}
+                        </span>
+                        {runStatus.errorMsg && (
+                          <span className="block text-xs mt-0.5 text-red-400/80">
+                            {runStatus.errorMsg}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
           )}
 
           {/* ── URLs Tab ─────────────────────────────────────────────────── */}
           {activeTab === "urls" && (
-            <div className="px-4 sm:px-6 py-4 space-y-4">
+            <div className="px-6 py-5 space-y-4">
               {/* Filter tabs + search row */}
-              <div className="space-y-2">
-                {/* Search + refresh */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={urlSearch}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    placeholder={t("searchUrls")}
-                    className="flex-1 min-w-0 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-white placeholder-gray-500 outline-none transition-colors focus:border-copper focus:ring-2 focus:ring-copper/20"
-                  />
-                  <button
-                    onClick={() => loadUrls(urlFilter, urlCurrentPage, urlSearch)}
-                    className="shrink-0 rounded-md border border-gray-700 p-2 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-                {/* Filter chips — horizontally scrollable */}
-                <div className="flex gap-1 overflow-x-auto scrollbar-none pb-0.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap gap-1">
                   {URL_FILTERS.map((f) => (
                     <button
                       key={f.id}
                       onClick={() => handleFilterChange(f.id)}
                       className={cn(
-                        "shrink-0 whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                        "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                         urlFilter === f.id
-                          ? "bg-gradient-to-r from-copper to-copper-light text-white"
+                          ? "bg-copper text-white"
                           : "bg-gray-800 text-gray-400 hover:text-white"
                       )}
                     >
@@ -1572,6 +1566,19 @@ function SiteCard({
                     </button>
                   ))}
                 </div>
+                <input
+                  type="text"
+                  value={urlSearch}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder={t("searchUrls")}
+                  className="ml-auto w-48 rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs text-white placeholder-gray-500 outline-none transition-colors focus:border-copper focus:ring-2 focus:ring-copper/20"
+                />
+                <button
+                  onClick={() => loadUrls(urlFilter, urlCurrentPage, urlSearch)}
+                  className="rounded-md border border-gray-700 p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </button>
               </div>
 
               {/* Bulk action bar */}
@@ -1965,11 +1972,10 @@ function SiteCard({
 
           {/* ── Log Tab ──────────────────────────────────────────────────── */}
           {activeTab === "log" && (
-            <div className="px-4 sm:px-6 py-4 space-y-4">
+            <div className="px-6 py-5 space-y-4">
               {/* Filter + refresh row */}
-              <div className="flex items-center gap-2">
-                {/* Chips — horizontally scrollable */}
-                <div className="flex flex-1 min-w-0 gap-1 overflow-x-auto scrollbar-none pb-0.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap gap-1">
                   {LOG_FILTERS.map((f) => (
                     <button
                       key={f.id}
@@ -1979,9 +1985,9 @@ function SiteCard({
                         setLogPage(null);
                       }}
                       className={cn(
-                        "shrink-0 whitespace-nowrap rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
+                        "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                         logFilter === f.id
-                          ? "bg-gradient-to-r from-copper to-copper-light text-white"
+                          ? "bg-copper text-white"
                           : "bg-gray-800 text-gray-400 hover:text-white"
                       )}
                     >
@@ -1994,7 +2000,7 @@ function SiteCard({
                     setLogPage(null);
                     loadLog(logFilter, logCurrentPage);
                   }}
-                  className="shrink-0 rounded-md border border-gray-700 p-2 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+                  className="rounded-md border border-gray-700 p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
                 </button>
@@ -2100,7 +2106,7 @@ function SiteCard({
 
           {/* ── Report Tab ───────────────────────────────────────────────── */}
           {activeTab === "report" && (
-            <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-5">
+            <div className="px-6 py-5 space-y-5">
               <h3 className="text-sm font-semibold text-white">
                 {t("todayReport")}
               </h3>

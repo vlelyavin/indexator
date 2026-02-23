@@ -24,6 +24,9 @@ export function Footer() {
           <Link href={`/${locale}/login`} className="text-sm text-gray-400 transition-colors hover:text-white">
             {t("login")}
           </Link>
+          <Link href={`/${locale}/terms`} className="text-sm text-gray-400 transition-colors hover:text-white">
+            {t("terms")}
+          </Link>
         </nav>
       </div>
     </footer>

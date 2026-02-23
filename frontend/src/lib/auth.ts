@@ -67,7 +67,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id;
       }
-      if (token.email) {
+
+      // Cache role/planId in JWT; refresh from DB every 5 minutes
+      const JWT_DB_REFRESH_MS = 5 * 60 * 1000;
+      const lastCheck = (token.lastDbCheck as number) ?? 0;
+      const needsRefresh = Date.now() - lastCheck > JWT_DB_REFRESH_MS;
+
+      if (token.email && (needsRefresh || !token.role)) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
           select: { role: true, planId: true },
@@ -81,10 +87,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (adminEmail && token.email === adminEmail) {
           token.role = "admin";
         }
+        token.lastDbCheck = Date.now();
       }
 
-      // Force logout if Google account was revoked by admin
-      if (token.id && !user) {
+      // Force logout if Google account was revoked by admin (check periodically)
+      if (token.id && !user && needsRefresh) {
         const linkedAccount = await prisma.account.findFirst({
           where: { userId: token.id as string, provider: "google" },
         });

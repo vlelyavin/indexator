@@ -23,7 +23,12 @@ export async function PATCH(
     return NextResponse.json({ error: "Site not found" }, { status: 404 });
   }
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const update: { autoIndexGoogle?: boolean; autoIndexBing?: boolean } = {};
 
   if (typeof body.google === "boolean") update.autoIndexGoogle = body.google;

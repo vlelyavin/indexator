@@ -12,8 +12,13 @@ export async function PATCH(
   }
 
   const { userId } = await params;
-  const body = await req.json();
-  const { planId, indexingCredits } = body;
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  const { planId, indexingCredits } = body as { planId?: string; indexingCredits?: unknown };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const updateData: Record<string, any> = {};

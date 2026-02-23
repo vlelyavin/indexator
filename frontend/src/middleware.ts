@@ -7,14 +7,18 @@ const intlMiddleware = createIntlMiddleware(routing);
 const locales = routing.locales;
 
 /**
- * Check for Auth.js v5 session cookie. This is a lightweight presence
- * check — actual JWT verification happens in page/API auth() calls.
+ * Check for Auth.js v5 session cookie with basic JWT format validation.
+ * Full JWT verification happens in page/API auth() calls; this prevents
+ * dummy/empty cookies from bypassing the redirect to login.
  */
 function hasSessionCookie(req: NextRequest): boolean {
-  return !!(
-    req.cookies.get("authjs.session-token") ||
-    req.cookies.get("__Secure-authjs.session-token")
-  );
+  const token =
+    req.cookies.get("authjs.session-token")?.value ||
+    req.cookies.get("__Secure-authjs.session-token")?.value;
+  if (!token) return false;
+  // JWTs have 3 base64-encoded parts separated by dots
+  const parts = token.split(".");
+  return parts.length >= 3 && parts.every((p) => p.length > 0);
 }
 
 function stripLocale(pathname: string): string {

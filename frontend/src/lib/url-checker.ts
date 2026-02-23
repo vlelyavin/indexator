@@ -25,11 +25,13 @@ export async function checkUrl(url: string): Promise<UrlCheckResult> {
     const status = res.status;
     const isRedirect = status >= 300 && status < 400;
     const is404 = status === 404 || status === 410;
+    // Consider URL alive only for 2xx responses and redirects (3xx)
+    const isAlive = status < 400;
 
     return {
       url,
       httpStatus: status,
-      isAlive: !is404,
+      isAlive,
       is404,
       isRedirect,
       redirectTarget: isRedirect

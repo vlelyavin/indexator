@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getValidAccessToken, todayUTC, incrementInspections, GOOGLE_DAILY_INSPECTION_LIMIT } from "@/lib/google-auth";
+import { getValidAccessToken, todayUTC, incrementInspections, GOOGLE_DAILY_INSPECTION_LIMIT, INDEXED_GSC_STATUSES } from "@/lib/google-auth";
 import { sendCronErrorAlert, sendTokenExpiredEmail } from "@/lib/email";
 import { verifyCronAuth } from "@/lib/cron-auth";
 
@@ -62,7 +62,30 @@ export async function POST(req: Request) {
           orderBy: { submittedAt: "asc" },
         });
 
-        if (submittedUrls.length === 0) {
+        // Also sample ~10% of already-indexed URLs to detect de-indexing
+        const indexedUrlCount = await prisma.indexedUrl.count({
+          where: {
+            siteId: site.id,
+            gscStatus: { in: [...INDEXED_GSC_STATUSES] },
+          },
+        });
+        const sampleSize = Math.max(1, Math.ceil(indexedUrlCount * 0.1));
+        const indexedSample = indexedUrlCount > 0
+          ? await prisma.indexedUrl.findMany({
+              where: {
+                siteId: site.id,
+                gscStatus: { in: [...INDEXED_GSC_STATUSES] },
+              },
+              select: { id: true, url: true, gscStatus: true },
+              orderBy: { lastSyncedAt: "asc" }, // oldest-checked first
+              take: sampleSize,
+            })
+          : [];
+
+        // Combine: submitted first, then indexed sample
+        const allToCheck = [...submittedUrls, ...indexedSample];
+
+        if (allToCheck.length === 0) {
           sitesProcessed++;
           continue;
         }
@@ -101,7 +124,7 @@ export async function POST(req: Request) {
           : site.domain;
 
         // Inspect URLs up to quota
-        const toCheck = submittedUrls.slice(0, quotaRemaining);
+        const toCheck = allToCheck.slice(0, quotaRemaining);
         let inspectedCount = 0;
 
         for (const urlRecord of toCheck) {

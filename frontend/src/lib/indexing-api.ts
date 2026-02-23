@@ -81,7 +81,17 @@ export async function submitUrlsBatchToGoogle(
   const rateLimited: string[] = [];
   const failed: GoogleSubmitResult[] = [];
 
-  for (const url of urls) {
+  let hitRateLimit = false;
+
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i];
+
+    // If we already hit a 429, add all remaining URLs to rateLimited
+    if (hitRateLimit) {
+      rateLimited.push(url);
+      continue;
+    }
+
     let result: GoogleSubmitResult | null = null;
 
     for (let attempt = 1; attempt <= 3; attempt++) {
@@ -89,6 +99,11 @@ export async function submitUrlsBatchToGoogle(
       if (result.success) break;
       if (result.httpStatus === 429) {
         rateLimited.push(url);
+        // Also add all remaining URLs (they will all fail too)
+        for (let j = i + 1; j < urls.length; j++) {
+          rateLimited.push(urls[j]);
+        }
+        hitRateLimit = true;
         result = null;
         break;
       }
@@ -96,6 +111,7 @@ export async function submitUrlsBatchToGoogle(
       if (attempt < 3) await delay(attempt * 1000); // exponential backoff
     }
 
+    if (hitRateLimit) break;
     if (result === null) continue; // already in rateLimited
     if (result.success) {
       submitted.push(result);

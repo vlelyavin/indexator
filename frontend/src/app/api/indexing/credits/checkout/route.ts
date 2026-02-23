@@ -23,7 +23,12 @@ export async function POST(req: Request) {
     );
   }
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const packId = body.pack as CreditPackId;
   const pack = getCreditPack(packId);
 

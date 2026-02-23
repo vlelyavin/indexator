@@ -13,12 +13,8 @@ const adapter: typeof baseAdapter = {
   linkAccount: (account) => {
     const encrypted = {
       ...account,
-      ...(account.access_token
-        ? { access_token: encryptToken(account.access_token) }
-        : {}),
-      ...(account.refresh_token
-        ? { refresh_token: encryptToken(account.refresh_token) }
-        : {}),
+      ...(account.access_token ? { access_token: encryptToken(account.access_token) } : {}),
+      ...(account.refresh_token ? { refresh_token: encryptToken(account.refresh_token) } : {}),
     };
     return baseAdapter.linkAccount!(encrypted);
   },
@@ -34,6 +30,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
+      checks: ["state"],
     }),
     // Credentials auth disabled — Google only
     // Credentials({

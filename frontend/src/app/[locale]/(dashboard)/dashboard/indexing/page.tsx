@@ -274,6 +274,10 @@ export default function IndexingPage() {
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Disconnect modal state
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
+  const [disconnectMode, setDisconnectMode] = useState<"keep" | "delete" | null>(null);
+
   // Polling refs
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const expandedSiteRef = useRef<string | null>(null);
@@ -339,15 +343,29 @@ export default function IndexingPage() {
     }
   };
 
-  const handleDisconnect = async () => {
-    if (!window.confirm(t("disconnectConfirm"))) return;
-    const res = await fetch("/api/indexing/gsc/disconnect", {
-      method: "DELETE",
-    });
-    if (res.ok) {
-      await loadStatus();
-      setSites([]);
-      showToast("Disconnected.");
+  const handleDisconnect = () => {
+    setShowDisconnectModal(true);
+  };
+
+  const handleDisconnectConfirm = async (deleteData: boolean) => {
+    setDisconnectMode(deleteData ? "delete" : "keep");
+    try {
+      const res = await fetch(
+        `/api/indexing/gsc/disconnect?deleteData=${deleteData}`,
+        { method: "DELETE" }
+      );
+      if (res.ok) {
+        await loadStatus();
+        if (deleteData) setSites([]);
+        showToast(
+          deleteData
+            ? "Disconnected. All site data deleted."
+            : "Disconnected. URL data retained."
+        );
+      }
+    } finally {
+      setDisconnectMode(null);
+      setShowDisconnectModal(false);
     }
   };
 
@@ -737,8 +755,8 @@ export default function IndexingPage() {
         </div>
       </div>
 
-      {/* Sites list */}
-      {isConnected && (
+      {/* Sites list — shown when connected OR when data was retained after disconnect */}
+      {(isConnected || sites.length > 0) && (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold text-white">{t("sites")}</h2>
 
@@ -756,6 +774,7 @@ export default function IndexingPage() {
                 key={site.id}
                 site={site}
                 expanded={expandedSite === site.id}
+                gscConnected={isConnected ?? false}
                 stats={siteStats[site.id]}
                 quota={siteQuotas[site.id]}
                 syncingUrls={syncing[site.id] ?? false}
@@ -904,6 +923,60 @@ export default function IndexingPage() {
           </div>
         </div>
       )}
+
+      {/* Disconnect confirmation modal */}
+      {showDisconnectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => !disconnectMode && setShowDisconnectModal(false)}
+          />
+          <div className="relative z-10 w-full max-w-md rounded-xl border border-gray-800 bg-gray-900 p-6 shadow-xl">
+            {/* Close button */}
+            <button
+              onClick={() => !disconnectMode && setShowDisconnectModal(false)}
+              disabled={!!disconnectMode}
+              className="absolute right-4 top-4 rounded-md p-1 text-gray-400 hover:bg-gray-800 hover:text-gray-200 transition-colors disabled:opacity-50"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            {/* Icon */}
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10">
+              <Link2Off className="h-6 w-6 text-red-400" />
+            </div>
+            {/* Title + description */}
+            <h3 className="mb-2 text-base font-semibold text-white">
+              Disconnect Google Search Console
+            </h3>
+            <p className="mb-6 text-sm text-gray-400">
+              Your Google access token will be revoked. Choose what happens to your saved URL data, inspection results, and submission history.
+            </p>
+            {/* Buttons: Keep Data (left, accent) | Delete All Data (right, red) */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleDisconnectConfirm(false)}
+                disabled={!!disconnectMode}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-copper to-copper-light px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {disconnectMode === "keep" && (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                )}
+                Keep Data
+              </button>
+              <button
+                onClick={() => handleDisconnectConfirm(true)}
+                disabled={!!disconnectMode}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-red-800 bg-red-950/50 px-4 py-2.5 text-sm font-semibold text-red-400 transition-colors hover:bg-red-900/30 disabled:opacity-50"
+              >
+                {disconnectMode === "delete" && (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                )}
+                Delete All Data
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -913,6 +986,7 @@ export default function IndexingPage() {
 function SiteCard({
   site,
   expanded,
+  gscConnected,
   stats,
   quota,
   syncingUrls,
@@ -933,6 +1007,7 @@ function SiteCard({
 }: {
   site: Site;
   expanded: boolean;
+  gscConnected: boolean;
   stats?: SiteStats;
   quota?: Quota;
   syncingUrls: boolean;
@@ -1687,8 +1762,8 @@ function SiteCard({
                                 <div className="flex items-center gap-1">
                                   <button
                                     onClick={() => inspectUrl(url.url)}
-                                    disabled={isInspecting}
-                                    title={t("inspect")}
+                                    disabled={isInspecting || !gscConnected}
+                                    title={!gscConnected ? "Reconnect GSC to use this feature" : t("inspect")}
                                     className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-700 text-gray-400 transition-colors hover:bg-gray-800 hover:text-white disabled:opacity-50"
                                   >
                                     {isInspecting ? (
@@ -1706,8 +1781,9 @@ function SiteCard({
                                         1
                                       )
                                     }
-                                    title={t("submitToGoogle")}
+                                    title={!gscConnected ? "Reconnect GSC to use this feature" : t("submitToGoogle")}
                                     disabled={
+                                      !gscConnected ||
                                       quota?.googleSubmissions.remaining === 0
                                     }
                                     className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-700 text-xs font-semibold text-gray-400 transition-colors hover:bg-copper/20 hover:text-copper-light hover:border-copper/30 disabled:opacity-50"

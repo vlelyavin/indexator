@@ -5,13 +5,18 @@ import { getGoogleAccount } from "@/lib/google-auth";
 
 /**
  * DELETE /api/indexing/gsc/disconnect
- * Revokes the user's Google token, clears GSC connection state, and deletes all their sites.
+ * Revokes the user's Google token and clears GSC connection state.
+ * Query params:
+ *   - deleteData: "true" (default) deletes all sites + URLs; "false" keeps data (OAuth only)
  */
-export async function DELETE() {
+export async function DELETE(req: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const { searchParams } = new URL(req.url);
+  const deleteData = searchParams.get("deleteData") !== "false";
 
   const account = await getGoogleAccount(session.user.id);
 
@@ -40,14 +45,21 @@ export async function DELETE() {
     });
   }
 
-  // Clear GSC state and sites
-  await prisma.$transaction([
-    prisma.user.update({
+  // Clear GSC state; optionally wipe sites + URLs
+  if (deleteData) {
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: session.user.id },
+        data: { gscConnected: false, gscConnectedAt: null },
+      }),
+      prisma.site.deleteMany({ where: { userId: session.user.id } }),
+    ]);
+  } else {
+    await prisma.user.update({
       where: { id: session.user.id },
       data: { gscConnected: false, gscConnectedAt: null },
-    }),
-    prisma.site.deleteMany({ where: { userId: session.user.id } }),
-  ]);
+    });
+  }
 
   return NextResponse.json({ success: true });
 }

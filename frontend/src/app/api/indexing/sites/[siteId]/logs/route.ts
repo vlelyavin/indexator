@@ -11,6 +11,7 @@ const ACTION_LABELS: Record<string, string> = {
   url_discovered: "New page discovered",
   url_removed: "Page removed from sitemap",
   url_404: "404 detected",
+  removal_requested: "Removal requested (Google)",
 };
 
 /**

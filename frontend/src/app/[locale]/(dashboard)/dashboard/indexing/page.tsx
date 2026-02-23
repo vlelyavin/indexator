@@ -23,6 +23,7 @@ import {
   Loader2,
   BarChart3,
   X,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -207,6 +208,12 @@ function ourStatusColor(status: string): {
         bg: "bg-yellow-900/20",
         text: "text-yellow-400",
         label: "Pending",
+      };
+    case "removal_requested":
+      return {
+        bg: "bg-orange-900/20",
+        text: "text-orange-400",
+        label: "Removal sent",
       };
     default:
       return {
@@ -922,6 +929,7 @@ function SiteCard({
   const [urlCurrentPage, setUrlCurrentPage] = useState(1);
   const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set());
   const [inspecting, setInspecting] = useState<Record<string, boolean>>({});
+  const [removingUrl, setRemovingUrl] = useState<Record<string, boolean>>({});
 
   // Report state
   const [report, setReport] = useState<Report | null>(null);
@@ -1053,6 +1061,31 @@ function SiteCard({
       setIndexNowModal({ action });
     } else {
       action();
+    }
+  };
+
+  // ── Request URL removal from Google ──────────────────────────────────────
+
+  const requestRemoval = async (urlId: string) => {
+    setRemovingUrl((prev) => ({ ...prev, [urlId]: true }));
+    try {
+      const res = await fetch(
+        `/api/indexing/sites/${site.id}/request-removal`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ urlId }),
+        }
+      );
+      if (res.ok) {
+        showToast("Removal request sent to Google.");
+        await loadUrls(urlFilter, urlCurrentPage, urlSearch);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showToast(data.error ?? "Failed to request removal", false);
+      }
+    } finally {
+      setRemovingUrl((prev) => ({ ...prev, [urlId]: false }));
     }
   };
 
@@ -1637,6 +1670,21 @@ function SiteCard({
                                       B
                                     </button>
                                   )}
+                                  <button
+                                    onClick={() => requestRemoval(url.id)}
+                                    disabled={
+                                      removingUrl[url.id] ||
+                                      url.indexingStatus === "removal_requested"
+                                    }
+                                    title="Request removal from Google (URL_DELETED). For Bing, use Bing Webmaster Tools."
+                                    className="rounded-md border border-gray-700 px-2 py-1 text-xs font-medium text-gray-400 transition-colors hover:bg-red-900/20 hover:text-red-400 hover:border-red-900/40 disabled:opacity-50"
+                                  >
+                                    {removingUrl[url.id] ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-3 w-3" />
+                                    )}
+                                  </button>
                                 </div>
                               </td>
                             </tr>

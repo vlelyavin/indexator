@@ -107,6 +107,51 @@ export async function submitUrlsBatchToGoogle(
   return { submitted, rateLimited, failed };
 }
 
+/**
+ * Notify Google that a URL has been deleted / should be removed from search.
+ * Uses the Indexing API URL_DELETED notification type.
+ */
+export async function requestRemovalFromGoogle(
+  userId: string,
+  url: string
+): Promise<GoogleSubmitResult> {
+  let accessToken: string;
+  try {
+    accessToken = await getValidAccessToken(userId);
+  } catch (e) {
+    return {
+      url,
+      success: false,
+      error: e instanceof Error ? e.message : "Token error",
+    };
+  }
+
+  try {
+    const res = await fetch(
+      "https://indexing.googleapis.com/v3/urlNotifications:publish",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url, type: "URL_DELETED" }),
+        signal: AbortSignal.timeout(30_000),
+      }
+    );
+
+    if (res.ok) return { url, success: true, httpStatus: res.status };
+    const errBody = await res.text();
+    return { url, success: false, httpStatus: res.status, error: errBody };
+  } catch (e) {
+    return {
+      url,
+      success: false,
+      error: e instanceof Error ? e.message : "Network error",
+    };
+  }
+}
+
 // ── IndexNow (Bing / Yandex / DuckDuckGo) ────────────────────────────────────
 
 export type IndexNowResult = {

@@ -69,6 +69,7 @@ export async function GET(
         submissionMethod: true,
         submittedAt: true,
         lastSyncedAt: true,
+        lastInspectedAt: true,
         httpStatus: true,
         errorMessage: true,
       },

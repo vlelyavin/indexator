@@ -161,6 +161,7 @@ model IndexedUrl {
   isChanged        Boolean       @default(false)
   lastmod          String?       @db.VarChar(50)
   retryCount       Int           @default(0)
+  lastInspectedAt  DateTime?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   site             Site          @relation(fields: [siteId], references: [id], onDelete: Cascade)

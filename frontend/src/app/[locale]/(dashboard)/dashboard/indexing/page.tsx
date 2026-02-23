@@ -78,6 +78,7 @@ interface UrlRecord {
   submissionMethod: string;
   submittedAt: string | null;
   lastSyncedAt: string | null;
+  lastInspectedAt: string | null;
   httpStatus: number | null;
   errorMessage: string | null;
 }
@@ -1250,16 +1251,16 @@ function SiteCard({
       {expanded && (
         <div className="border-t border-gray-800">
           {/* Tabs */}
-          <div className="flex border-b border-gray-800 px-6">
+          <div className="flex items-center gap-1 border-b border-gray-800 px-4 py-2">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px",
+                  "rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
                   activeTab === tab.id
-                    ? "border-copper text-white"
-                    : "border-transparent text-gray-400 hover:text-gray-200"
+                    ? "bg-gradient-to-r from-copper to-copper-light text-white"
+                    : "text-gray-400 hover:text-gray-200"
                 )}
               >
                 {tab.label}
@@ -1471,7 +1472,7 @@ function SiteCard({
                       className={cn(
                         "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                         urlFilter === f.id
-                          ? "bg-copper text-white"
+                          ? "bg-gradient-to-r from-copper to-copper-light text-white"
                           : "bg-gray-800 text-gray-400 hover:text-white"
                       )}
                     >
@@ -1656,10 +1657,17 @@ function SiteCard({
                                 </div>
                               </td>
                               <td className="hidden md:table-cell px-4 py-3">
-                                <GscStatusBadge
-                                  status={url.gscStatus}
-                                  gsc={gsc}
-                                />
+                                <div className="space-y-0.5">
+                                  <GscStatusBadge
+                                    status={url.gscStatus}
+                                    gsc={gsc}
+                                  />
+                                  {url.lastInspectedAt && (
+                                    <p className="text-xs text-gray-600">
+                                      inspected {relativeTime(url.lastInspectedAt)}
+                                    </p>
+                                  )}
+                                </div>
                               </td>
                               <td className="hidden sm:table-cell px-4 py-3">
                                 <span
@@ -1802,7 +1810,7 @@ function SiteCard({
                       className={cn(
                         "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                         logFilter === f.id
-                          ? "bg-copper text-white"
+                          ? "bg-gradient-to-r from-copper to-copper-light text-white"
                           : "bg-gray-800 text-gray-400 hover:text-white"
                       )}
                     >

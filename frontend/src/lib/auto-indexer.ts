@@ -112,6 +112,9 @@ export async function runAutoIndexForSite(
   const newOrChangedUrls: string[] = [];
 
   for (const { loc, lastmod } of sitemapUrls) {
+    // Skip URLs that exceed the DB column limit
+    if (loc.length > 500) continue;
+
     const existing = existingUrlMap.get(loc);
 
     if (!existing) {
@@ -170,11 +173,17 @@ export async function runAutoIndexForSite(
     });
     if (!dbEntry) continue;
 
-    if (check.is404) {
+    if (!check.isAlive) {
       result.skipped404++;
       await prisma.indexedUrl.update({
         where: { id: dbEntry.id },
-        data: { httpStatus: check.httpStatus, indexingStatus: "failed", errorMessage: "404/410 detected" },
+        data: {
+          httpStatus: check.httpStatus,
+          indexingStatus: "failed",
+          errorMessage: check.is404
+            ? "404/410 detected"
+            : `URL unreachable: ${check.error ?? "unknown error"}`,
+        },
       });
       await prisma.indexingLog.create({
         data: {
@@ -182,7 +191,7 @@ export async function runAutoIndexForSite(
           userId: site.userId,
           indexedUrlId: dbEntry.id,
           action: "url_404",
-          details: JSON.stringify({ url: check.url, httpStatus: check.httpStatus }),
+          details: JSON.stringify({ url: check.url, httpStatus: check.httpStatus, error: check.error }),
         },
       });
     } else {
@@ -389,9 +398,18 @@ export async function runAutoIndexForSite(
       result.errors.push(`IndexNow verification file not found at ${keyUrl}`);
     } else {
 
-    const host = site.domain.startsWith("sc-domain:")
-      ? site.domain.replace("sc-domain:", "")
-      : new URL(site.domain).hostname;
+    let host: string;
+    try {
+      host = site.domain.startsWith("sc-domain:")
+        ? site.domain.replace("sc-domain:", "")
+        : new URL(site.domain).hostname;
+    } catch {
+      host = "";
+    }
+
+    if (!host) {
+      result.errors.push(`Invalid domain URL: ${site.domain}`);
+    } else {
 
     const indexnowResult = await submitUrlsToIndexNow(
       host,
@@ -436,6 +454,7 @@ export async function runAutoIndexForSite(
         }
       }
     }
+    } // end else (!host)
     } // end else (keyValid)
   }
 

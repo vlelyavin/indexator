@@ -12,6 +12,9 @@ const ACTION_LABELS: Record<string, string> = {
   url_removed: "Page removed from sitemap",
   url_404: "404 detected",
   removal_requested: "Removal requested (Google)",
+  synced: "URLs synced from GSC",
+  status_updated: "Status updated",
+  inspected: "URL inspected",
 };
 
 /**

@@ -434,13 +434,16 @@ export default function IndexingPage() {
       void loadSites();
       void loadCredits();
       const siteId = expandedSiteRef.current;
-      if (siteId) void loadSiteStats(siteId);
+      if (siteId) {
+        void loadSiteStats(siteId);
+        void loadSiteQuota(siteId);
+      }
     }, 10_000);
 
     return () => {
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     };
-  }, [loadSites, loadCredits, loadSiteStats]);
+  }, [loadSites, loadCredits, loadSiteStats, loadSiteQuota]);
 
   // ── Sync URLs for a site ──────────────────────────────────────────────────
 

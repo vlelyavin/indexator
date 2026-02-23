@@ -10,8 +10,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
-  const { url, language = "en", progressLanguage, analyzers = null, maxPages, includeScreenshots = false, showPagesCrawled = false } = body;
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  const { url, language = "en", progressLanguage, analyzers = null, maxPages, includeScreenshots = false, showPagesCrawled = false } = body as {
+    url?: string;
+    language?: string;
+    progressLanguage?: string;
+    analyzers?: string[] | null;
+    maxPages?: number;
+    includeScreenshots?: boolean;
+    showPagesCrawled?: boolean;
+  };
 
   if (!url) {
     return NextResponse.json({ error: "URL is required" }, { status: 400 });

@@ -222,9 +222,15 @@ export async function POST(req: Request) {
     for (const { site, urls } of Object.values(indexNowBatches)) {
       if (!site.indexnowKey) continue;
 
-      const host = site.domain.startsWith("sc-domain:")
-        ? site.domain.replace("sc-domain:", "")
-        : new URL(site.domain).hostname;
+      let host: string;
+      try {
+        host = site.domain.startsWith("sc-domain:")
+          ? site.domain.replace("sc-domain:", "")
+          : new URL(site.domain).hostname;
+      } catch {
+        errors.push(`${site.domain}: invalid domain URL, skipping IndexNow retry`);
+        continue;
+      }
 
       const urlStrings = urls.map((u) => u.url);
       retriedBing += urlStrings.length;

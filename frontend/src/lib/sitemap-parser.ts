@@ -4,6 +4,7 @@
  */
 
 import { XMLParser } from "fast-xml-parser";
+import { gunzipSync } from "zlib";
 
 export interface SitemapUrl {
   loc: string;
@@ -15,6 +16,7 @@ const parser = new XMLParser({ ignoreAttributes: false });
 /**
  * Fetch and parse a sitemap (or sitemap index), returning all URLs found.
  * Recursively follows sitemap index files up to one level deep.
+ * Automatically decompresses .gz sitemaps.
  */
 export async function fetchSitemapUrls(
   sitemapUrl: string,
@@ -25,11 +27,25 @@ export async function fetchSitemapUrls(
   let body: string;
   try {
     const res = await fetch(sitemapUrl, {
-      headers: { "User-Agent": "SEO-Audit-Tool-Indexer/1.0" },
+      headers: {
+        "User-Agent": "SEO-Audit-Tool-Indexer/1.0",
+        "Accept-Encoding": "gzip, deflate",
+      },
       signal: AbortSignal.timeout(15_000),
     });
     if (!res.ok) return [];
-    body = await res.text();
+
+    // Detect gzipped content: either URL ends in .gz or Content-Encoding says so
+    const isGzipped =
+      sitemapUrl.endsWith(".gz") ||
+      res.headers.get("content-encoding")?.includes("gzip");
+
+    if (isGzipped) {
+      const buffer = Buffer.from(await res.arrayBuffer());
+      body = gunzipSync(buffer).toString("utf-8");
+    } else {
+      body = await res.text();
+    }
   } catch {
     return [];
   }

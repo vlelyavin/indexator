@@ -54,8 +54,13 @@ export async function PUT(req: Request) {
     );
   }
 
-  const body = await req.json();
-  const { companyName, logoUrl } = body;
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+  const { companyName, logoUrl } = body as { companyName?: string | null; logoUrl?: string | null };
 
   // Validate companyName
   if (companyName !== undefined && companyName !== null) {
@@ -89,7 +94,7 @@ export async function PUT(req: Request) {
     }
   }
 
-  const updatePayload: { companyName?: string; logoUrl?: string | null } = {};
+  const updatePayload: { companyName?: string | null; logoUrl?: string | null } = {};
   if (companyName !== undefined) {
     updatePayload.companyName = companyName;
   }

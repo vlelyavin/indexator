@@ -107,6 +107,7 @@ async function doSync(
   // Upsert indexed URLs from Search Analytics
   const now = new Date();
   for (const url of indexedUrls) {
+    if (url.length > 500) continue; // Skip URLs exceeding DB column limit
     await prisma.indexedUrl.upsert({
       where: { siteId_url: { siteId: site.id, url } },
       create: {
@@ -129,6 +130,9 @@ async function doSync(
   let newCount = 0;
 
   for (const { loc, lastmod } of sitemapEntries) {
+    // Skip URLs that exceed the DB column limit
+    if (loc.length > 500) continue;
+
     const existing = await prisma.indexedUrl.findUnique({
       where: { siteId_url: { siteId: site.id, url: loc } },
     });

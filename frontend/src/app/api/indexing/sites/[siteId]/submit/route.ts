@@ -41,7 +41,12 @@ export async function POST(
     return NextResponse.json({ error: "Site not found" }, { status: 404 });
   }
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const engines: string[] = Array.isArray(body.engines)
     ? body.engines
     : ["google"];
@@ -111,7 +116,7 @@ export async function POST(
     }
   }
 
-  // 404 detection
+  // URL liveness detection (404, network errors, etc.)
   const urlStrings = urlRecords.map((r) => r.url);
   const checkResults = await checkUrls(urlStrings);
 
@@ -122,14 +127,16 @@ export async function POST(
     const record = urlRecords.find((r) => r.url === check.url);
     if (!record) continue;
 
-    if (check.is404) {
+    if (!check.isAlive) {
       skipped404++;
       await prisma.indexedUrl.update({
         where: { id: record.id },
         data: {
           httpStatus: check.httpStatus,
           indexingStatus: "failed",
-          errorMessage: "404/410 detected before submission",
+          errorMessage: check.is404
+            ? "404/410 detected before submission"
+            : `URL unreachable: ${check.error ?? "unknown error"}`,
         },
       });
     } else {

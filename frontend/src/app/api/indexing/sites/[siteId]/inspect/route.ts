@@ -119,6 +119,7 @@ export async function POST(
         data: {
           gscStatus: coverageState ?? existing.gscStatus,
           lastSyncedAt: new Date(),
+          lastInspectedAt: new Date(),
           ...(error ? { errorMessage: error } : {}),
         },
       });

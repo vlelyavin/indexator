@@ -25,7 +25,6 @@ model User {
   creditLowWarningSent    Boolean              @default(false)
   emailReports            Boolean              @default(true)
   accounts                Account[]
-  sessions                Session[]
   audits                  Audit[]
   brandSettings           BrandSettings?
   sites                   Site[]
@@ -66,14 +65,6 @@ model Account {
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid()) @db.VarChar(191)
-  sessionToken String   @unique @db.VarChar(191)
-  userId       String   @db.VarChar(191)
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { compare, hash } from "bcryptjs";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function PATCH(req: Request) {
   const session = await auth();
@@ -22,8 +23,17 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // Password change
+  // Password change (5 attempts / 15 min per user)
   if (currentPassword && newPassword) {
+    if (!rateLimit(`pw:${user.id}`, 5, 15 * 60_000).ok) {
+      return NextResponse.json({ error: "Too many attempts, try later" }, { status: 429 });
+    }
+    if (newPassword.length < 8) {
+      return NextResponse.json(
+        { error: "Password must be at least 8 characters" },
+        { status: 400 }
+      );
+    }
     if (!user.password) {
       return NextResponse.json(
         { error: "Account uses OAuth, no password to change" },

@@ -334,13 +334,6 @@ export default function IndexingPage() {
     loadCreditPacks();
   }, [loadStatus, loadSites, loadCredits, loadCreditPacks]);
 
-  // Load global quota from the first available site when sites load
-  useEffect(() => {
-    if (sites.length > 0 && !globalQuota) {
-      loadSiteQuota(sites[0].id);
-    }
-  }, [sites, globalQuota, loadSiteQuota]);
-
   // ── Reconnect / Disconnect ────────────────────────────────────────────────
 
   const handleReconnect = async () => {
@@ -422,6 +415,13 @@ export default function IndexingPage() {
       setGlobalQuota(data);
     }
   }, []);
+
+  // Load global quota from the first available site when sites load
+  useEffect(() => {
+    if (sites.length > 0 && !globalQuota) {
+      loadSiteQuota(sites[0].id);
+    }
+  }, [sites, globalQuota, loadSiteQuota]);
 
   // Keep ref in sync with expanded site state (avoids stale closure in polling)
   useEffect(() => {

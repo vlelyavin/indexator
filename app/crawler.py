@@ -7,7 +7,7 @@ import re
 import time
 from collections import deque
 from typing import AsyncGenerator, Callable, Dict, Optional, Set
-from urllib.parse import urljoin, urlparse, urlunparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -21,6 +21,12 @@ logger = logging.getLogger(__name__)
 # Precompiled regex patterns for performance
 WORD_PATTERN = re.compile(r'\b\w+\b', re.UNICODE)
 WHITESPACE_PATTERN = re.compile(r'\s+', re.UNICODE)
+
+# Tracking / analytics query parameters to strip during URL normalization
+_TRACKING_PARAMS = re.compile(
+    r'^(utm_|fbclid$|gclid$|msclkid$|mc_|yclid$|_ga$|_gl$|__hs)',
+    re.IGNORECASE,
+)
 
 
 class WebCrawler:
@@ -59,13 +65,22 @@ class WebCrawler:
         # Remove trailing slash from path (except for root)
         path = parsed.path.rstrip('/') if parsed.path != '/' else '/'
 
+        # Strip known tracking/analytics query parameters
+        query = parsed.query
+        if query:
+            cleaned = {
+                k: v for k, v in parse_qs(query, keep_blank_values=True).items()
+                if not _TRACKING_PARAMS.match(k)
+            }
+            query = urlencode(cleaned, doseq=True) if cleaned else ''
+
         # Remove fragments and default ports
         normalized = urlunparse((
             parsed.scheme,
             parsed.netloc.lower(),
             path,
             '',  # params
-            parsed.query,
+            query,
             ''   # fragment
         ))
 
@@ -212,8 +227,18 @@ class WebCrawler:
             try:
                 page = await context.new_page()
 
-                # Navigate to URL
+                # Navigate to URL (retry once on 429 with back-off)
                 response = await page.goto(url, wait_until="domcontentloaded", timeout=self.timeout)
+
+                if response and response.status == 429:
+                    retry_after = int(response.headers.get('retry-after', '5'))
+                    retry_after = min(retry_after, 30)  # cap at 30s
+                    logger.info(f"429 for {url}, retrying after {retry_after}s")
+                    await page.close()
+                    await asyncio.sleep(retry_after)
+                    page = await context.new_page()
+                    start_time = time.time()
+                    response = await page.goto(url, wait_until="domcontentloaded", timeout=self.timeout)
 
                 if response is None:
                     return PageData(url=url, status_code=0, depth=depth)
@@ -488,9 +513,14 @@ async def get_image_size(url: str, timeout: int = 10) -> Optional[int]:
             if content_length:
                 return int(content_length)
 
-        # If HEAD doesn't return size, try GET
+        # If HEAD doesn't return size, try GET (cap at 10 MB to avoid OOM)
+        max_bytes = 10 * 1024 * 1024
         async with session.get(url, timeout=timeout_config, allow_redirects=True) as response:
-            content = await response.read()
-            return len(content)
+            size = 0
+            async for chunk in response.content.iter_chunked(64 * 1024):
+                size += len(chunk)
+                if size > max_bytes:
+                    return size  # good enough estimate
+            return size
     except Exception:
         return None

@@ -31,7 +31,7 @@ export function HeroSection() {
   return (
     <section className="mx-auto max-w-5xl px-4 pt-24 pb-20 lg:px-6">
       <div className="flex flex-col items-center text-center">
-        <p className="mb-4 text-sm font-medium italic text-copper">
+        <p className="mb-4 text-sm font-medium not-italic text-copper">
           {t("sectionLabel")}
         </p>
         <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">

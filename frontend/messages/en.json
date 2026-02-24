@@ -452,6 +452,7 @@
         "feature6Desc": "Parallel analysis with headless browser crawling ensures accurate results in minutes."
       },
       "pricing": {
+        "sectionLabel": "Pricing",
         "introTitle": "Two tools. Two pricing models.",
         "introSubtitle": "Audit subscriptions cover your SEO analysis. Indexing credits cover Google URL submissions. Pick what you need.",
         "auditSectionTitle": "SEO Audit Plans",

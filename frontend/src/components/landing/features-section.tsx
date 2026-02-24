@@ -24,13 +24,13 @@ export function FeaturesSection() {
   return (
     <section className="bg-black py-24">
       <div className="mx-auto max-w-6xl px-4 lg:px-6">
-        <p className="mb-4 text-sm font-medium not-italic text-copper">
+        <p className="mb-4 text-center text-sm font-medium not-italic text-copper">
           {t("sectionLabel")}
         </p>
-        <h2 className="text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
+        <h2 className="text-center text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
           {t("title")}
         </h2>
-        <p className="mt-4 max-w-2xl text-lg text-gray-400">
+        <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-gray-400">
           {t("subtitle")}
         </p>
 

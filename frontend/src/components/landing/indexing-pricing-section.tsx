@@ -49,7 +49,7 @@ export function IndexingPricingSection() {
   ];
 
   return (
-    <section id="indexing-pricing" className="bg-gray-950 py-24">
+    <section id="indexing-pricing" className="bg-black py-24">
       <div className="mx-auto max-w-6xl px-4 lg:px-6">
         <h2 className="text-center text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
           {t("title")}

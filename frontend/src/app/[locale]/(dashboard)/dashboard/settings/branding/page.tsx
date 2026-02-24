@@ -156,6 +156,20 @@ export default function BrandingPage() {
     }
   }
 
+  async function handleRemoveLogo() {
+    try {
+      const res = await fetch("/api/settings/branding/logo", { method: "DELETE" });
+      if (res.ok) {
+        setLogoUrl("");
+        setPreviewUrl((prev) => {
+          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+          return null;
+        });
+        setImageError(false);
+      }
+    } catch { /* ignore */ }
+  }
+
   const logoSrc = previewUrl || (logoUrl ? `${logoUrl}?v=${logoVersion}` : "");
 
   if (!isAgency) {
@@ -258,6 +272,16 @@ export default function BrandingPage() {
               </div>
             )}
           </label>
+
+          {(logoUrl || previewUrl) && !uploading && (
+            <button
+              type="button"
+              onClick={handleRemoveLogo}
+              className="text-xs text-gray-500 hover:text-red-400 transition-colors mt-1"
+            >
+              {t("removeLogo")}
+            </button>
+          )}
 
           {uploadError && (
             <p className="mt-2 text-sm text-red-400">{uploadError}</p>

@@ -152,7 +152,8 @@
     "failedToLoad": "Failed to load",
     "uploading": "Uploading...",
     "uploadFailed": "Upload failed",
-    "logoAlt": "Logo"
+    "logoAlt": "Logo",
+    "removeLogo": "Remove logo"
   },
   "admin": {
     "title": "Admin Dashboard",

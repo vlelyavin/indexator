@@ -55,7 +55,7 @@ npx tsx prisma/seed.ts        # Seed database
 1. `master` is always deployable. Never commit directly to it.
 2. One branch per task/phase.
 3. Commit frequently on the branch — messy is fine.
-4. **Push only `master` to remote** after all phases of a plan are complete.
+4. **Push only `master` to remote** after you complete the task.
 
 ### Per-Phase Flow
 

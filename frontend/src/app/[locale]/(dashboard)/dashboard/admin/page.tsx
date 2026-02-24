@@ -68,6 +68,7 @@ export default function AdminDashboardPage() {
 
   // Action state
   const [actionMenu, setActionMenu] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const [editingCredits, setEditingCredits] = useState<string | null>(null);
   const [creditsValue, setCreditsValue] = useState("");
   const [confirmAction, setConfirmAction] = useState<{
@@ -242,7 +243,10 @@ export default function AdminDashboardPage() {
   // Close action menu on outside click
   useEffect(() => {
     if (!actionMenu) return;
-    const handler = () => setActionMenu(null);
+    const handler = () => {
+      setActionMenu(null);
+      setMenuPosition(null);
+    };
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
   }, [actionMenu]);
@@ -348,7 +352,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto pb-4">
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-gray-700 bg-gray-800">
@@ -402,7 +406,7 @@ export default function AdminDashboardPage() {
                 users.map((user) => (
                   <tr
                     key={user.id}
-                    className="border-b border-gray-700 hover:bg-gray-800/50"
+                    className="border-b border-gray-700 last:border-b-0 hover:bg-gray-800/50"
                   >
                     {/* Email */}
                     <td className="px-4 py-2">
@@ -516,9 +520,21 @@ export default function AdminDashboardPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setActionMenu(
-                              actionMenu === user.id ? null : user.id
-                            );
+                            if (actionMenu === user.id) {
+                              setActionMenu(null);
+                              setMenuPosition(null);
+                            } else {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              if (window.innerWidth >= 1024) {
+                                setMenuPosition({
+                                  top: rect.bottom + 4,
+                                  left: Math.max(8, rect.right - 192),
+                                });
+                              } else {
+                                setMenuPosition(null);
+                              }
+                              setActionMenu(user.id);
+                            }
                           }}
                           className="rounded-md p-2.5 text-gray-400 hover:bg-gray-800 hover:text-gray-200"
                         >
@@ -527,26 +543,49 @@ export default function AdminDashboardPage() {
 
                         {actionMenu === user.id && (
                           <>
-                            {/* Mobile: backdrop */}
+                            {/* Backdrop */}
                             <div
-                              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-                              onClick={() => setActionMenu(null)}
+                              className={cn(
+                                "fixed inset-0 z-40",
+                                !menuPosition && "bg-black/50"
+                              )}
+                              onClick={() => {
+                                setActionMenu(null);
+                                setMenuPosition(null);
+                              }}
                             />
-                            {/* Mobile: bottom sheet / Desktop: dropdown */}
+                            {/* Menu */}
                             <div
-                              className="fixed inset-x-0 bottom-0 z-50 rounded-t-xl border-t border-gray-700 bg-gray-800 p-4 shadow-xl lg:absolute lg:inset-auto lg:right-0 lg:top-full lg:z-20 lg:mt-1 lg:w-48 lg:rounded-lg lg:border lg:p-0 lg:py-1"
+                              className={cn(
+                                "fixed z-50 border-gray-700 bg-gray-800 shadow-xl",
+                                menuPosition
+                                  ? "w-48 rounded-lg border py-1"
+                                  : "inset-x-0 bottom-0 rounded-t-xl border-t p-4"
+                              )}
+                              style={
+                                menuPosition
+                                  ? { top: menuPosition.top, left: menuPosition.left }
+                                  : undefined
+                              }
                               onClick={(e) => e.stopPropagation()}
                             >
-                              {/* Mobile close button */}
-                              <div className="mb-3 flex items-center justify-between lg:hidden">
-                                <span className="text-sm font-medium text-gray-300">{user.email}</span>
-                                <button
-                                  onClick={() => setActionMenu(null)}
-                                  className="rounded-md p-2 text-gray-400 hover:bg-gray-700"
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
-                              </div>
+                              {/* Mobile close header */}
+                              {!menuPosition && (
+                                <div className="mb-3 flex items-center justify-between">
+                                  <span className="text-sm font-medium text-gray-300">
+                                    {user.email}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      setActionMenu(null);
+                                      setMenuPosition(null);
+                                    }}
+                                    className="rounded-md p-2 text-gray-400 hover:bg-gray-700"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              )}
 
                               <button
                                 onClick={() => {
@@ -555,10 +594,14 @@ export default function AdminDashboardPage() {
                                     String(user.indexingCredits)
                                   );
                                   setActionMenu(null);
+                                  setMenuPosition(null);
                                 }}
-                                className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm text-gray-300 hover:bg-gray-700 lg:py-2 lg:text-xs"
+                                className={cn(
+                                  "flex w-full items-center gap-2 text-left text-gray-300 hover:bg-gray-700",
+                                  menuPosition ? "px-3 py-2 text-xs" : "px-3 py-3 text-sm"
+                                )}
                               >
-                                <Pencil className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
+                                <Pencil className={cn(menuPosition ? "h-3.5 w-3.5" : "h-4 w-4")} />
                                 {t("editCredits")}
                               </button>
 
@@ -571,10 +614,14 @@ export default function AdminDashboardPage() {
                                       email: user.email,
                                     });
                                     setActionMenu(null);
+                                    setMenuPosition(null);
                                   }}
-                                  className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm text-gray-300 hover:bg-gray-700 lg:py-2 lg:text-xs"
+                                  className={cn(
+                                    "flex w-full items-center gap-2 text-left text-gray-300 hover:bg-gray-700",
+                                    menuPosition ? "px-3 py-2 text-xs" : "px-3 py-3 text-sm"
+                                  )}
                                 >
-                                  <Unlink className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
+                                  <Unlink className={cn(menuPosition ? "h-3.5 w-3.5" : "h-4 w-4")} />
                                   {t("revokeGsc")}
                                 </button>
                               )}
@@ -588,10 +635,14 @@ export default function AdminDashboardPage() {
                                       email: user.email,
                                     });
                                     setActionMenu(null);
+                                    setMenuPosition(null);
                                   }}
-                                  className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm text-gray-300 hover:bg-gray-700 lg:py-2 lg:text-xs"
+                                  className={cn(
+                                    "flex w-full items-center gap-2 text-left text-gray-300 hover:bg-gray-700",
+                                    menuPosition ? "px-3 py-2 text-xs" : "px-3 py-3 text-sm"
+                                  )}
                                 >
-                                  <Unlink className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
+                                  <Unlink className={cn(menuPosition ? "h-3.5 w-3.5" : "h-4 w-4")} />
                                   {t("revokeGoogle")}
                                 </button>
                               )}
@@ -606,10 +657,14 @@ export default function AdminDashboardPage() {
                                     email: user.email,
                                   });
                                   setActionMenu(null);
+                                  setMenuPosition(null);
                                 }}
-                                className="flex w-full items-center gap-2 px-3 py-3 text-left text-sm text-red-400 hover:bg-gray-700 lg:py-2 lg:text-xs"
+                                className={cn(
+                                  "flex w-full items-center gap-2 text-left text-red-400 hover:bg-gray-700",
+                                  menuPosition ? "px-3 py-2 text-xs" : "px-3 py-3 text-sm"
+                                )}
                               >
-                                <Trash2 className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
+                                <Trash2 className={cn(menuPosition ? "h-3.5 w-3.5" : "h-4 w-4")} />
                                 {t("deleteAccount")}
                               </button>
                             </div>

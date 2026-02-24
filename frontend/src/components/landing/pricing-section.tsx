@@ -27,7 +27,10 @@ export function PricingSection() {
   return (
     <section id="pricing" className="bg-black py-24">
       <div className="mx-auto max-w-6xl px-4 lg:px-6">
-        <h2 className="text-center text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
+        <p className="mb-4 text-center text-sm font-medium not-italic text-copper">
+          {t("sectionLabel")}
+        </p>
+        <h2 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
           {t("introTitle")}
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-gray-400">
@@ -35,7 +38,7 @@ export function PricingSection() {
         </p>
 
         <div className="mt-20">
-          <h3 className="text-center text-3xl font-semibold text-white sm:text-3xl">
+          <h3 className="text-center text-3xl font-bold text-white sm:text-4xl lg:text-5xl">
             {t("auditSectionTitle")}
           </h3>
           <p className="mx-auto mt-2 max-w-xl text-center text-gray-400">

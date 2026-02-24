@@ -14,20 +14,9 @@ export function Footer() {
         <p className="text-sm text-gray-500">
           {t("copyright", { year })}
         </p>
-        <nav className="flex gap-4">
-          <Link href={`/${locale}`} className="text-sm text-gray-400 transition-colors hover:text-white">
-            {t("audit")}
-          </Link>
-          <Link href={`/${locale}/pricing`} className="text-sm text-gray-400 transition-colors hover:text-white">
-            {t("pricing")}
-          </Link>
-          <Link href={`/${locale}/login`} className="text-sm text-gray-400 transition-colors hover:text-white">
-            {t("login")}
-          </Link>
-          <Link href={`/${locale}/terms`} className="text-sm text-gray-400 transition-colors hover:text-white">
-            {t("terms")}
-          </Link>
-        </nav>
+        <Link href={`/${locale}/terms`} className="text-sm text-gray-400 transition-colors hover:text-white">
+          {t("terms")}
+        </Link>
       </div>
     </footer>
   );

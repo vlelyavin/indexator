@@ -62,7 +62,7 @@ export function AnalyzerTable({ table }: AnalyzerTableProps) {
       <div className="overflow-x-auto rounded-lg border border-gray-700">
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10">
-            <tr className="border-b border-t border-gray-700 bg-gray-900">
+            <tr className="border-b border-gray-700 bg-gray-900">
               {headers.map((h, i) => (
                 <th
                   key={i}

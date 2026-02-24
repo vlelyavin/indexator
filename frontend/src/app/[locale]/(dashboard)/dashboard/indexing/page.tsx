@@ -26,6 +26,7 @@ import {
   Key,
   Send,
   Download,
+  ArrowUpDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -184,16 +185,16 @@ function gscStatusColor(
     return { bg: "bg-gray-900", text: "text-gray-400", label: l("statusUnknown", "Unknown") };
   const s = status.toLowerCase();
   if (s.includes("submitted and indexed") || s === "indexed")
-    return { bg: "bg-green-900/20", text: "text-green-400", label: l("statusIndexed", "Indexed") };
+    return { bg: "bg-green-900/35", text: "text-green-400", label: l("statusIndexed", "Indexed") };
   if (s.includes("crawled") && s.includes("not indexed"))
     return {
-      bg: "bg-orange-900/20",
+      bg: "bg-orange-900/35",
       text: "text-orange-400",
       label: l("statusNotIndexed", "Not indexed"),
     };
   if (s.includes("discovered"))
     return {
-      bg: "bg-yellow-900/20",
+      bg: "bg-yellow-900/35",
       text: "text-yellow-400",
       label: l("statusDiscovered", "Discovered"),
     };
@@ -204,10 +205,10 @@ function gscStatusColor(
     s.includes("server error") ||
     s.includes("noindex")
   )
-    return { bg: "bg-red-900/20", text: "text-red-400", label: l("statusBlocked", "Blocked") };
+    return { bg: "bg-red-900/35", text: "text-red-400", label: l("statusBlocked", "Blocked") };
   if (s.includes("redirect") || s.includes("duplicate"))
     return {
-      bg: "bg-yellow-900/20",
+      bg: "bg-yellow-900/35",
       text: "text-yellow-400",
       label: l("statusRedirect", "Redirect"),
     };
@@ -228,16 +229,16 @@ function ourStatusColor(status: string, t?: ReturnType<typeof useTranslations<"i
         label: l("submitted", "Submitted"),
       };
     case "failed":
-      return { bg: "bg-red-900/20", text: "text-red-400", label: l("failed", "Failed") };
+      return { bg: "bg-red-900/35", text: "text-red-400", label: l("failed", "Failed") };
     case "pending":
       return {
-        bg: "bg-yellow-900/20",
+        bg: "bg-yellow-900/35",
         text: "text-yellow-400",
         label: l("pending", "Pending"),
       };
     case "removal_requested":
       return {
-        bg: "bg-orange-900/20",
+        bg: "bg-orange-900/35",
         text: "text-orange-400",
         label: l("statusRemovalSent", "Removal sent"),
       };
@@ -680,8 +681,8 @@ export default function IndexingPage() {
           className={cn(
             "fixed bottom-6 right-6 z-50 rounded-lg border px-5 py-3 text-sm font-medium shadow-xl",
             toast.ok
-              ? "border-green-800 bg-green-900/20 text-green-300"
-              : "border-red-800 bg-red-900/20 text-red-300"
+              ? "border-green-800 bg-green-900/35 text-green-300"
+              : "border-red-800 bg-red-900/35 text-red-300"
           )}
         >
           {toast.msg}
@@ -704,9 +705,9 @@ export default function IndexingPage() {
             className={cn(
               "flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium transition-opacity hover:opacity-80",
               credits === 0
-                ? "border-red-800 bg-red-900/20 text-red-400"
+                ? "border-red-800 bg-red-900/35 text-red-400"
                 : creditsLow
-                  ? "border-orange-800 bg-orange-900/20 text-orange-400"
+                  ? "border-orange-800 bg-orange-900/35 text-orange-400"
                   : "border-gray-700 bg-black text-gray-300"
             )}
           >
@@ -1100,6 +1101,34 @@ function SiteCard({
   const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set());
   const [inspecting, setInspecting] = useState<Record<string, boolean>>({});
   const [removingUrl, setRemovingUrl] = useState<Record<string, boolean>>({});
+  const [urlSortCol, setUrlSortCol] = useState<"url" | "gscStatus" | "ourStatus" | "lastSynced" | null>(null);
+  const [urlSortDir, setUrlSortDir] = useState<"asc" | "desc">("asc");
+
+  function handleUrlSort(col: "url" | "gscStatus" | "ourStatus" | "lastSynced") {
+    if (urlSortCol === col) {
+      setUrlSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setUrlSortCol(col);
+      setUrlSortDir("asc");
+    }
+  }
+
+  const sortedUrls = urlPage
+    ? [...urlPage.urls].sort((a, b) => {
+        if (!urlSortCol) return 0;
+        let aVal: string | null = null;
+        let bVal: string | null = null;
+        if (urlSortCol === "url") { aVal = a.url; bVal = b.url; }
+        else if (urlSortCol === "gscStatus") { aVal = a.gscStatus; bVal = b.gscStatus; }
+        else if (urlSortCol === "ourStatus") { aVal = a.indexingStatus; bVal = b.indexingStatus; }
+        else if (urlSortCol === "lastSynced") { aVal = a.lastSyncedAt; bVal = b.lastSyncedAt; }
+        if (aVal == null && bVal == null) return 0;
+        if (aVal == null) return 1;
+        if (bVal == null) return -1;
+        const cmp = aVal.localeCompare(bVal);
+        return urlSortDir === "asc" ? cmp : -cmp;
+      })
+    : [];
 
   // Report state
   const [report, setReport] = useState<Report | null>(null);
@@ -1572,12 +1601,12 @@ function SiteCard({
               {site.indexnowKey && (
                 <div className="flex items-center gap-2 flex-wrap">
                   {site.indexnowKeyVerified ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-900/20 px-3 py-1 text-xs font-medium text-green-400">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-900/35 px-3 py-1 text-xs font-medium text-green-400">
                       <CheckCircle className="h-3.5 w-3.5" />
                       {t("indexnowVerified")}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-900/20 px-3 py-1 text-xs font-medium text-yellow-400">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-900/35 px-3 py-1 text-xs font-medium text-yellow-400">
                       <AlertTriangle className="h-3.5 w-3.5" />
                       {t("indexnowNotVerified")}
                     </span>
@@ -1735,7 +1764,7 @@ function SiteCard({
 
               {/* Google quota warning */}
               {quota && quota.googleSubmissions.remaining === 0 && (
-                <div className="flex items-center gap-2 rounded-lg border border-red-800 bg-red-900/20 px-3 py-2 text-xs text-red-300">
+                <div className="flex items-center gap-2 rounded-lg border border-red-800 bg-red-900/35 px-3 py-2 text-xs text-red-300">
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                   {t("quotaExhausted")}
                 </div>
@@ -1764,7 +1793,7 @@ function SiteCard({
                 <>
                   {/* Mobile card list */}
                   <div className="md:hidden space-y-2">
-                    {urlPage.urls.map((url) => {
+                    {sortedUrls.map((url) => {
                       const gsc = gscStatusColor(url.gscStatus, t);
                       const our = ourStatusColor(url.indexingStatus, t);
                       const isInspecting = inspecting[url.url] ?? false;
@@ -1862,17 +1891,29 @@ function SiteCard({
                               onChange={toggleSelectAll}
                             />
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                            {t("urlHeader")}
+                          <th
+                            className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-200"
+                            onClick={() => handleUrlSort("url")}
+                          >
+                            <span className="flex items-center gap-1">{t("urlHeader")}<ArrowUpDown className="h-3 w-3" /></span>
                           </th>
-                          <th className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                            {t("gscStatus")}
+                          <th
+                            className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-200"
+                            onClick={() => handleUrlSort("gscStatus")}
+                          >
+                            <span className="flex items-center gap-1">{t("gscStatus")}<ArrowUpDown className="h-3 w-3" /></span>
                           </th>
-                          <th className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                            {t("ourStatus")}
+                          <th
+                            className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-200"
+                            onClick={() => handleUrlSort("ourStatus")}
+                          >
+                            <span className="flex items-center gap-1">{t("ourStatus")}<ArrowUpDown className="h-3 w-3" /></span>
                           </th>
-                          <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                            {t("lastSynced")}
+                          <th
+                            className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-200"
+                            onClick={() => handleUrlSort("lastSynced")}
+                          >
+                            <span className="flex items-center gap-1">{t("lastSynced")}<ArrowUpDown className="h-3 w-3" /></span>
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                             {t("actions")}
@@ -1880,7 +1921,7 @@ function SiteCard({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-800">
-                        {urlPage.urls.map((url) => {
+                        {sortedUrls.map((url) => {
                           const gsc = gscStatusColor(url.gscStatus, t);
                           const our = ourStatusColor(url.indexingStatus, t);
                           const isInspecting = inspecting[url.url] ?? false;

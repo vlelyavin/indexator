@@ -35,7 +35,7 @@ export function PricingSection() {
         </p>
 
         <div className="mt-20">
-          <h3 className="text-center text-2xl font-semibold text-white sm:text-3xl">
+          <h3 className="text-center text-3xl font-semibold text-white sm:text-3xl">
             {t("auditSectionTitle")}
           </h3>
           <p className="mx-auto mt-2 max-w-xl text-center text-gray-400">

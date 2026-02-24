@@ -25,8 +25,9 @@ export function IndexingHeroSection() {
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link
             href={`/${locale}/dashboard/indexing`}
-            className="rounded-md bg-gradient-to-r from-copper to-copper-light px-8 py-3.5 text-center text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-copper to-copper-light px-8 py-3.5 text-center text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
+            <ArrowRight className="h-4 w-4" />
             {t("ctaPrimary")}
           </Link>
           <a

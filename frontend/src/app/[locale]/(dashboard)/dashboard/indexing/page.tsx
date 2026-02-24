@@ -1406,7 +1406,7 @@ function SiteCard({
       {expanded && (
         <div className="border-t border-gray-800">
           {/* Tabs */}
-          <div className="flex border-b border-gray-800 px-4 sm:px-6">
+          <div className="flex overflow-hidden border-b border-gray-800 px-4 sm:px-6">
             {TABS.map((tab) => (
               <button
                 key={tab.id}

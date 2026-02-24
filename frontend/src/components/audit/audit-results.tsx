@@ -231,7 +231,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
 
         {/* Export error */}
         {exportError && (
-          <div className="flex items-center justify-between rounded-lg border border-red-800 bg-red-900/20 px-4 py-2 text-sm text-red-300">
+          <div className="flex items-center justify-between rounded-lg border border-red-800 bg-red-900/35 px-4 py-2 text-sm text-red-300">
             <span>{exportError}</span>
             <button
               onClick={() => setExportError(null)}
@@ -276,9 +276,9 @@ function StatCard({
 }) {
   const colorClasses = {
     gray: "bg-gray-900 text-white",
-    green: "bg-green-900/20 text-green-400",
-    yellow: "bg-yellow-900/20 text-yellow-400",
-    red: "bg-red-900/20 text-red-400",
+    green: "bg-green-900/35 text-green-400",
+    yellow: "bg-yellow-900/35 text-yellow-400",
+    red: "bg-red-900/35 text-red-400",
   };
 
   return (

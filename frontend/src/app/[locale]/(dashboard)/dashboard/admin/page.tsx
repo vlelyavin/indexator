@@ -509,7 +509,7 @@ export default function AdminDashboardPage() {
                         className={cn(
                           "inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium",
                           user.gscConnected
-                            ? "bg-green-900/20 text-green-400"
+                            ? "bg-green-900/35 text-green-400"
                             : "bg-gray-900 text-gray-500"
                         )}
                       >
@@ -748,9 +748,9 @@ function StatCard({
 }) {
   const colorClasses = {
     gray: "bg-gray-900 text-white",
-    green: "bg-green-900/20 text-green-400",
-    yellow: "bg-yellow-900/20 text-yellow-400",
-    red: "bg-red-900/20 text-red-400",
+    green: "bg-green-900/35 text-green-400",
+    yellow: "bg-yellow-900/35 text-yellow-400",
+    red: "bg-red-900/35 text-red-400",
   };
 
   return (

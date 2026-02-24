@@ -456,7 +456,32 @@
         "title": "Simple, Transparent Pricing",
         "subtitle": "Start free. Upgrade when you need more.",
         "ctaFree": "Get Started Free",
-        "ctaPaid": "Get Started"
+        "ctaPaid": "Get Started",
+        "howItWorks": {
+          "step1Title": "Choose a Plan",
+          "step1Desc": "Pick the tier that fits your needs. Each plan sets your monthly audit allowance, crawl limits, and which features you can access.",
+          "step2Title": "Use Credits",
+          "step2Desc": "Every audit consumes credits based on pages crawled. Your plan includes a monthly credit allowance — enough for most use cases.",
+          "step3Title": "Need More?",
+          "step3Desc": "Buy additional credit packs anytime without upgrading your plan. Indexing credits are purchased separately."
+        },
+        "planAudience": {
+          "free": "For individuals exploring SEO",
+          "pro": "For freelancers and small teams",
+          "agency": "For agencies managing multiple clients"
+        },
+        "pricingFaq": {
+          "sectionLabel": "FAQ",
+          "title": "Pricing Questions",
+          "q1": "What happens when I run out of credits?",
+          "a1": "For SEO audits: once your monthly credit allowance is exhausted, new audits are paused until your allowance resets at the start of your next billing cycle. Pro and Agency plans include much higher limits. For indexing: you can still use all SEO audit features — you just can't submit new URLs to Google until you purchase more indexing credits.",
+          "q2": "Do unused credits roll over?",
+          "a2": "Monthly SEO audit credits reset at the start of each billing cycle — unused credits do not carry over. Indexing credits purchased separately never expire and stay in your account until used.",
+          "q3": "Can I upgrade or downgrade my plan?",
+          "a3": "Yes. You can change your plan at any time from the Plans page in your dashboard. Upgrades take effect immediately. Downgrades apply from the start of your next billing period.",
+          "q4": "What counts as one credit?",
+          "a4": "For SEO audits: each page crawled during an audit uses one credit — auditing a 50-page site uses 50 credits. For URL indexing: one credit = one URL submitted to Google via the Indexing API. Submissions to Bing and Yandex via IndexNow are always free."
+        }
       },
       "faq": {
         "sectionLabel": "FAQ",

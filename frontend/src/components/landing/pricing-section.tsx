@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { Check, Zap, Rocket, Building2, ArrowRight } from "lucide-react";
+import { Check, Zap, Rocket, Building2, ArrowRight, Key, BarChart3, PlusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PLANS = [
@@ -36,6 +36,24 @@ export function PricingSection() {
         <p className="mx-auto mt-4 max-w-xl text-center text-lg text-gray-400">
           {t("subtitle")}
         </p>
+
+        <div className="mt-14 grid gap-5 sm:grid-cols-3">
+          <div className="rounded-xl border border-gray-800 bg-gray-950 p-6">
+            <Key className="mb-3 h-5 w-5 text-copper" />
+            <h3 className="text-sm font-semibold text-white">{t("howItWorks.step1Title")}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-gray-400">{t("howItWorks.step1Desc")}</p>
+          </div>
+          <div className="rounded-xl border border-gray-800 bg-gray-950 p-6">
+            <BarChart3 className="mb-3 h-5 w-5 text-copper" />
+            <h3 className="text-sm font-semibold text-white">{t("howItWorks.step2Title")}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-gray-400">{t("howItWorks.step2Desc")}</p>
+          </div>
+          <div className="rounded-xl border border-gray-800 bg-gray-950 p-6">
+            <PlusCircle className="mb-3 h-5 w-5 text-copper" />
+            <h3 className="text-sm font-semibold text-white">{t("howItWorks.step3Title")}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-gray-400">{t("howItWorks.step3Desc")}</p>
+          </div>
+        </div>
 
         <div className="mt-16 grid gap-8 lg:grid-cols-3">
           {PLANS.map((plan) => {
@@ -80,6 +98,9 @@ export function PricingSection() {
                 <h3 className="mt-2 text-lg font-semibold text-white">
                   {pt(plan.id)}
                 </h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {t(`planAudience.${plan.id}`)}
+                </p>
                 <div className="mt-4 flex items-baseline">
                   <span className="text-5xl font-bold text-white">
                     ${plan.price}

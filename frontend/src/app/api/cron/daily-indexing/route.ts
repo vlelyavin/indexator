@@ -45,6 +45,9 @@ export async function POST(req: Request) {
     const sites = await prisma.site.findMany({
       where: {
         OR: [{ autoIndexGoogle: true }, { autoIndexBing: true }],
+        user: {
+          plan: { autoIndexing: true },
+        },
       },
       include: {
         user: {
@@ -52,6 +55,7 @@ export async function POST(req: Request) {
             id: true,
             email: true,
             emailReports: true,
+            plan: { select: { reportFrequency: true } },
           },
         },
       },
@@ -157,8 +161,10 @@ export async function POST(req: Request) {
           result.failedGoogle > 0 ||
           result.skipped404 > 0;
 
-        // A) Daily report (only when there's something to report)
-        if (user.emailReports && hasActivity) {
+        // A) Daily report (only when there's something to report + plan allows)
+        const freq = user.plan?.reportFrequency ?? "none";
+        const isReportDay = freq === "daily" || (freq === "weekly" && new Date().getUTCDay() === 1);
+        if (user.emailReports && isReportDay && hasActivity) {
           await sendDailyReportEmail(user.email, site.domain, today, {
             newPagesFound: result.newUrls,
             submittedGoogle: result.submittedGoogle,
@@ -171,8 +177,8 @@ export async function POST(req: Request) {
           }, site.id);
         }
 
-        // B) 404 alert — separate email if 5+ new 404s
-        if (user.emailReports && urls404ForEmail.length >= 5) {
+        // B) 404 alert — separate email if 5+ new 404s (only if plan allows reports)
+        if (user.emailReports && freq !== "none" && urls404ForEmail.length >= 5) {
           await send404AlertEmail(user.email, site.domain, urls404ForEmail);
         }
 

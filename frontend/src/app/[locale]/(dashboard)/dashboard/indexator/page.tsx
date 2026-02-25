@@ -283,6 +283,9 @@ export default function IndexingPage() {
   const [deletingSiteId, setDeletingSiteId] = useState<string | null>(null);
   const [deletingSiteLoading, setDeletingSiteLoading] = useState(false);
 
+  // Plan capabilities
+  const [autoIndexEnabled, setAutoIndexEnabled] = useState(false);
+
   // Polling refs
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const expandedSiteRef = useRef<string | null>(null);
@@ -321,6 +324,7 @@ export default function IndexingPage() {
     if (res.ok) {
       const data = await res.json();
       setMaxSites(data.plan?.maxSites ?? 1);
+      setAutoIndexEnabled(data.plan?.autoIndexEnabled ?? false);
     }
   }, []);
 
@@ -812,6 +816,7 @@ export default function IndexingPage() {
                 onVerifySuccess={() => handleVerifySuccess(site.id)}
                 onVerifyFail={() => handleVerifyFail(site.id)}
                 onDelete={() => setDeletingSiteId(site.id)}
+                autoIndexEnabled={autoIndexEnabled}
                 showToast={showToast}
               />
             ))
@@ -1060,6 +1065,7 @@ function SiteCard({
   onVerifySuccess,
   onVerifyFail,
   onDelete,
+  autoIndexEnabled,
   showToast,
 }: {
   site: Site;
@@ -1087,6 +1093,7 @@ function SiteCard({
   onVerifySuccess: () => void;
   onVerifyFail: () => void;
   onDelete: () => void;
+  autoIndexEnabled: boolean;
   showToast: (msg: string, ok?: boolean) => void;
 }) {
   const [activeTab, setActiveTab] = useState<"overview" | "urls" | "report" | "log">(
@@ -1590,21 +1597,24 @@ function SiteCard({
               <div className="space-y-3">
                 <Toggle
                   label={t("autoIndexGoogle")}
-                  tooltip={t("tooltipAutoGoogle")}
+                  tooltip={autoIndexEnabled ? t("tooltipAutoGoogle") : t("upgradeToEnableAutoIndex")}
                   checked={site.autoIndexGoogle}
                   onChange={onToggleAutoGoogle}
+                  disabled={!autoIndexEnabled}
                 />
                 <Toggle
                   label={t("autoIndexBing")}
                   tooltip={
-                    !site.indexnowKeyVerified
-                      ? t("tooltipAutoBingDisabled")
-                      : t("tooltipAutoBing")
+                    !autoIndexEnabled
+                      ? t("upgradeToEnableAutoIndex")
+                      : !site.indexnowKeyVerified
+                        ? t("tooltipAutoBingDisabled")
+                        : t("tooltipAutoBing")
                   }
                   checked={site.autoIndexBing}
                   onChange={onToggleAutoBing}
-                  disabled={!site.indexnowKeyVerified}
-                  onDisabledClick={() => setIndexNowModal({ action: () => {} })}
+                  disabled={!autoIndexEnabled || !site.indexnowKeyVerified}
+                  onDisabledClick={autoIndexEnabled ? () => setIndexNowModal({ action: () => {} }) : undefined}
                 />
               </div>
 

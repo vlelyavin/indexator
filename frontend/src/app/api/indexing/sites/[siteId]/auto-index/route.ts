@@ -38,6 +38,20 @@ export async function PATCH(
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
   }
 
+  // Gate: only allow enabling auto-index if plan permits
+  if (update.autoIndexGoogle || update.autoIndexBing) {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { plan: { select: { autoIndexing: true } } },
+    });
+    if (!user?.plan?.autoIndexing) {
+      return NextResponse.json(
+        { error: "Auto-indexing is not available on your plan" },
+        { status: 403 }
+      );
+    }
+  }
+
   const updated = await prisma.site.update({
     where: { id: siteId },
     data: update,

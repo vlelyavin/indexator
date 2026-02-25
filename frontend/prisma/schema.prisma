@@ -76,13 +76,16 @@ model VerificationToken {
 }
 
 model Plan {
-  id             String  @id @db.VarChar(191)
-  name           String  @db.VarChar(100)
-  auditsPerMonth Int
-  maxPages       Int
-  whiteLabel     Boolean @default(false)
-  price          Float   @default(0)
-  users          User[]
+  id              String  @id @db.VarChar(191)
+  name            String  @db.VarChar(100)
+  auditsPerMonth  Int
+  maxPages        Int
+  whiteLabel      Boolean @default(false)
+  price           Float   @default(0)
+  maxSites        Int     @default(1)
+  autoIndexing    Boolean @default(false)
+  reportFrequency String  @default("none") @db.VarChar(20)
+  users           User[]
 }
 
 model Audit {

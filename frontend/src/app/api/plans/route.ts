@@ -11,6 +11,9 @@ export async function GET() {
       maxPages: true,
       whiteLabel: true,
       price: true,
+      maxSites: true,
+      autoIndexing: true,
+      reportFrequency: true,
     },
   });
 

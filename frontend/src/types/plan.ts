@@ -6,4 +6,7 @@ export interface Plan {
   maxPages: number;
   whiteLabel: boolean;
   price: number;
+  maxSites: number;
+  autoIndexing: boolean;
+  reportFrequency: string;
 }

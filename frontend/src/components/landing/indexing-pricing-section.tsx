@@ -1,19 +1,18 @@
 "use client";
 
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Zap, Rocket, Building2, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function IndexingPricingSection() {
   const t = useTranslations("marketing.indexingLanding.pricing");
-  const locale = useLocale();
   const { data: session } = useSession();
 
   const ctaHref = session?.user
-    ? `/${locale}/dashboard/indexing`
-    : `/${locale}/login`;
+    ? "/dashboard/indexator"
+    : "/login";
 
   const packs = [
     {

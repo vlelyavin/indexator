@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { ArrowRight, Zap } from "lucide-react";
 import Image from "next/image";
 
 export function IndexingHeroSection() {
   const t = useTranslations("marketing.indexingLanding.hero");
-  const locale = useLocale();
 
   return (
     <section className="mx-auto max-w-5xl px-4 pt-24 pb-20 lg:px-6">
@@ -24,7 +23,7 @@ export function IndexingHeroSection() {
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link
-            href={`/${locale}/dashboard/indexing`}
+            href="/dashboard/indexator"
             className="inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-copper to-copper-light px-8 py-3.5 text-center text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             <Zap className="h-4 w-4" />

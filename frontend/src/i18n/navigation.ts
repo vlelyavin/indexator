@@ -6,10 +6,9 @@ export const { Link, redirect, usePathname, useRouter } =
 
 /**
  * Build a locale-aware path string for non-component contexts
- * (middleware redirects, NextAuth callbacks, emails, etc.).
- * Default locale (en) gets no prefix; others get /{locale} prefix.
+ * (NextAuth callbacks, emails, etc.).
+ * Always includes /{locale} prefix.
  */
 export function localePath(locale: string, path: string): string {
-  if (locale === routing.defaultLocale) return path;
   return `/${locale}${path}`;
 }

@@ -48,6 +48,12 @@ export function IndexingPricingSection() {
                 ? pt("unlimitedAudits")
                 : pt("auditsPerMonth", { count: plan.auditsPerMonth }),
               pt("maxPages", { count: plan.maxPages }),
+              isAgency
+                ? pt("allExports")
+                : isPro
+                  ? pt("pdfDocxExports")
+                  : pt("pdfOnly"),
+              plan.id === "free" ? pt("watermarkIncluded") : pt("noWatermark"),
               ...(isAgency ? [pt("whiteLabel")] : []),
             ];
 
@@ -58,15 +64,6 @@ export function IndexingPricingSection() {
                 ? pt("reportFrequency", { frequency: pt(plan.reportFrequency) })
                 : null,
             ].filter(Boolean) as string[];
-
-            const exportFeatures = [
-              isAgency
-                ? pt("allExports")
-                : isPro
-                  ? pt("pdfDocxExports")
-                  : pt("pdfOnly"),
-              plan.id === "free" ? pt("watermarkIncluded") : pt("noWatermark"),
-            ];
 
             const PlanIcon = PLAN_ICONS[plan.id];
 
@@ -88,7 +85,7 @@ export function IndexingPricingSection() {
                 )}
 
                 {PlanIcon && (
-                  <PlanIcon className={cn("h-6 w-6", isPro ? "text-copper" : "text-gray-400")} />
+                  <PlanIcon className="h-6 w-6 text-copper" />
                 )}
 
                 <h3 className="mt-2 text-lg font-semibold text-white">
@@ -135,25 +132,10 @@ export function IndexingPricingSection() {
                   </ul>
                 </div>
 
-                {/* Export features */}
-                <div className="mt-6 border-t border-gray-800 pt-6">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-copper">
-                    {t("exportsLabel")}
-                  </p>
-                  <ul className="flex-1 space-y-3">
-                    {exportFeatures.map((feat) => (
-                      <li key={feat} className="flex items-start gap-3">
-                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-copper" />
-                        <span className="text-sm text-gray-300">{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
                 <Link
                   href={ctaHref}
                   className={cn(
-                    "mt-8 flex items-center justify-center gap-2 rounded-md px-4 py-3.5 text-center text-sm font-semibold transition-opacity",
+                    "mt-auto flex items-center justify-center gap-2 rounded-md px-4 py-3.5 text-center text-sm font-semibold transition-opacity",
                     isPro
                       ? "bg-gradient-to-r from-copper to-copper-light text-white hover:opacity-90"
                       : "border border-gray-700 text-white hover:bg-black"

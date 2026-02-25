@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Link2, Search, Send, ArrowRight } from "lucide-react";
+import { Link2, Search, Send } from "lucide-react";
 import { motion } from "framer-motion";
 
 const STEP_ICONS = [Link2, Search, Send] as const;
@@ -10,14 +10,14 @@ export function IndexingHowItWorks() {
   const t = useTranslations("marketing.indexingLanding.howItWorks");
 
   const steps = [
-    { num: "01", icon: STEP_ICONS[0], title: t("step1Title"), desc: t("step1Desc") },
-    { num: "02", icon: STEP_ICONS[1], title: t("step2Title"), desc: t("step2Desc") },
-    { num: "03", icon: STEP_ICONS[2], title: t("step3Title"), desc: t("step3Desc") },
+    { icon: STEP_ICONS[0], title: t("step1Title"), desc: t("step1Desc") },
+    { icon: STEP_ICONS[1], title: t("step2Title"), desc: t("step2Desc") },
+    { icon: STEP_ICONS[2], title: t("step3Title"), desc: t("step3Desc") },
   ];
 
   return (
     <section className="bg-black py-24">
-      <div className="mx-auto max-w-6xl px-4 lg:px-6">
+      <div className="mx-auto max-w-5xl px-4 lg:px-6">
         <p className="mb-4 text-center text-sm font-medium not-italic text-copper">
           {t("sectionLabel")}
         </p>
@@ -25,40 +25,34 @@ export function IndexingHowItWorks() {
           {t("title")}
         </h2>
 
-        <div className="mt-16 grid items-start gap-4 sm:grid-cols-[1fr_auto_1fr_auto_1fr]">
-          {steps.map((step, i) => (
-            <div key={step.num} className="contents">
+        <div className="relative mt-20">
+          {/* Connector line (desktop only) */}
+          <div className="pointer-events-none absolute top-10 right-[calc(16.67%+24px)] left-[calc(16.67%+24px)] hidden sm:block" aria-hidden="true">
+            <div className="h-px w-full border-t border-dashed border-copper/25" />
+          </div>
+
+          <div className="grid gap-12 sm:grid-cols-3 sm:gap-8">
+            {steps.map((step, i) => (
               <motion.div
+                key={step.title}
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ duration: 0.5, delay: i * 0.15 }}
-                className="rounded-xl border border-gray-800 bg-gray-950 p-6"
+                className="flex flex-col items-center text-center"
               >
-                <span className="text-4xl font-bold text-copper/30">
-                  {step.num}
-                </span>
-                <div className="mt-4 flex items-center gap-3">
-                  <step.icon className="h-6 w-6 text-copper" />
-                  <h3 className="text-xl font-semibold text-white">
-                    {step.title}
-                  </h3>
+                <div className="relative z-10 flex h-20 w-20 items-center justify-center rounded-full border border-copper/20 bg-gray-950">
+                  <step.icon className="h-8 w-8 text-copper" />
                 </div>
-                <p className="mt-3 leading-relaxed text-gray-400">
+                <h3 className="mt-6 text-lg font-semibold text-white">
+                  {step.title}
+                </h3>
+                <p className="mt-3 max-w-xs leading-relaxed text-gray-400">
                   {step.desc}
                 </p>
               </motion.div>
-
-              {i < steps.length - 1 && (
-                <div className="hidden items-center justify-center self-center sm:flex">
-                  <div className="flex items-center gap-1">
-                    <div className="h-px w-6 bg-gradient-to-r from-copper/50 to-copper/20" />
-                    <ArrowRight className="h-4 w-4 text-copper/40" />
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </section>

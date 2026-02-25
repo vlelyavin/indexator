@@ -11,22 +11,15 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-const PRIMARY_ICONS = [BarChart3, MousePointerClick, RefreshCw];
-const SECONDARY_ICONS = [ShieldAlert, Mail, Lightbulb];
+const ICONS = [BarChart3, MousePointerClick, RefreshCw, ShieldAlert, Mail, Lightbulb];
 
 export function IndexingFeaturesSection() {
   const t = useTranslations("marketing.indexingLanding.features");
 
-  const primaryFeatures = Array.from({ length: 3 }, (_, i) => ({
+  const features = Array.from({ length: 6 }, (_, i) => ({
     title: t(`feature${i + 1}Title`),
     desc: t(`feature${i + 1}Desc`),
-    icon: PRIMARY_ICONS[i],
-  }));
-
-  const secondaryFeatures = Array.from({ length: 3 }, (_, i) => ({
-    title: t(`feature${i + 4}Title`),
-    desc: t(`feature${i + 4}Desc`),
-    icon: SECONDARY_ICONS[i],
+    icon: ICONS[i],
   }));
 
   return (
@@ -42,9 +35,8 @@ export function IndexingFeaturesSection() {
           {t("subtitle")}
         </p>
 
-        {/* Primary features — large cards */}
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {primaryFeatures.map((feat, i) => (
+          {features.map((feat, i) => (
             <motion.div
               key={feat.title}
               initial={{ opacity: 0, y: 24 }}
@@ -60,26 +52,6 @@ export function IndexingFeaturesSection() {
               <p className="mt-3 leading-relaxed text-gray-400">
                 {feat.desc}
               </p>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Secondary features — compact cards */}
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          {secondaryFeatures.map((feat, i) => (
-            <motion.div
-              key={feat.title}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.4, delay: i * 0.1 }}
-              className="flex items-start gap-3 rounded-lg border border-gray-800/60 bg-gray-950/50 px-5 py-4 transition-colors hover:border-gray-700"
-            >
-              <feat.icon className="mt-0.5 h-5 w-5 shrink-0 text-copper/70" />
-              <div>
-                <h3 className="text-sm font-semibold text-white">{feat.title}</h3>
-                <p className="mt-0.5 text-sm text-gray-500">{feat.desc}</p>
-              </div>
             </motion.div>
           ))}
         </div>

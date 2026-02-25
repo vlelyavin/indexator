@@ -44,9 +44,11 @@ print_service_debug() {
 # 1. Sync files
 echo "[1/7] Syncing files to app directory..."
 sudo mkdir -p "$APP_DIR/reports" "$APP_DIR/screenshots" "$APP_DIR/frontend/public/uploads"
-sudo rsync -a --exclude='node_modules' --exclude='.next' --exclude='venv' \
+sudo rsync -a --delete --exclude='node_modules' --exclude='.next' --exclude='venv' \
     --exclude='.git' --exclude='*.pyc' --exclude='__pycache__' \
-    --exclude='/package-lock.json' \
+    --exclude='/package-lock.json' --exclude='frontend/.env' \
+    --exclude='frontend/prisma/*.db' --exclude='frontend/prisma/*.db-journal' \
+    --exclude='frontend/public/uploads' --exclude='reports' --exclude='screenshots' \
     ./ "$APP_DIR/"
 sudo rm -rf "$APP_DIR/.git"
 if [ ! -f "$APP_DIR/frontend/.env" ]; then

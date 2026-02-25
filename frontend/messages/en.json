@@ -232,6 +232,7 @@
     "maxSites": "{count, plural, one {# site} other {# sites}}",
     "autoIndexing": "Auto-indexing enabled",
     "manualOnly": "Manual submissions only",
+    "urlHealthMonitoring": "URL health monitoring",
     "reportFrequency": "{frequency} email reports",
     "weekly": "Weekly",
     "daily": "Daily"

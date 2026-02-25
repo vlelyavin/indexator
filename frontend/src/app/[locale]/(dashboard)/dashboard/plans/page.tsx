@@ -102,25 +102,23 @@ export default function PlansPage() {
               ? t("unlimitedAudits")
               : t("auditsPerMonth", { count: plan.auditsPerMonth }),
             t("maxPages", { count: plan.maxPages }),
-            ...(isAgency ? [t("whiteLabel")] : []),
-          ];
-
-          const indexatorFeatures = [
-            t("maxSites", { count: plan.maxSites }),
-            plan.autoIndexing ? t("autoIndexing") : t("manualOnly"),
-            plan.reportFrequency !== "none"
-              ? t("reportFrequency", { frequency: t(plan.reportFrequency) })
-              : null,
-          ].filter(Boolean) as string[];
-
-          const exportFeatures = [
             isAgency
               ? t("allExports")
               : isPro
               ? t("pdfDocxExports")
               : t("pdfOnly"),
             plan.id === "free" ? t("watermarkIncluded") : t("noWatermark"),
+            ...(isAgency ? [t("whiteLabel")] : []),
           ];
+
+          const indexatorFeatures = [
+            t("maxSites", { count: plan.maxSites }),
+            plan.autoIndexing ? t("autoIndexing") : t("manualOnly"),
+            plan.autoIndexing ? t("urlHealthMonitoring") : null,
+            plan.reportFrequency !== "none"
+              ? t("reportFrequency", { frequency: t(plan.reportFrequency) })
+              : null,
+          ].filter(Boolean) as string[];
 
           return (
             <div
@@ -183,27 +181,12 @@ export default function PlansPage() {
               </div>
 
               {/* Indexator */}
-              <div className="mb-4 border-t border-gray-800 pt-4">
+              <div className="mb-6 flex-1 border-t border-gray-800 pt-4">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-copper">
                   {ut("indexatorLabel")}
                 </p>
                 <ul className="space-y-2">
                   {indexatorFeatures.map((feat) => (
-                    <li key={feat} className="flex items-start gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-copper" />
-                      <span className="text-sm text-gray-300">{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Exports */}
-              <div className="mb-6 flex-1 border-t border-gray-800 pt-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-copper">
-                  {ut("exportsLabel")}
-                </p>
-                <ul className="space-y-2">
-                  {exportFeatures.map((feat) => (
                     <li key={feat} className="flex items-start gap-2">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-copper" />
                       <span className="text-sm text-gray-300">{feat}</span>

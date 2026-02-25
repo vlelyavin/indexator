@@ -32,13 +32,37 @@ export async function GET() {
 }
 
 /**
- * PATCH endpoint removed — plan changes must go through Lemon Squeezy
- * webhook or admin action. Self-serve plan upgrade without payment
- * verification was a security vulnerability.
+ * PATCH /api/user/plan
+ * Switch the user's plan. Currently free — billing integration comes later.
+ * Body: { planId: string }
  */
-export async function PATCH() {
-  return NextResponse.json(
-    { error: "Plan changes are handled via payment provider" },
-    { status: 403 }
-  );
+export async function PATCH(req: Request) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { planId } = body as { planId?: string };
+  if (!planId || typeof planId !== "string") {
+    return NextResponse.json({ error: "planId is required" }, { status: 400 });
+  }
+
+  const plan = await prisma.plan.findUnique({ where: { id: planId } });
+  if (!plan) {
+    return NextResponse.json({ error: "Plan not found" }, { status: 404 });
+  }
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { planId },
+  });
+
+  return NextResponse.json({ success: true, planId });
 }

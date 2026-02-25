@@ -232,6 +232,7 @@
     "maxSites": "{count, plural, one {# сайт} few {# сайта} other {# сайтов}}",
     "autoIndexing": "Авто-индексация включена",
     "manualOnly": "Только ручная отправка",
+    "urlHealthMonitoring": "Мониторинг состояния URL",
     "reportFrequency": "{frequency} отчёты на email",
     "weekly": "Еженедельные",
     "daily": "Ежедневные"

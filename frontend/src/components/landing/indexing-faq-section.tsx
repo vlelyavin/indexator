@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const FAQ_COUNT = 7;
@@ -36,20 +37,30 @@ export function IndexingFaqSection() {
                   <span className="text-sm font-medium text-white">
                     {t(`q${i}`)}
                   </span>
-                  <ChevronDown
-                    className={cn(
-                      "h-5 w-5 shrink-0 text-gray-500 transition-transform",
-                      isOpen && "rotate-180"
-                    )}
-                  />
+                  <motion.span
+                    animate={{ rotate: isOpen ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown className="h-5 w-5 shrink-0 text-gray-500" />
+                  </motion.span>
                 </button>
-                {isOpen && (
-                  <div className="border-t border-gray-800 px-6 pb-5 pt-4">
-                    <p className="text-sm leading-relaxed text-gray-400">
-                      {t(`a${i}`)}
-                    </p>
-                  </div>
-                )}
+                <AnimatePresence initial={false}>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.25, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="border-t border-gray-800 px-6 pb-5 pt-4">
+                        <p className="text-sm leading-relaxed text-gray-400">
+                          {t(`a${i}`)}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             );
           })}

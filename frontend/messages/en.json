@@ -557,17 +557,17 @@
         "q1": "How does the Google Indexing API work?",
         "a1": "When you submit a URL through our tool, we use Google's official Indexing API to notify Google that your page needs to be crawled and indexed. This is significantly faster than waiting for Google to discover your page naturally.",
         "q2": "What's the difference between Google indexing and IndexNow?",
-        "a2": "Google Indexing API submits to Google specifically and costs 1 credit per URL. IndexNow submits to Bing, Yandex, and DuckDuckGo simultaneously and is completely free — no credits needed.",
+        "a2": "Google Indexing API submits to Google specifically. IndexNow submits to Bing, Yandex, and DuckDuckGo simultaneously. Both are included in all plans.",
         "q3": "Do I need a Google Search Console account?",
         "a3": "Yes. We pull your site data and index status directly from GSC. You'll connect it via Google OAuth when you sign up — takes about 10 seconds.",
         "q4": "What's the daily limit?",
         "a4": "Google allows 200 Indexing API submissions per day per account. This limit is on Google's side, not ours. IndexNow has no practical daily limit.",
         "q5": "Will this guarantee my pages get indexed?",
         "a5": "Submitting a URL tells Google to look at it, but Google still decides whether to index it. Pages with thin content, noindex tags, or other issues may not be indexed even after submission. We show you exactly why and how to fix it.",
-        "q6": "What happens when I run out of credits?",
-        "a6": "You can still use all monitoring and GSC features for free. You just can't submit new URLs to Google until you buy more credits. IndexNow submissions remain free.",
+        "q6": "What's included in each plan?",
+        "a6": "Free plan: 1 site, manual submissions, basic monitoring. Pro ($15/mo): up to 5 sites, auto-indexing, weekly reports. Agency ($35/mo): up to 10 sites, daily reports, and white-label exports.",
         "q7": "Can I use this with multiple websites?",
-        "a7": "Yes. Any site verified in your Google Search Console is available. Credits are shared across all your sites."
+        "a7": "Yes. Any site verified in your Google Search Console is available. The number of sites you can manage depends on your plan — 1 on Free, 5 on Pro, and 10 on Agency."
       },
       "cta": {
         "heading": "Stop Waiting for Google to Find Your Pages",

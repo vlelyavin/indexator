@@ -18,10 +18,20 @@ export async function POST(
   }
 
   const { siteId } = await params;
-  const site = await prisma.site.findUnique({ where: { id: siteId } });
+  const site = await prisma.site.findUnique({
+    where: { id: siteId },
+    include: { user: { select: { plan: { select: { autoIndexing: true } } } } },
+  });
 
   if (!site || site.userId !== session.user.id) {
     return NextResponse.json({ error: "Site not found" }, { status: 404 });
+  }
+
+  if (!site.user.plan.autoIndexing) {
+    return NextResponse.json(
+      { error: "Auto-indexing is not available on your plan" },
+      { status: 403 }
+    );
   }
 
   // Acquire auto-index lock to prevent concurrent runs

@@ -63,6 +63,11 @@ export async function POST(req: Request) {
       where: {
         indexingStatus: "failed",
         retryCount: { lt: MAX_RETRIES },
+        site: {
+          user: {
+            plan: { autoIndexing: true },
+          },
+        },
       },
       include: {
         site: {

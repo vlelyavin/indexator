@@ -10,6 +10,7 @@ import type { Plan } from "@/types/plan";
 
 export default function PlansPage() {
   const t = useTranslations("plans");
+  const ut = useTranslations("marketing.unifiedPricing");
   const tBreadcrumbs = useTranslations("breadcrumbs");
   const { data: session, update } = useSession();
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -45,7 +46,6 @@ export default function PlansPage() {
 
       if (res.ok) {
         setMessage({ type: "success", text: t("planUpdated") });
-        // Refresh session to update planId in JWT
         await update();
       } else {
         const data = await res.json();
@@ -96,28 +96,30 @@ export default function PlansPage() {
           const isAgency = plan.id === "agency";
           const isPro = plan.id === "pro";
           const isSwitching = switching === plan.id;
-          const featureItems = [
-            {
-              text:
-                isPro || isAgency
-                  ? t("unlimitedAudits")
-                  : t("auditsPerMonth", { count: plan.auditsPerMonth }),
-              highlight: false,
-            },
-            { text: t("maxPages", { count: plan.maxPages }), highlight: false },
-            {
-              text: isAgency
-                ? t("fullExports")
-                : isPro
-                ? t("pdfAndHtmlExports")
-                : t("pdfOnly"),
-              highlight: isAgency,
-            },
-            {
-              text: plan.id === "free" ? t("watermarkIncluded") : t("noWatermark"),
-              highlight: isAgency,
-            },
-            ...(isAgency ? [{ text: t("whiteLabel"), highlight: true }] : []),
+
+          const auditorFeatures = [
+            isPro || isAgency
+              ? t("unlimitedAudits")
+              : t("auditsPerMonth", { count: plan.auditsPerMonth }),
+            t("maxPages", { count: plan.maxPages }),
+            ...(isAgency ? [t("whiteLabel")] : []),
+          ];
+
+          const indexatorFeatures = [
+            t("maxSites", { count: plan.maxSites }),
+            plan.autoIndexing ? t("autoIndexing") : t("manualOnly"),
+            plan.reportFrequency !== "none"
+              ? t("reportFrequency", { frequency: t(plan.reportFrequency) })
+              : null,
+          ].filter(Boolean) as string[];
+
+          const exportFeatures = [
+            isAgency
+              ? t("allExports")
+              : isPro
+              ? t("pdfDocxExports")
+              : t("pdfOnly"),
+            plan.id === "free" ? t("watermarkIncluded") : t("noWatermark"),
           ];
 
           return (
@@ -127,7 +129,7 @@ export default function PlansPage() {
                 "relative flex h-full flex-col rounded-xl border p-6",
                 isCurrent
                   ? "border-copper/50 bg-gray-950"
-                  : isAgency
+                  : isPro
                   ? "border-copper/30 bg-gray-950"
                   : "border-gray-800 bg-black"
               )}
@@ -149,7 +151,7 @@ export default function PlansPage() {
                   };
                   const PlanIcon = icons[plan.id];
                   return PlanIcon ? (
-                    <PlanIcon className={cn("mb-2 h-6 w-6", isAgency ? "text-copper" : "text-gray-400")} />
+                    <PlanIcon className={cn("mb-2 h-6 w-6", isPro ? "text-copper" : "text-gray-400")} />
                   ) : null;
                 })()}
                 <h3 className="text-lg font-semibold text-white">
@@ -165,16 +167,50 @@ export default function PlansPage() {
                 </div>
               </div>
 
-              <ul className="mb-6 flex-1 space-y-3">
-                {featureItems.map((item) => (
-                  <FeatureItem
-                    key={item.text}
-                    icon={Check}
-                    text={item.text}
-                    highlight={item.highlight}
-                  />
-                ))}
-              </ul>
+              {/* Auditor */}
+              <div className="mb-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-copper">
+                  {ut("auditorLabel")}
+                </p>
+                <ul className="space-y-2">
+                  {auditorFeatures.map((feat) => (
+                    <li key={feat} className="flex items-start gap-2">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-copper" />
+                      <span className="text-sm text-gray-300">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Indexator */}
+              <div className="mb-4 border-t border-gray-800 pt-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-copper">
+                  {ut("indexatorLabel")}
+                </p>
+                <ul className="space-y-2">
+                  {indexatorFeatures.map((feat) => (
+                    <li key={feat} className="flex items-start gap-2">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-copper" />
+                      <span className="text-sm text-gray-300">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Exports */}
+              <div className="mb-6 flex-1 border-t border-gray-800 pt-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-copper">
+                  {ut("exportsLabel")}
+                </p>
+                <ul className="space-y-2">
+                  {exportFeatures.map((feat) => (
+                    <li key={feat} className="flex items-start gap-2">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-copper" />
+                      <span className="text-sm text-gray-300">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
 
               <button
                 onClick={() => handleSelectPlan(plan.id)}
@@ -183,7 +219,7 @@ export default function PlansPage() {
                   "mt-auto flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition-opacity",
                   isCurrent
                     ? "cursor-not-allowed bg-gray-900 text-gray-500"
-                    : isAgency
+                    : isPro
                     ? "bg-gradient-to-r from-copper to-copper-light text-white hover:opacity-90"
                     : "border border-gray-700 text-white hover:bg-gray-900"
                 )}
@@ -223,33 +259,5 @@ export default function PlansPage() {
         </p>
       </div>
     </div>
-  );
-}
-
-function FeatureItem({
-  icon: Icon,
-  text,
-  highlight = false,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  text: string;
-  highlight?: boolean;
-}) {
-  return (
-    <li className="flex items-start gap-2">
-      <Icon
-        className="mt-0.5 h-5 w-5 shrink-0 text-copper"
-      />
-      <span
-        className={cn(
-          "text-sm",
-          highlight
-            ? "font-medium text-white"
-            : "text-gray-300"
-        )}
-      >
-        {text}
-      </span>
-    </li>
   );
 }

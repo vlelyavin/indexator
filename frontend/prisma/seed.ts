@@ -11,6 +11,9 @@ async function main() {
       maxPages: 20,
       whiteLabel: false,
       price: 0,
+      maxSites: 1,
+      autoIndexing: false,
+      reportFrequency: "none",
     },
     create: {
       id: "free",
@@ -19,6 +22,9 @@ async function main() {
       maxPages: 20,
       whiteLabel: false,
       price: 0,
+      maxSites: 1,
+      autoIndexing: false,
+      reportFrequency: "none",
     },
   });
 
@@ -29,7 +35,10 @@ async function main() {
       auditsPerMonth: 999999,
       maxPages: 200,
       whiteLabel: false,
-      price: 9,
+      price: 15,
+      maxSites: 5,
+      autoIndexing: true,
+      reportFrequency: "weekly",
     },
     create: {
       id: "pro",
@@ -37,7 +46,10 @@ async function main() {
       auditsPerMonth: 999999,
       maxPages: 200,
       whiteLabel: false,
-      price: 9,
+      price: 15,
+      maxSites: 5,
+      autoIndexing: true,
+      reportFrequency: "weekly",
     },
   });
 
@@ -48,7 +60,10 @@ async function main() {
       auditsPerMonth: 999999,
       maxPages: 1000,
       whiteLabel: true,
-      price: 29,
+      price: 35,
+      maxSites: 10,
+      autoIndexing: true,
+      reportFrequency: "daily",
     },
     create: {
       id: "agency",
@@ -56,7 +71,10 @@ async function main() {
       auditsPerMonth: 999999,
       maxPages: 1000,
       whiteLabel: true,
-      price: 29,
+      price: 35,
+      maxSites: 10,
+      autoIndexing: true,
+      reportFrequency: "daily",
     },
   });
 

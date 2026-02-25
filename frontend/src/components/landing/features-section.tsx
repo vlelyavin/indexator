@@ -24,10 +24,10 @@ export function FeaturesSection() {
   return (
     <section className="bg-black py-24">
       <div className="mx-auto max-w-6xl px-4 lg:px-6">
-        <p className="mb-4 text-center text-sm font-medium not-italic text-copper">
+        <p className="mb-6 text-center text-sm font-medium not-italic text-copper">
           {t("sectionLabel")}
         </p>
-        <h2 className="text-center text-4xl font-bold bg-gradient-to-b from-white to-gray-400 bg-clip-text text-transparent sm:text-5xl lg:text-6xl">
+        <h2 className="text-center text-4xl font-bold bg-gradient-to-b from-white to-gray-300 bg-clip-text text-transparent sm:text-5xl lg:text-7xl">
           {t("title")}
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-gray-400">
@@ -54,10 +54,10 @@ export function FeaturesSection() {
         </div>
 
         <div className="mt-20">
-          <p className="mb-4 text-center text-sm font-medium not-italic text-copper">
+          <p className="mb-6 text-center text-sm font-medium not-italic text-copper">
             {t("featuresSectionLabel")}
           </p>
-          <h2 className="text-center text-4xl font-bold bg-gradient-to-b from-white to-gray-400 bg-clip-text text-transparent sm:text-5xl lg:text-6xl">
+          <h2 className="text-center text-4xl font-bold bg-gradient-to-b from-white to-gray-300 bg-clip-text text-transparent sm:text-5xl lg:text-7xl">
             {t("featuresTitle")}
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-gray-400">

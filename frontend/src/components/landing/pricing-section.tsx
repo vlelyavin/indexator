@@ -1,8 +1,8 @@
 "use client";
 
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useSession } from "next-auth/react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Check, Zap, Rocket, Building2, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +21,6 @@ const PLAN_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
 export function PricingSection({ showIntro = true }: { showIntro?: boolean }) {
   const t = useTranslations("marketing.landing.pricing");
   const pt = useTranslations("plans");
-  const locale = useLocale();
   const { data: session } = useSession();
 
   return (
@@ -72,8 +71,8 @@ export function PricingSection({ showIntro = true }: { showIntro?: boolean }) {
             ];
 
             const ctaHref = session?.user
-              ? `/${locale}/dashboard/plans`
-              : `/${locale}/login`;
+              ? "/dashboard/plans"
+              : "/login";
 
             return (
               <div

@@ -413,8 +413,8 @@
   },
   "marketing": {
     "nav": {
-      "audit": "SEO Аудит",
-      "indexing": "Индексация",
+      "auditor": "Аудитор",
+      "indexator": "Индексатор",
       "pricing": "Тарифы",
       "dashboard": "Панель управления",
       "signIn": "Войти",

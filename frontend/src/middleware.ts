@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
+import { localePath } from "./i18n/navigation";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
@@ -42,7 +43,7 @@ export default async function middleware(req: NextRequest) {
   if (path.startsWith("/dashboard")) {
     if (!hasSessionCookie(req)) {
       const locale = getLocale(pathname);
-      return NextResponse.redirect(new URL(`/${locale}/login`, req.url));
+      return NextResponse.redirect(new URL(localePath(locale, "/login"), req.url));
     }
   }
 
@@ -50,11 +51,11 @@ export default async function middleware(req: NextRequest) {
   if (path === "/login" || path === "/register") {
     if (hasSessionCookie(req)) {
       const locale = getLocale(pathname);
-      return NextResponse.redirect(new URL(`/${locale}/dashboard`, req.url));
+      return NextResponse.redirect(new URL(localePath(locale, "/dashboard"), req.url));
     }
   }
 
-  // All other routes (landing, pricing, indexing, etc.): pass through
+  // All other routes (landing, pricing, indexator, etc.): pass through
   return intlMiddleware(req);
 }
 

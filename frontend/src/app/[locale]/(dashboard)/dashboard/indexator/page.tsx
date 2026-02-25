@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import {
   Search,
   RefreshCw,
@@ -256,8 +256,6 @@ function ourStatusColor(status: string, t?: ReturnType<typeof useTranslations<"i
 export default function IndexingPage() {
   const t = useTranslations("indexing");
   const tBreadcrumbs = useTranslations("breadcrumbs");
-  const locale = useLocale();
-
   // GSC + sites state
   const [gscStatus, setGscStatus] = useState<GscStatus | null>(null);
   const [sites, setSites] = useState<Site[]>([]);
@@ -692,7 +690,7 @@ export default function IndexingPage() {
       {/* Breadcrumbs + Header */}
       <div>
         <Breadcrumbs items={[
-          { label: tBreadcrumbs("dashboard"), href: `/${locale}/dashboard` },
+          { label: tBreadcrumbs("dashboard"), href: "/dashboard" },
           { label: tBreadcrumbs("indexing") },
         ]} />
         <div className="flex items-center justify-between flex-wrap gap-3">

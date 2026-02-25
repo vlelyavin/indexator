@@ -413,8 +413,8 @@
   },
   "marketing": {
     "nav": {
-      "audit": "SEO Audit",
-      "indexing": "Indexing",
+      "auditor": "Auditor",
+      "indexator": "Indexator",
       "pricing": "Pricing",
       "dashboard": "Dashboard",
       "signIn": "Sign In",

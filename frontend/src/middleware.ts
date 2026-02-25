@@ -58,16 +58,17 @@ export default async function middleware(req: NextRequest) {
   // All other routes (landing, pricing, indexator, etc.): pass through
   const response = intlMiddleware(req);
 
-  // Fix protocol on internal rewrites: next-intl inherits https from
-  // X-Forwarded-Proto, but Next.js listens on HTTP internally, so
-  // https://localhost rewrites cause EPROTO 500 errors.
+  // Fix rewrite origin: next-intl builds rewrite URLs using a mix of the
+  // forwarded protocol (https) and the actual server host (localhost:3000).
+  // Next.js sees this as a different origin from its perceived host
+  // (seo-audit.online) and converts the rewrite to a redirect → loop.
+  // Rebuild the rewrite URL using the request's own origin so Next.js
+  // recognizes it as an internal rewrite.
   const rewrite = response.headers.get("x-middleware-rewrite");
   if (rewrite) {
-    const url = new URL(rewrite);
-    if (url.protocol === "https:") {
-      url.protocol = "http:";
-      response.headers.set("x-middleware-rewrite", url.toString());
-    }
+    const rewriteUrl = new URL(rewrite);
+    const fixedUrl = new URL(rewriteUrl.pathname + rewriteUrl.search, req.url);
+    response.headers.set("x-middleware-rewrite", fixedUrl.toString());
   }
 
   return response;

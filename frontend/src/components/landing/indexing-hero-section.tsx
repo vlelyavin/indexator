@@ -9,11 +9,19 @@ export function IndexingHeroSection() {
   const t = useTranslations("marketing.indexingLanding.hero");
 
   return (
-    <section className="mx-auto max-w-5xl px-4 pt-24 pb-20 lg:px-6">
-      <div className="flex flex-col items-center text-center">
-        <p className="mb-4 text-sm font-medium not-italic text-copper">
+    <section className="relative mx-auto max-w-5xl px-4 pt-24 pb-20 lg:px-6">
+      {/* Copper radial glow behind heading */}
+      <div
+        className="pointer-events-none absolute top-16 left-1/2 -translate-x-1/2"
+        aria-hidden="true"
+      >
+        <div className="h-[500px] w-[700px] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(184,115,51,0.15)_0%,rgba(184,115,51,0.05)_40%,transparent_70%)] blur-2xl" />
+      </div>
+
+      <div className="relative flex flex-col items-center text-center">
+        <span className="mb-4 inline-flex items-center rounded-full border border-copper/30 bg-copper/10 px-3 py-1 text-xs font-medium text-copper">
           {t("sectionLabel")}
-        </p>
+        </span>
         <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
           {t("title")}
         </h1>

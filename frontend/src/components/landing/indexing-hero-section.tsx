@@ -9,9 +9,7 @@ export function IndexingHeroSection() {
   const t = useTranslations("marketing.indexingLanding.hero");
 
   return (
-    <section className="relative overflow-hidden bg-[linear-gradient(0deg,#0b0b0b,black)] pt-24 pb-20">
-      {/* Bottom fade for smooth transition */}
-      <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" aria-hidden="true" />
+    <section className="relative overflow-hidden bg-black pt-24 pb-20">
 
       <div className="relative mx-auto max-w-6xl px-4 lg:px-6">
         <div className="flex flex-col items-center text-center">
@@ -21,10 +19,6 @@ export function IndexingHeroSection() {
           <h1 className="mx-auto max-w-3xl text-4xl md:text-5xl font-bold tracking-tight text-white">
             {t("title")}
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-base text-gray-400">
-            {t("subtitle")}
-          </p>
-
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/dashboard/indexator"

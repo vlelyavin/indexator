@@ -22,7 +22,7 @@ export function IndexingHowItWorks() {
           {t("title")}
         </h2>
 
-        <div className="mt-16 flex flex-col">
+        <div className="mt-12 flex flex-col">
           {steps.map((step, i) => (
             <motion.div
               key={step.num}

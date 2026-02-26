@@ -19,13 +19,13 @@ export function IndexingCtaSection() {
 
       <div className="relative mx-auto max-w-3xl px-4 text-center lg:px-6">
         <div className="rounded-2xl border border-gray-800 bg-gray-950/80 px-8 py-16 backdrop-blur-sm">
-          <h2 className="font-bold text-white" style={{ fontSize: "clamp(2rem, 4vw, 4rem)", lineHeight: 1.2 }}>
+          <h2 className="text-4xl md:text-5xl font-bold text-white">
             {t("heading")}
           </h2>
-          <p className="mt-4 font-medium text-[#e9e9e9]" style={{ fontSize: "clamp(.8rem, 1.25vw, 1.25rem)", lineHeight: "150%" }}>{t("subheading")}</p>
+          <p className="mt-4 text-base text-gray-400">{t("subheading")}</p>
           <Link
             href="/dashboard/indexator"
-            className="mt-8 inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-copper to-copper-light px-10 py-4 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            className="landing-btn mt-8 inline-flex items-center gap-2 rounded-md bg-gradient-to-r from-copper to-copper-light px-10 py-4 text-sm font-semibold text-white"
           >
             <ArrowRight className="h-4 w-4" />
             {t("button")}

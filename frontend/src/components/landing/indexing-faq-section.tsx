@@ -15,10 +15,10 @@ export function IndexingFaqSection() {
   return (
     <section className="bg-black py-24">
       <div className="mx-auto max-w-3xl px-4 lg:px-6">
-        <p className="mb-2 text-center font-bold bg-gradient-to-r from-copper to-copper-light bg-clip-text text-transparent" style={{ fontSize: "clamp(1rem, 1.8vw, 1.8rem)" }}>
+        <p className="mb-2 text-center text-sm font-bold bg-gradient-to-r from-copper to-copper-light bg-clip-text text-transparent">
           {t("sectionLabel")}
         </p>
-        <h2 className="text-center font-bold text-white" style={{ fontSize: "clamp(2rem, 4vw, 4rem)", lineHeight: 1.2 }}>
+        <h2 className="text-center text-4xl md:text-5xl font-bold text-white">
           {t("title")}
         </h2>
 
@@ -34,7 +34,7 @@ export function IndexingFaqSection() {
                   onClick={() => setOpenIndex(isOpen ? null : i)}
                   className="flex w-full items-center justify-between px-6 py-5 text-left"
                 >
-                  <span className="font-bold text-white" style={{ fontSize: "clamp(1rem, 1.5vw, 1.5rem)" }}>
+                  <span className="text-sm font-medium text-white">
                     {t(`q${i}`)}
                   </span>
                   <motion.span
@@ -54,7 +54,7 @@ export function IndexingFaqSection() {
                       className="overflow-hidden"
                     >
                       <div className="border-t border-gray-800 px-6 pb-5 pt-4">
-                        <p className="font-medium text-[#e9e9e9]" style={{ fontSize: "clamp(0.8rem, 1.1vw, 1.1rem)", lineHeight: "150%" }}>
+                        <p className="text-sm leading-relaxed text-gray-400">
                           {t(`a${i}`)}
                         </p>
                       </div>

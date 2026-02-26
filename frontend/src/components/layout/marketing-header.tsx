@@ -33,7 +33,7 @@ export function MarketingHeader() {
       <div className="relative mx-auto flex h-14 max-w-6xl items-center px-4 lg:px-6">
         <div className="flex flex-1 items-center">
           <Link href="/" className="flex items-center gap-2">
-            <Image src="/images/Indexator-logo.png" alt="Indexator" width={200} height={50} className="h-4 w-auto -mt-[2px] md:h-6 md:-mt-[6px]" priority />
+            <Image src="/images/Indexator-logo.png" alt="Indexator" width={200} height={50} className="h-4 w-auto -mt-[2px] md:h-5 md:-mt-[6px]" priority />
           </Link>
         </div>
 

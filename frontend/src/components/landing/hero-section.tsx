@@ -21,13 +21,13 @@ export function HeroSection() {
 
       <div className="relative mx-auto max-w-5xl px-4 lg:px-6">
         <div className="flex flex-col items-center text-center">
-          <p className="mb-4 text-sm font-medium not-italic text-copper">
+          <p className="mb-2 font-bold bg-gradient-to-r from-copper to-copper-light bg-clip-text text-transparent" style={{ fontSize: "clamp(1rem, 1.8vw, 1.8rem)" }}>
             {t("sectionLabel")}
           </p>
-          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+          <h1 className="font-bold tracking-tight text-white" style={{ fontSize: "clamp(2rem, 4vw, 4rem)", lineHeight: 1.2 }}>
             {t("title")}
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-400">
+          <p className="mx-auto mt-6 max-w-2xl font-medium text-[#e9e9e9]" style={{ fontSize: "clamp(.8rem, 1.25vw, 1.25rem)", lineHeight: "150%" }}>
             {t("subtitle")}
           </p>
 

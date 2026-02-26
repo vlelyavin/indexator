@@ -15,29 +15,27 @@ export function IndexingHeroSection() {
 
       <div className="relative mx-auto max-w-6xl px-4 lg:px-6">
         <div className="flex flex-col items-center text-center">
-          <p className="mb-2 font-bold bg-gradient-to-r from-copper to-copper-light bg-clip-text text-transparent" style={{ fontSize: "clamp(1rem, 1.8vw, 1.8rem)" }}>
+          <p className="mb-2 text-sm font-bold bg-gradient-to-r from-copper to-copper-light bg-clip-text text-transparent">
             {t("sectionLabel")}
           </p>
-          <h1 className="font-bold tracking-tight text-white" style={{ fontSize: "clamp(2rem, 4vw, 4rem)", lineHeight: 1.2 }}>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white">
             {t("title")}
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl font-medium text-[#e9e9e9]" style={{ fontSize: "clamp(.8rem, 1.25vw, 1.25rem)", lineHeight: "150%" }}>
+          <p className="mx-auto mt-6 max-w-2xl text-base text-gray-400">
             {t("subtitle")}
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/dashboard/indexator"
-              className="landing-btn inline-flex items-center justify-center gap-2 bg-gradient-to-r from-copper to-copper-light font-semibold text-white"
-              style={{ fontSize: "clamp(0.8rem, 1.25vw, 1.25rem)", padding: "clamp(1rem, 1.25vw, 1.25rem) clamp(3rem, 6vw, 6rem)", borderRadius: "clamp(0.25rem, 0.4vw, 0.4rem)" }}
+              className="landing-btn inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-copper to-copper-light px-8 py-3.5 text-center text-sm font-semibold text-white"
             >
               <Zap className="h-4 w-4" />
               {t("ctaPrimary")}
             </Link>
             <a
               href="#pricing"
-              className="landing-btn-outline inline-flex items-center justify-center gap-2 border border-gray-700 font-semibold text-white transition-colors hover:border-copper-light"
-              style={{ fontSize: "clamp(0.8rem, 1.25vw, 1.25rem)", padding: "clamp(1rem, 1.25vw, 1.25rem) clamp(3rem, 6vw, 6rem)", borderRadius: "clamp(0.25rem, 0.4vw, 0.4rem)" }}
+              className="landing-btn-outline inline-flex items-center justify-center gap-2 rounded-md border border-gray-700 px-8 py-3.5 text-center text-sm font-semibold text-white transition-colors hover:border-copper-light"
             >
               {t("ctaSecondary")} <ArrowRight className="ml-1 inline h-4 w-4" />
             </a>

@@ -28,13 +28,13 @@ export function PricingSection() {
   return (
     <section id="pricing" className="bg-black py-24">
       <div className="mx-auto max-w-6xl px-4 lg:px-6">
-        <p className="mb-2 text-center font-bold bg-gradient-to-r from-copper to-copper-light bg-clip-text text-transparent" style={{ fontSize: "clamp(1rem, 1.8vw, 1.8rem)" }}>
+        <p className="mb-2 text-center text-sm font-bold bg-gradient-to-r from-copper to-copper-light bg-clip-text text-transparent">
           {t("sectionLabel")}
         </p>
-        <h2 className="text-center font-bold text-white" style={{ fontSize: "clamp(2rem, 4vw, 4rem)", lineHeight: 1.2 }}>
+        <h2 className="text-center text-4xl md:text-5xl font-bold text-white">
           {t.rich("title", { br: () => <br /> })}
         </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-center font-medium text-[#e9e9e9]" style={{ fontSize: "clamp(.8rem, 1.25vw, 1.25rem)", lineHeight: "150%" }}>
+        <p className="mx-auto mt-4 max-w-2xl text-center text-base text-gray-400">
           {t("subtitle")}
         </p>
 
@@ -152,12 +152,11 @@ export function PricingSection() {
                 <Link
                   href={ctaHref}
                   className={cn(
-                    "mt-8 flex items-center justify-center gap-2 font-semibold",
+                    "mt-8 flex items-center justify-center gap-2 rounded-md px-4 py-3.5 text-center text-sm font-semibold",
                     isPro
                       ? "landing-btn bg-gradient-to-r from-copper to-copper-light text-white"
                       : "landing-btn-outline border border-gray-700 text-white transition-colors hover:border-copper-light"
                   )}
-                  style={{ fontSize: "clamp(0.8rem, 1.25vw, 1.25rem)", padding: "clamp(1rem, 1.25vw, 1.25rem) clamp(3rem, 6vw, 6rem)", borderRadius: "clamp(0.25rem, 0.4vw, 0.4rem)" }}
                 >
                   <ArrowRight className="h-4 w-4" />
                   {plan.price === 0 ? t("ctaFree") : t("ctaPaid")}

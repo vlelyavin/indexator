@@ -32,11 +32,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       label: t("dashboard"),
       icon: LayoutDashboard,
     },
-    {
-      href: "/dashboard/auditor/new",
-      label: t("newAudit"),
-      icon: Plus,
-    },
+    // HIDDEN: Auditor feature hidden from nav (route still works)
+    // {
+    //   href: "/dashboard/auditor/new",
+    //   label: t("newAudit"),
+    //   icon: Plus,
+    // },
     {
       href: "/dashboard/indexator",
       label: t("indexing"),

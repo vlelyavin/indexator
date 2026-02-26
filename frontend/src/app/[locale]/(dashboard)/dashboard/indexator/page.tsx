@@ -688,27 +688,9 @@ export default function IndexingPage() {
             </span>
           </div>
           {isConnected && (
-            <div className="flex items-center gap-3 shrink-0">
-              {globalQuota && (
-                <>
-                  <QuotaPill
-                    icon={<Send className="h-3 w-3" />}
-                    label={t("googleQuota")}
-                    used={globalQuota.googleSubmissions.used}
-                    limit={globalQuota.googleSubmissions.limit}
-                  />
-                  <QuotaPill
-                    icon={<Search className="h-3 w-3" />}
-                    label={t("inspectionQuota")}
-                    used={globalQuota.inspections.used}
-                    limit={globalQuota.inspections.limit}
-                  />
-                </>
-              )}
-              <span className="text-xs font-medium text-green-400">
-                {t("connected")}
-              </span>
-            </div>
+            <span className="shrink-0 text-xs font-medium text-green-400">
+              {t("connected")}
+            </span>
           )}
         </div>
 
@@ -747,6 +729,22 @@ export default function IndexingPage() {
                 {t("disconnect")}
               </button>
 
+              {globalQuota && (
+                <div className="flex items-center gap-5 ml-auto">
+                  <QuotaPill
+                    icon={<Search className="h-3 w-3" />}
+                    label={t("inspectionQuota")}
+                    used={globalQuota.inspections.used}
+                    limit={globalQuota.inspections.limit}
+                  />
+                  <QuotaPill
+                    icon={<Send className="h-3 w-3" />}
+                    label={t("googleQuota")}
+                    used={globalQuota.googleSubmissions.used}
+                    limit={globalQuota.googleSubmissions.limit}
+                  />
+                </div>
+              )}
             </>
           )}
         </div>
@@ -2490,14 +2488,13 @@ function QuotaPill({
 }) {
   const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
   return (
-    <div className="relative overflow-hidden rounded-md border border-gray-800 px-3 py-1.5">
+    <div>
       <div className="flex items-center gap-1.5 text-xs text-gray-400">
         {icon}
         {label}
         <span className="text-gray-200">{used}/{limit}</span>
       </div>
-      {/* Progress bar as bottom border */}
-      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-800">
+      <div className="mt-1 h-[2px] bg-gray-800">
         <div
           className="h-full bg-copper transition-all"
           style={{ width: `${pct}%` }}

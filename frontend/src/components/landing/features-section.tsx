@@ -24,13 +24,13 @@ export function FeaturesSection() {
   return (
     <section className="bg-black py-24">
       <div className="mx-auto max-w-6xl px-4 lg:px-6">
-        <p className="mb-6 text-center text-sm font-medium not-italic text-copper">
+        <p className="mb-2 text-center font-bold bg-gradient-to-r from-copper to-copper-light bg-clip-text text-transparent" style={{ fontSize: "clamp(1rem, 1.8vw, 1.8rem)" }}>
           {t("sectionLabel")}
         </p>
-        <h2 className="text-center font-bold text-white" style={{ fontSize: "clamp(2rem, 4vw, 4rem)" }}>
+        <h2 className="text-center font-bold text-white" style={{ fontSize: "clamp(2rem, 4vw, 4rem)", lineHeight: 1.2 }}>
           {t("title")}
         </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-gray-400">
+        <p className="mx-auto mt-4 max-w-2xl text-center font-medium text-[#e9e9e9]" style={{ fontSize: "clamp(.8rem, 1.25vw, 1.25rem)", lineHeight: "150%" }}>
           {t("subtitle")}
         </p>
 
@@ -46,7 +46,7 @@ export function FeaturesSection() {
                   {step.title}
                 </h3>
               </div>
-              <p className="mt-3 leading-relaxed text-gray-400">
+              <p className="mt-3 font-medium text-[#e9e9e9]" style={{ fontSize: "clamp(.8rem, 1.25vw, 1.25rem)", lineHeight: "150%" }}>
                 {step.desc}
               </p>
             </div>
@@ -54,13 +54,13 @@ export function FeaturesSection() {
         </div>
 
         <div className="mt-20">
-          <p className="mb-6 text-center text-sm font-medium not-italic text-copper">
+          <p className="mb-2 text-center font-bold bg-gradient-to-r from-copper to-copper-light bg-clip-text text-transparent" style={{ fontSize: "clamp(1rem, 1.8vw, 1.8rem)" }}>
             {t("featuresSectionLabel")}
           </p>
-          <h2 className="text-center font-bold text-white" style={{ fontSize: "clamp(2rem, 4vw, 4rem)" }}>
+          <h2 className="text-center font-bold text-white" style={{ fontSize: "clamp(2rem, 4vw, 4rem)", lineHeight: 1.2 }}>
             {t("featuresTitle")}
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-gray-400">
+          <p className="mx-auto mt-4 max-w-2xl text-center font-medium text-[#e9e9e9]" style={{ fontSize: "clamp(.8rem, 1.25vw, 1.25rem)", lineHeight: "150%" }}>
             {t("featuresSubtitle")}
           </p>
         </div>
@@ -75,7 +75,7 @@ export function FeaturesSection() {
               <h3 className="text-lg font-semibold text-white">
                 {feat.title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-gray-400">
+              <p className="mt-2 font-medium text-[#e9e9e9]" style={{ fontSize: "clamp(.8rem, 1.25vw, 1.25rem)", lineHeight: "150%" }}>
                 {feat.desc}
               </p>
             </div>

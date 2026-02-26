@@ -30,13 +30,13 @@ export function PricingSection({ showIntro = true }: { showIntro?: boolean }) {
       <div className="mx-auto max-w-6xl px-4 lg:px-6">
         {showIntro && (
           <>
-            <p className="mb-6 text-center text-sm font-medium text-copper">
+            <p className="mb-2 text-center font-bold bg-gradient-to-r from-copper to-copper-light bg-clip-text text-transparent" style={{ fontSize: "clamp(1rem, 1.8vw, 1.8rem)" }}>
               {t("sectionLabel")}
             </p>
-            <h2 className="text-center font-bold text-white" style={{ fontSize: "clamp(2rem, 4vw, 4rem)" }}>
+            <h2 className="text-center font-bold text-white" style={{ fontSize: "clamp(2rem, 4vw, 4rem)", lineHeight: 1.2 }}>
               {t("title")}
             </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-gray-400">
+            <p className="mx-auto mt-4 max-w-2xl text-center font-medium text-[#e9e9e9]" style={{ fontSize: "clamp(.8rem, 1.25vw, 1.25rem)", lineHeight: "150%" }}>
               {t("subtitle")}
             </p>
           </>

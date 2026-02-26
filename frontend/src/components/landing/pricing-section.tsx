@@ -18,7 +18,7 @@ const PLAN_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
   agency: Building2,
 };
 
-export function PricingSection({ showIntro = true }: { showIntro?: boolean }) {
+export function PricingSection() {
   const t = useTranslations("marketing.unifiedPricing");
   const pt = useTranslations("plans");
   const { data: session } = useSession();
@@ -28,19 +28,15 @@ export function PricingSection({ showIntro = true }: { showIntro?: boolean }) {
   return (
     <section id="pricing" className="bg-black py-24">
       <div className="mx-auto max-w-6xl px-4 lg:px-6">
-        {showIntro && (
-          <>
-            <p className="mb-2 text-center font-bold bg-gradient-to-r from-copper to-copper-light bg-clip-text text-transparent" style={{ fontSize: "clamp(1rem, 1.8vw, 1.8rem)" }}>
-              {t("sectionLabel")}
-            </p>
-            <h2 className="text-center font-bold text-white" style={{ fontSize: "clamp(2rem, 4vw, 4rem)", lineHeight: 1.2 }}>
-              {t("title")}
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-center font-medium text-[#e9e9e9]" style={{ fontSize: "clamp(.8rem, 1.25vw, 1.25rem)", lineHeight: "150%" }}>
-              {t("subtitle")}
-            </p>
-          </>
-        )}
+        <p className="mb-2 text-center font-bold bg-gradient-to-r from-copper to-copper-light bg-clip-text text-transparent" style={{ fontSize: "clamp(1rem, 1.8vw, 1.8rem)" }}>
+          {t("sectionLabel")}
+        </p>
+        <h2 className="text-center font-bold text-white" style={{ fontSize: "clamp(2rem, 4vw, 4rem)", lineHeight: 1.2 }}>
+          {t.rich("title", { br: () => <br /> })}
+        </h2>
+        <p className="mx-auto mt-4 max-w-2xl text-center font-medium text-[#e9e9e9]" style={{ fontSize: "clamp(.8rem, 1.25vw, 1.25rem)", lineHeight: "150%" }}>
+          {t("subtitle")}
+        </p>
 
         <div className="mt-16 grid gap-8 lg:grid-cols-3">
           {PLANS.map((plan) => {

@@ -48,7 +48,8 @@ export function MarketingHeader() {
             <Link
               key={link.href}
               href={link.href}
-              className="rounded-md px-3 py-2 text-sm font-medium text-gray-300 transition-colors hover:text-white"
+              className="rounded-md px-3 py-2 font-medium text-[#e9e9e9] transition-colors hover:text-white"
+              style={{ fontSize: "clamp(.8rem, 1.25vw, 1.25rem)" }}
             >
               {link.label}
             </Link>

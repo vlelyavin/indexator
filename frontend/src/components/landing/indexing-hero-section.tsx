@@ -13,7 +13,7 @@ export function IndexingHeroSection() {
       {/* Bottom fade for smooth transition */}
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent" aria-hidden="true" />
 
-      <div className="relative mx-auto max-w-5xl px-4 lg:px-6">
+      <div className="relative mx-auto max-w-6xl px-4 lg:px-6">
         <div className="flex flex-col items-center text-center">
           <p className="mb-2 font-bold bg-gradient-to-r from-copper to-copper-light bg-clip-text text-transparent" style={{ fontSize: "clamp(1rem, 1.8vw, 1.8rem)" }}>
             {t("sectionLabel")}
@@ -48,7 +48,8 @@ export function IndexingHeroSection() {
             alt={t("title")}
             width={1920}
             height={1080}
-            className="w-full"
+            className="text-transparent"
+            style={{ marginLeft: "-32px", marginRight: "-32px", width: "calc(100% + 64px)", maxWidth: "unset" }}
             priority
           />
         </div>

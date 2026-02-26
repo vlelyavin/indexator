@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { IndexingHeroSection } from "@/components/landing/indexing-hero-section";
 import { IndexingHowItWorks } from "@/components/landing/indexing-how-it-works";
 import { IndexingFeaturesSection } from "@/components/landing/indexing-features-section";
-import { IndexingPricingSection } from "@/components/landing/indexing-pricing-section";
+import { PricingSection } from "@/components/landing/pricing-section";
 import { IndexingFaqSection } from "@/components/landing/indexing-faq-section";
 
 export const metadata: Metadata = {
@@ -23,7 +23,7 @@ export default function IndexingLandingPage() {
       <IndexingHeroSection />
       <IndexingHowItWorks />
       <IndexingFeaturesSection />
-      <IndexingPricingSection />
+      <PricingSection />
       <IndexingFaqSection />
     </>
   );

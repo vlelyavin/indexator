@@ -8,7 +8,7 @@ export default function LandingPage() {
     <>
       <HeroSection />
       <FeaturesSection />
-      <PricingSection showIntro={false} />
+      <PricingSection />
       <FaqSection />
     </>
   );

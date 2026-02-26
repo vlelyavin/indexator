@@ -152,11 +152,12 @@ export function PricingSection() {
                 <Link
                   href={ctaHref}
                   className={cn(
-                    "mt-8 flex items-center justify-center gap-2 rounded-md px-4 py-3.5 text-center text-sm font-semibold transition-opacity",
+                    "mt-8 flex items-center justify-center gap-2 font-semibold",
                     isPro
-                      ? "bg-gradient-to-r from-copper to-copper-light text-white hover:opacity-90"
-                      : "border border-gray-700 text-white hover:bg-black"
+                      ? "landing-btn bg-gradient-to-r from-copper to-copper-light text-white"
+                      : "landing-btn-outline border border-gray-700 text-white transition-colors hover:border-copper-light"
                   )}
+                  style={{ fontSize: "clamp(0.8rem, 1.25vw, 1.25rem)", padding: "clamp(1rem, 1.25vw, 1.25rem) clamp(3rem, 6vw, 6rem)", borderRadius: "clamp(0.25rem, 0.4vw, 0.4rem)" }}
                 >
                   <ArrowRight className="h-4 w-4" />
                   {plan.price === 0 ? t("ctaFree") : t("ctaPaid")}

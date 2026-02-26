@@ -26,7 +26,7 @@ import {
   ArrowUpDown,
   Plus,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatTimestamp } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 
@@ -1130,7 +1130,7 @@ function SiteCard({
   const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const lastSynced = site.lastSyncedAt
-    ? new Date(site.lastSyncedAt).toLocaleString()
+    ? formatTimestamp(site.lastSyncedAt)
     : t("never");
 
   // ── Load URLs ────────────────────────────────────────────────────────────
@@ -1608,7 +1608,7 @@ function SiteCard({
                         <span>
                           {t("runStatusCompleted")}{" "}
                           <span className="text-xs font-normal text-green-500/70">
-                            {relativeTime(runStatus.ranAt, t)}
+                            {formatTimestamp(runStatus.ranAt)}
                           </span>
                         </span>
                       </div>
@@ -1626,7 +1626,7 @@ function SiteCard({
                       <span>
                         {t("runStatusError")}{" "}
                         <span className="text-xs font-normal text-red-400/70">
-                          {relativeTime(runStatus.ranAt, t)}
+                          {formatTimestamp(runStatus.ranAt)}
                         </span>
                         {runStatus.errorMsg && (
                           <span className="block text-xs mt-0.5 text-red-400/80">
@@ -1799,7 +1799,7 @@ function SiteCard({
                               </div>
                               {/* Timestamps */}
                               <div className="flex flex-wrap gap-3 text-xs text-gray-600">
-                                {url.lastSyncedAt && <span>{t("syncedTime", { time: relativeTime(url.lastSyncedAt, t) })}</span>}
+                                {url.lastSyncedAt && <span>{t("syncedTime", { time: formatTimestamp(url.lastSyncedAt) })}</span>}
                               </div>
                             </div>
                             {/* Action buttons */}
@@ -1960,7 +1960,7 @@ function SiteCard({
                                 </span>
                               </td>
                               <td className="hidden lg:table-cell px-4 py-3 text-xs text-gray-500">
-                                {relativeTime(url.lastSyncedAt, t)}
+                                {formatTimestamp(url.lastSyncedAt)}
                               </td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-1">
@@ -2169,7 +2169,7 @@ function SiteCard({
 
                           {/* Timestamp */}
                           <span className="shrink-0 text-xs text-gray-500">
-                            {relativeTime(entry.createdAt, t)}
+                            {formatTimestamp(entry.createdAt)}
                           </span>
                         </div>
                       );

@@ -701,7 +701,7 @@ export default function IndexingPage() {
           </p>
         )}
 
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           {!isConnected ? (
             <button
               onClick={handleReconnect}
@@ -728,28 +728,24 @@ export default function IndexingPage() {
                 <Link2Off className="h-4 w-4" />
                 {t("disconnect")}
               </button>
+
+              {/* Inline quota pills */}
+              {globalQuota && (
+                <div className="flex items-center gap-3 ml-auto text-xs text-gray-400">
+                  <span>
+                    {t("googleQuota")}{" "}
+                    <span className="text-gray-200">{globalQuota.googleSubmissions.used}/{globalQuota.googleSubmissions.limit}</span>
+                  </span>
+                  <span className="text-gray-700">&middot;</span>
+                  <span>
+                    {t("inspectionQuota")}{" "}
+                    <span className="text-gray-200">{globalQuota.inspections.used}/{globalQuota.inspections.limit}</span>
+                  </span>
+                </div>
+              )}
             </>
           )}
         </div>
-
-        {/* Quota — account-level, shown once globally below the sync button */}
-        {isConnected && globalQuota && (
-          <div className="mt-5 rounded-lg border border-gray-800 bg-gray-950 p-4 space-y-2">
-            <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">
-              {t("quota")}
-            </p>
-            <QuotaBar
-              label={t("googleQuota")}
-              used={globalQuota.googleSubmissions.used}
-              limit={globalQuota.googleSubmissions.limit}
-            />
-            <QuotaBar
-              label={t("inspectionQuota")}
-              used={globalQuota.inspections.used}
-              limit={globalQuota.inspections.limit}
-            />
-          </div>
-        )}
       </div>
 
       {/* Sites — shown when connected OR when data was retained after disconnect */}

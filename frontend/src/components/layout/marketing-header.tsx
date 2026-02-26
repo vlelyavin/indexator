@@ -17,7 +17,8 @@ export function MarketingHeader() {
 
   const navLinks = [
     ...(user ? [{ href: "/dashboard" as const, label: t("dashboard") }] : []),
-    { href: "/" as const, label: t("auditor") },
+    // HIDDEN: Auditor link hidden from marketing nav (route still works)
+    // { href: "/" as const, label: t("auditor") },
     { href: "/indexator" as const, label: t("indexator") },
     { href: "/pricing" as const, label: t("pricing") },
   ];

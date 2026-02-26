@@ -48,8 +48,8 @@ export function IndexingFeaturesSection() {
               <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-lg bg-copper/10">
                 <feat.icon className="h-6 w-6 text-copper" />
               </div>
-              <h3 className="text-xl font-semibold text-white">{feat.title}</h3>
-              <p className="mt-3 font-medium text-[#e9e9e9]" style={{ fontSize: "clamp(.8rem, 1.25vw, 1.25rem)", lineHeight: "150%" }}>
+              <h3 className="font-bold text-white" style={{ fontSize: "clamp(1rem, 1.5vw, 1.5rem)" }}>{feat.title}</h3>
+              <p className="mt-3 font-medium text-[#e9e9e9]" style={{ fontSize: "clamp(0.8rem, 1.1vw, 1.1rem)", lineHeight: "150%" }}>
                 {feat.desc}
               </p>
             </motion.div>

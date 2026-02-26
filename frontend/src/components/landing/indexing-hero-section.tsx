@@ -28,14 +28,16 @@ export function IndexingHeroSection() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/dashboard/indexator"
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-copper to-copper-light px-8 py-3.5 text-center text-sm font-semibold text-white transition-opacity hover:opacity-90"
+              className="landing-btn inline-flex items-center justify-center gap-2 bg-gradient-to-r from-copper to-copper-light font-semibold text-white"
+              style={{ fontSize: "clamp(0.8rem, 1.25vw, 1.25rem)", padding: "clamp(1rem, 1.25vw, 1.25rem) clamp(3rem, 6vw, 6rem)", borderRadius: "clamp(0.25rem, 0.4vw, 0.4rem)" }}
             >
               <Zap className="h-4 w-4" />
               {t("ctaPrimary")}
             </Link>
             <a
               href="#pricing"
-              className="rounded-md border border-gray-700 px-8 py-3.5 text-center text-sm font-semibold text-white transition-colors hover:bg-black"
+              className="landing-btn-outline inline-flex items-center justify-center gap-2 border border-gray-700 font-semibold text-white transition-colors hover:border-copper-light"
+              style={{ fontSize: "clamp(0.8rem, 1.25vw, 1.25rem)", padding: "clamp(1rem, 1.25vw, 1.25rem) clamp(3rem, 6vw, 6rem)", borderRadius: "clamp(0.25rem, 0.4vw, 0.4rem)" }}
             >
               {t("ctaSecondary")} <ArrowRight className="ml-1 inline h-4 w-4" />
             </a>

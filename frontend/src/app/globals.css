@@ -50,3 +50,58 @@ body {
   --color-info: 160 160 160;
   --color-critical: 220 38 38;
 }
+
+/* Landing page button — gradient with glow + shine hover */
+.landing-btn {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.4s ease-in-out;
+}
+
+.landing-btn::before,
+.landing-btn::after {
+  position: absolute;
+  content: "";
+  z-index: 1;
+  top: -50%;
+  width: 2rem;
+  height: 200%;
+  transform: rotate(35deg);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
+  will-change: left;
+  transition: left 0.6s ease-in-out;
+}
+
+.landing-btn::before {
+  left: calc(-150% - 5rem);
+}
+
+.landing-btn::after {
+  left: -150%;
+}
+
+.landing-btn:hover {
+  box-shadow: 0 0 0 3px #e38748;
+}
+
+.landing-btn:hover::before {
+  transition-delay: 0.05s;
+  left: calc(150% - 5rem);
+}
+
+.landing-btn:hover::after {
+  left: 150%;
+}
+
+/* Landing page outline button — border glow on hover */
+.landing-btn-outline {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.4s ease-in-out, box-shadow 0.4s ease-in-out;
+}
+
+.landing-btn-outline:hover {
+  box-shadow: 0 0 0 3px #e38748;
+}

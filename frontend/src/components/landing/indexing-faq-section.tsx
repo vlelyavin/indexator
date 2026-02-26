@@ -34,7 +34,7 @@ export function IndexingFaqSection() {
                   onClick={() => setOpenIndex(isOpen ? null : i)}
                   className="flex w-full items-center justify-between px-6 py-5 text-left"
                 >
-                  <span className="text-sm font-medium text-white">
+                  <span className="font-bold text-white" style={{ fontSize: "clamp(1rem, 1.5vw, 1.5rem)" }}>
                     {t(`q${i}`)}
                   </span>
                   <motion.span
@@ -54,7 +54,7 @@ export function IndexingFaqSection() {
                       className="overflow-hidden"
                     >
                       <div className="border-t border-gray-800 px-6 pb-5 pt-4">
-                        <p className="text-sm leading-relaxed text-gray-400">
+                        <p className="font-medium text-[#e9e9e9]" style={{ fontSize: "clamp(0.8rem, 1.1vw, 1.1rem)", lineHeight: "150%" }}>
                           {t(`a${i}`)}
                         </p>
                       </div>

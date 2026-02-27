@@ -258,6 +258,8 @@
     "pending": "Ожидает",
     "submitted": "Отправлено",
     "failed": "Ошибка",
+    "manualActions": "Ручные действия",
+    "automation": "Автоматизация",
     "syncUrls": "Синхронизировать URL",
     "submitSelected": "Отправить выбранные",
     "submitAllNotIndexed": "Отправить все непроиндексированные",

@@ -258,6 +258,8 @@
     "pending": "Pending",
     "submitted": "Submitted",
     "failed": "Failed",
+    "manualActions": "Manual Actions",
+    "automation": "Automation",
     "syncUrls": "Sync URLs",
     "submitSelected": "Submit Selected",
     "submitAllNotIndexed": "Submit All Not Indexed",

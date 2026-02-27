@@ -238,7 +238,7 @@
     "daily": "Daily"
   },
   "indexing": {
-    "title": "Indexing",
+    "title": "Indexator",
     "comingSoon": "This feature is coming soon.",
     "connectGoogle": "Connect Google Search Console",
     "connectDesc": "Connect your Google account to manage site indexing via GSC and the Google Indexing API.",

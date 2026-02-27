@@ -29,7 +29,8 @@ import {
 } from "lucide-react";
 import { cn, formatTimestamp } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+// {/* HIDDEN: Breadcrumbs hidden for now */}
+// import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -247,7 +248,7 @@ function ourStatusColor(status: string, t?: ReturnType<typeof useTranslations<"i
 
 export default function IndexingPage() {
   const t = useTranslations("indexing");
-  const tBreadcrumbs = useTranslations("breadcrumbs");
+  // const tBreadcrumbs = useTranslations("breadcrumbs");
   // GSC + sites state
   const [gscStatus, setGscStatus] = useState<GscStatus | null>(null);
   const [sites, setSites] = useState<Site[]>([]);
@@ -653,12 +654,12 @@ export default function IndexingPage() {
         </div>
       )}
 
-      {/* Breadcrumbs + Header */}
+      {/* HIDDEN: Breadcrumbs hidden for now */}
+      {/* <Breadcrumbs items={[
+        { label: tBreadcrumbs("dashboard"), href: "/dashboard" },
+        { label: tBreadcrumbs("indexing") },
+      ]} /> */}
       <div>
-        <Breadcrumbs items={[
-          { label: tBreadcrumbs("dashboard"), href: "/dashboard" },
-          { label: tBreadcrumbs("indexing") },
-        ]} />
         <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold text-white">{t("title")}</h1>
 

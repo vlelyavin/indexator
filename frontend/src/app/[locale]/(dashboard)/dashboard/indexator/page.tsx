@@ -1401,18 +1401,18 @@ function SiteCard({
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="hidden sm:flex gap-4 text-sm">
+          <div className="hidden sm:flex flex-wrap gap-x-4 gap-y-1 text-sm">
             <StatPill label={t("total")} value={site.totalUrls} color="gray" />
-            <StatPill
-              label={t("indexed")}
-              value={site.indexedCount}
-              color="green"
-            />
-            <StatPill
-              label={t("notIndexed")}
-              value={Math.max(0, site.totalUrls - site.indexedCount)}
-              color="red"
-            />
+            <StatPill label={t("indexed")} value={site.indexedCount} color="green" />
+            <StatPill label={t("notIndexed")} value={Math.max(0, site.totalUrls - site.indexedCount)} color="red" />
+            <StatPill label={t("pending")} value={stats?.pending ?? 0} color="yellow" />
+            <StatPill label={t("submitted")} value={(stats?.submittedGoogle ?? 0) + (stats?.submittedBing ?? 0)} color="blue" />
+            {(stats?.failed ?? 0) > 0 && (
+              <StatPill label={t("failed")} value={stats!.failed} color="red" />
+            )}
+            {(stats?.is404s ?? 0) > 0 && (
+              <StatPill label={t("pages404")} value={stats!.is404s} color="orange" />
+            )}
           </div>
           <button
             onClick={onDelete}
@@ -1448,139 +1448,103 @@ function SiteCard({
           {/* ── Overview Tab ─────────────────────────────────────────────── */}
           {activeTab === "overview" && (
             <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-5">
-              {/* Stats section */}
+              {/* Thin progress bar — visual indicator only, no legend */}
               {stats ? (() => {
                 const total = stats.total || 1;
-                const pctIndexed = Math.round((stats.indexed / total) * 100);
-                const pctNotIndexed = Math.round((stats.notIndexed / total) * 100);
-                const pctPending = Math.round((stats.pending / total) * 100);
-                const submitted = stats.submittedGoogle + stats.submittedBing;
-
                 const segments = [
                   { pct: stats.indexed / total * 100, bg: "bg-green-500" },
                   { pct: stats.notIndexed / total * 100, bg: "bg-red-500" },
                   { pct: stats.pending / total * 100, bg: "bg-yellow-500" },
                 ];
-
-                const pills = [
-                  { label: t("total"), value: stats.total, dot: "bg-gray-400", textColor: "text-white" },
-                  { label: t("submitted"), value: submitted, dot: "bg-blue-400", textColor: "text-copper-light" },
-                  { label: t("failed"), value: stats.failed, dot: "bg-red-400", textColor: "text-red-400" },
-                  { label: t("pages404"), value: stats.is404s, dot: "bg-orange-400", textColor: "text-orange-400" },
-                ];
-
                 return (
-                  <div className="space-y-4">
-                    {/* Progress bar */}
-                    <div>
-                      <div className="flex h-3 w-full overflow-hidden rounded-full bg-gray-800">
-                        {segments.map((seg, i) =>
-                          seg.pct > 0 ? (
-                            <div
-                              key={i}
-                              className={cn("h-full transition-all", seg.bg)}
-                              style={{ width: `${seg.pct}%` }}
-                            />
-                          ) : null
-                        )}
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs">
-                        <span className="flex items-center gap-1.5">
-                          <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
-                          <span className="text-gray-400">{t("indexed")}</span>
-                          <span className="font-semibold text-green-400">{stats.indexed}</span>
-                          <span className="text-gray-600">({pctIndexed}%)</span>
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
-                          <span className="text-gray-400">{t("notIndexed")}</span>
-                          <span className="font-semibold text-red-400">{stats.notIndexed}</span>
-                          <span className="text-gray-600">({pctNotIndexed}%)</span>
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <span className="h-2.5 w-2.5 rounded-full bg-yellow-500" />
-                          <span className="text-gray-400">{t("pending")}</span>
-                          <span className="font-semibold text-yellow-400">{stats.pending}</span>
-                          <span className="text-gray-600">({pctPending}%)</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Stats — large numbers with labels below */}
-                    <div className="flex flex-wrap gap-x-8 gap-y-3">
-                      {pills.map((p) => (
-                        <div key={p.label} className="flex flex-col">
-                          <span className={cn("text-2xl font-bold leading-none", p.textColor)}>{p.value}</span>
-                          <span className="mt-1 text-xs text-gray-500">{p.label}</span>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-gray-800">
+                    {segments.map((seg, i) =>
+                      seg.pct > 0 ? (
+                        <div
+                          key={i}
+                          className={cn("h-full transition-all", seg.bg)}
+                          style={{ width: `${seg.pct}%` }}
+                        />
+                      ) : null
+                    )}
                   </div>
                 );
               })() : (
-                <div className="space-y-3">
-                  <div className="h-3 w-full rounded-full bg-gray-800 animate-pulse" />
-                  <div className="flex gap-2">
-                    {[1,2,3,4].map(i => <div key={i} className="h-8 w-24 rounded-md bg-gray-800 animate-pulse" />)}
-                  </div>
-                </div>
+                <div className="h-1.5 w-full rounded-full bg-gray-800 animate-pulse" />
               )}
 
-              {/* Actions */}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={onSyncUrls}
-                  disabled={syncingUrls}
-                  className="flex items-center gap-1.5 rounded-md border border-gray-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-900 disabled:opacity-50"
-                >
-                  <RefreshCw
-                    className={cn(
-                      "h-3.5 w-3.5",
-                      syncingUrls && "animate-spin"
-                    )}
-                  />
-                  {t("syncUrls")}
-                </button>
-
-                <button
-                  onClick={() =>
-                    onRequestSubmit(
-                      site.id,
-                      [],
-                      ["google"],
-                      stats?.notIndexed ?? 0
-                    )
-                  }
-                  disabled={
-                    !stats?.notIndexed ||
-                    quota?.googleSubmissions.remaining === 0
-                  }
-                  className="flex items-center gap-1.5 rounded-md border border-gray-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-900 disabled:opacity-50"
-                >
-                  <Globe className="h-3.5 w-3.5" />
-                  {t("submitAllNotIndexed")} (Google)
-                </button>
-
-                {site.indexnowKey && (
+              {/* ── Manual Actions ───────────────────────────────────────── */}
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  {t("manualActions")}
+                </p>
+                <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() =>
-                      bingSubmit(() =>
-                        onRequestSubmit(site.id, [], ["bing"], stats?.notIndexed ?? 0)
-                      )
-                    }
-                    disabled={!stats?.notIndexed}
+                    onClick={onSyncUrls}
+                    disabled={syncingUrls}
                     className="flex items-center gap-1.5 rounded-md border border-gray-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-900 disabled:opacity-50"
                   >
-                    <Send className="h-3.5 w-3.5" />
-                    {t("submitAllNotIndexed")} (Bing)
+                    <RefreshCw className={cn("h-3.5 w-3.5", syncingUrls && "animate-spin")} />
+                    {t("syncUrls")}
                   </button>
-                )}
 
+                  <button
+                    onClick={() => onRequestSubmit(site.id, [], ["google"], stats?.notIndexed ?? 0)}
+                    disabled={!stats?.notIndexed || quota?.googleSubmissions.remaining === 0}
+                    className="flex items-center gap-1.5 rounded-md border border-gray-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-900 disabled:opacity-50"
+                  >
+                    <Globe className="h-3.5 w-3.5" />
+                    {t("submitAllNotIndexed")} (Google)
+                  </button>
+
+                  {site.indexnowKey && (
+                    <button
+                      onClick={() => bingSubmit(() => onRequestSubmit(site.id, [], ["bing"], stats?.notIndexed ?? 0))}
+                      disabled={!stats?.notIndexed}
+                      className="flex items-center gap-1.5 rounded-md border border-gray-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-900 disabled:opacity-50"
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      {t("submitAllNotIndexed")} (Bing)
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* ── Automation ───────────────────────────────────────────── */}
+              <div className="border-t border-gray-800 pt-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                  {t("automation")}
+                </p>
+                <div className="space-y-3">
+                  <Toggle
+                    label={t("autoIndexGoogle")}
+                    tooltip={autoIndexEnabled ? t("tooltipAutoGoogle") : t("upgradeToEnableAutoIndex")}
+                    checked={site.autoIndexGoogle}
+                    onChange={onToggleAutoGoogle}
+                    disabled={!autoIndexEnabled}
+                  />
+                  <Toggle
+                    label={t("autoIndexBing")}
+                    tooltip={
+                      !autoIndexEnabled
+                        ? t("upgradeToEnableAutoIndex")
+                        : !site.indexnowKeyVerified
+                          ? t("tooltipAutoBingDisabled")
+                          : t("tooltipAutoBing")
+                    }
+                    checked={site.autoIndexBing}
+                    onChange={onToggleAutoBing}
+                    disabled={!autoIndexEnabled || !site.indexnowKeyVerified}
+                    onDisabledClick={autoIndexEnabled ? () => setIndexNowModal({ action: () => {} }) : undefined}
+                  />
+                </div>
+
+                {/* Run Auto-Index Now — below toggles, only when at least one is enabled */}
                 {(site.autoIndexGoogle || site.autoIndexBing) && (
                   <button
                     onClick={onRunNow}
                     disabled={running}
-                    className="flex items-center gap-1.5 rounded-md border border-gray-700 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-900 disabled:opacity-50"
+                    className="mt-3 flex items-center gap-1.5 rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
                   >
                     {running ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1590,114 +1554,86 @@ function SiteCard({
                     {running ? t("running") : t("runNow")}
                   </button>
                 )}
-              </div>
 
-              {/* Auto-index toggles */}
-              <div className="space-y-3">
-                <Toggle
-                  label={t("autoIndexGoogle")}
-                  tooltip={autoIndexEnabled ? t("tooltipAutoGoogle") : t("upgradeToEnableAutoIndex")}
-                  checked={site.autoIndexGoogle}
-                  onChange={onToggleAutoGoogle}
-                  disabled={!autoIndexEnabled}
-                />
-                <Toggle
-                  label={t("autoIndexBing")}
-                  tooltip={
-                    !autoIndexEnabled
-                      ? t("upgradeToEnableAutoIndex")
-                      : !site.indexnowKeyVerified
-                        ? t("tooltipAutoBingDisabled")
-                        : t("tooltipAutoBing")
-                  }
-                  checked={site.autoIndexBing}
-                  onChange={onToggleAutoBing}
-                  disabled={!autoIndexEnabled || !site.indexnowKeyVerified}
-                  onDisabledClick={autoIndexEnabled ? () => setIndexNowModal({ action: () => {} }) : undefined}
-                />
-              </div>
+                {/* IndexNow key status + Re-verify button */}
+                {site.indexnowKey && (
+                  <div className="mt-3 flex items-center gap-2 flex-wrap">
+                    {site.indexnowKeyVerified ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-green-900/35 px-3 py-1 text-xs font-medium text-green-400">
+                        <CheckCircle className="h-3.5 w-3.5" />
+                        {t("indexnowVerified")}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-900/35 px-3 py-1 text-xs font-medium text-yellow-400">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        {t("indexnowNotVerified")}
+                      </span>
+                    )}
+                    <button
+                      onClick={reVerify}
+                      disabled={reVerifying}
+                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={cn("h-3 w-3", reVerifying && "animate-spin")} />
+                      {reVerifying ? t("verifying") : t("reVerify")}
+                    </button>
+                  </div>
+                )}
 
-              {/* IndexNow key status + Re-verify button */}
-              {site.indexnowKey && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  {site.indexnowKeyVerified ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-900/35 px-3 py-1 text-xs font-medium text-green-400">
-                      <CheckCircle className="h-3.5 w-3.5" />
-                      {t("indexnowVerified")}
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-900/35 px-3 py-1 text-xs font-medium text-yellow-400">
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                      {t("indexnowNotVerified")}
-                    </span>
-                  )}
-                  <button
-                    onClick={reVerify}
-                    disabled={reVerifying}
-                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+                {/* Run Now status panel */}
+                {runStatus && (
+                  <div
+                    className={cn(
+                      "mt-3 rounded-lg border px-4 py-3 text-sm",
+                      runStatus.phase === "running" && "border-gray-700 bg-gray-950 text-gray-300",
+                      runStatus.phase === "done" && "border-green-900/40 bg-green-900/10 text-green-300",
+                      runStatus.phase === "error" && "border-red-900/40 bg-red-900/10 text-red-400"
+                    )}
                   >
-                    <RefreshCw className={cn("h-3 w-3", reVerifying && "animate-spin")} />
-                    {reVerifying ? t("verifying") : t("reVerify")}
-                  </button>
-                </div>
-              )}
-
-              {/* Run Now status panel */}
-              {runStatus && (
-                <div
-                  className={cn(
-                    "rounded-lg border px-4 py-3 text-sm",
-                    runStatus.phase === "running" &&
-                      "border-gray-700 bg-gray-950 text-gray-300",
-                    runStatus.phase === "done" &&
-                      "border-green-900/40 bg-green-900/10 text-green-300",
-                    runStatus.phase === "error" &&
-                      "border-red-900/40 bg-red-900/10 text-red-400"
-                  )}
-                >
-                  {runStatus.phase === "running" && (
-                    <span className="flex items-center gap-2">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-                      {t("runStatusRunning")}
-                    </span>
-                  )}
-                  {runStatus.phase === "done" && (
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 font-medium">
-                        <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                    {runStatus.phase === "running" && (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+                        {t("runStatusRunning")}
+                      </span>
+                    )}
+                    {runStatus.phase === "done" && (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 font-medium">
+                          <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                          <span>
+                            {t("runStatusCompleted")}{" "}
+                            <span className="text-xs font-normal text-green-500/70">
+                              {formatTimestamp(runStatus.ranAt)}
+                            </span>
+                          </span>
+                        </div>
+                        <p className="text-xs text-green-400/80 pl-5">
+                          {t("runStatusSummary", { newUrls: runStatus.newUrls ?? 0, changedUrls: runStatus.changedUrls ?? 0, removedUrls: runStatus.removedUrls ?? 0, submittedGoogle: runStatus.submittedGoogle ?? 0, submittedBing: runStatus.submittedBing ?? 0 })}
+                          {(runStatus.failedGoogle ?? 0) + (runStatus.failedBing ?? 0) > 0 && (
+                            <span className="text-red-400"> · {t("runStatusFailed", { count: (runStatus.failedGoogle ?? 0) + (runStatus.failedBing ?? 0) })}</span>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                    {runStatus.phase === "error" && (
+                      <div className="flex items-start gap-2">
+                        <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                         <span>
-                          {t("runStatusCompleted")}{" "}
-                          <span className="text-xs font-normal text-green-500/70">
+                          {t("runStatusError")}{" "}
+                          <span className="text-xs font-normal text-red-400/70">
                             {formatTimestamp(runStatus.ranAt)}
                           </span>
+                          {runStatus.errorMsg && (
+                            <span className="block text-xs mt-0.5 text-red-400/80">
+                              {runStatus.errorMsg}
+                            </span>
+                          )}
                         </span>
                       </div>
-                      <p className="text-xs text-green-400/80 pl-5">
-                        {t("runStatusSummary", { newUrls: runStatus.newUrls ?? 0, changedUrls: runStatus.changedUrls ?? 0, removedUrls: runStatus.removedUrls ?? 0, submittedGoogle: runStatus.submittedGoogle ?? 0, submittedBing: runStatus.submittedBing ?? 0 })}
-                        {(runStatus.failedGoogle ?? 0) + (runStatus.failedBing ?? 0) > 0 && (
-                          <span className="text-red-400"> · {t("runStatusFailed", { count: (runStatus.failedGoogle ?? 0) + (runStatus.failedBing ?? 0) })}</span>
-                        )}
-                      </p>
-                    </div>
-                  )}
-                  {runStatus.phase === "error" && (
-                    <div className="flex items-start gap-2">
-                      <XCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                      <span>
-                        {t("runStatusError")}{" "}
-                        <span className="text-xs font-normal text-red-400/70">
-                          {formatTimestamp(runStatus.ranAt)}
-                        </span>
-                        {runStatus.errorMsg && (
-                          <span className="block text-xs mt-0.5 text-red-400/80">
-                            {runStatus.errorMsg}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

@@ -258,6 +258,8 @@
     "pending": "Очікує",
     "submitted": "Подано",
     "failed": "Помилка",
+    "manualActions": "Ручні дії",
+    "automation": "Автоматизація",
     "syncUrls": "Синхронізувати URL",
     "submitSelected": "Подати вибране",
     "submitAllNotIndexed": "Подати всі непроіндексовані",

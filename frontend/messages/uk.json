@@ -238,7 +238,7 @@
     "daily": "Щоденні"
   },
   "indexing": {
-    "title": "Індексація",
+    "title": "Indexator",
     "comingSoon": "Ця функція незабаром з'явиться.",
     "connectGoogle": "Підключити Google Search Console",
     "connectDesc": "Підключіть свій Google-акаунт для керування індексацією через GSC та Google Indexing API.",

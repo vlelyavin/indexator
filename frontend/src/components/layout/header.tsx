@@ -38,7 +38,7 @@ export function Header() {
   const navItems = [
     // HIDDEN: Dashboard (auditor list) — /dashboard now redirects to /dashboard/indexator
     // { href: "/dashboard", label: t("dashboard") },
-    { href: "/dashboard/indexator", label: t("indexing") },
+    { href: "/dashboard/indexator", label: t("dashboard") },
     { href: "/dashboard/plans", label: t("plans") },
     { href: "/dashboard/settings", label: t("settings") },
     ...(isAdmin ? [{ href: "/dashboard/admin", label: t("admin") }] : []),
@@ -57,7 +57,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-gray-800 bg-black/80 backdrop-blur-sm">
+      <header className="sticky top-0 z-50 bg-gradient-to-b from-black to-transparent">
         <div className="mx-auto flex h-14 max-w-6xl items-center px-4 lg:px-6">
           {/* Logo - left */}
           <Link

@@ -3,15 +3,16 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
-import { Check, Loader2, Zap, Rocket, Building2, ArrowRight } from "lucide-react";
+import { Check, X, Loader2, Zap, Rocket, Building2, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+// {/* HIDDEN: Breadcrumbs hidden for now */}
+// import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import type { Plan } from "@/types/plan";
 
 export default function PlansPage() {
   const t = useTranslations("plans");
   const ut = useTranslations("marketing.unifiedPricing");
-  const tBreadcrumbs = useTranslations("breadcrumbs");
+  // const tBreadcrumbs = useTranslations("breadcrumbs");
   const { data: session, update } = useSession();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,10 +69,11 @@ export default function PlansPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Breadcrumbs items={[
+        {/* HIDDEN: Breadcrumbs hidden for now */}
+        {/* <Breadcrumbs items={[
           { label: tBreadcrumbs("dashboard"), href: "/dashboard" },
           { label: tBreadcrumbs("plans") },
-        ]} />
+        ]} /> */}
         <h1 className="text-2xl font-bold text-white">
           {t("title")}
         </h1>
@@ -97,39 +99,58 @@ export default function PlansPage() {
           const isPro = plan.id === "pro";
           const isSwitching = switching === plan.id;
 
-          const auditorFeatures = [
-            isPro || isAgency
-              ? t("unlimitedAudits")
-              : t("auditsPerMonth", { count: plan.auditsPerMonth }),
-            t("maxPages", { count: plan.maxPages }),
-            isAgency
-              ? t("allExports")
-              : isPro
-              ? t("pdfDocxExports")
-              : t("pdfOnly"),
-            plan.id === "free" ? t("watermarkIncluded") : t("noWatermark"),
-            ...(isAgency ? [t("whiteLabel")] : []),
-          ];
+          const icons: Record<string, React.ComponentType<{ className?: string }>> = {
+            free: Zap,
+            pro: Rocket,
+            agency: Building2,
+          };
+          const PlanIcon = icons[plan.id];
 
-          const indexatorFeatures = [
-            t("maxSites", { count: plan.maxSites }),
-            plan.autoIndexing ? t("autoIndexing") : t("manualOnly"),
-            plan.autoIndexing ? t("urlHealthMonitoring") : null,
-            plan.reportFrequency !== "none"
-              ? t("reportFrequency", { frequency: t(plan.reportFrequency) })
-              : null,
-          ].filter(Boolean) as string[];
+          // {/* HIDDEN: Auditor features section hidden (component preserved) */}
+          // const auditorFeatures: { text: string; present: boolean }[] = [
+          //   {
+          //     text: isPro || isAgency
+          //       ? t("unlimitedAudits")
+          //       : t("auditsPerMonth", { count: plan.auditsPerMonth }),
+          //     present: true,
+          //   },
+          //   { text: t("maxPages", { count: plan.maxPages }), present: true },
+          //   {
+          //     text: isAgency
+          //       ? t("allExports")
+          //       : isPro
+          //       ? t("pdfDocxExports")
+          //       : t("pdfOnly"),
+          //     present: true,
+          //   },
+          //   { text: t("noWatermark"), present: plan.id !== "free" },
+          //   { text: t("whiteLabel"), present: isAgency },
+          // ];
+
+          const indexatorFeatures: { text: string; present: boolean }[] = [
+            { text: t("maxSites", { count: plan.maxSites }), present: true },
+            {
+              text: plan.autoIndexing ? t("autoIndexing") : t("autoIndexingDisabled"),
+              present: plan.autoIndexing,
+            },
+            {
+              text: plan.reportFrequency !== "none"
+                ? t("reportFrequency", { frequency: t(plan.reportFrequency) })
+                : t("noEmailReports"),
+              present: plan.reportFrequency !== "none",
+            },
+          ];
 
           return (
             <div
               key={plan.id}
               className={cn(
-                "relative flex h-full flex-col rounded-xl border p-6",
+                "relative flex flex-col rounded-xl border bg-gray-950 p-8",
                 isCurrent
-                  ? "border-copper/50 bg-gray-950"
+                  ? "border-copper/50"
                   : isPro
-                  ? "border-copper/30 bg-gray-950"
-                  : "border-gray-800 bg-black"
+                  ? "border-copper/50"
+                  : "border-gray-800"
               )}
             >
               {isCurrent && (
@@ -140,56 +161,66 @@ export default function PlansPage() {
                 </div>
               )}
 
-              <div className="mb-4">
-                {(() => {
-                  const icons: Record<string, React.ComponentType<{ className?: string }>> = {
-                    free: Zap,
-                    pro: Rocket,
-                    agency: Building2,
-                  };
-                  const PlanIcon = icons[plan.id];
-                  return PlanIcon ? (
-                    <PlanIcon className={cn("mb-2 h-6 w-6", isPro ? "text-copper" : "text-gray-400")} />
-                  ) : null;
-                })()}
-                <h3 className="text-lg font-semibold text-white">
-                  {t(plan.id)}
-                </h3>
-                <div className="mt-2 flex items-baseline">
-                  <span className="text-4xl font-bold text-white">
-                    ${plan.price}
-                  </span>
-                  <span className="ml-1 text-sm text-gray-500">
-                    {t("perMonth")}
+              {isPro && !isCurrent && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="flex items-center gap-1 rounded-full bg-copper px-3 py-1 text-xs font-semibold text-white">
+                    <Zap className="h-3 w-3" />
+                    {ut("mostPopular")}
                   </span>
                 </div>
+              )}
+
+              {PlanIcon && (
+                <PlanIcon className="h-6 w-6 text-copper" />
+              )}
+
+              <h3 className="mt-2 text-lg font-semibold text-white">
+                {t(plan.id)}
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {ut(`planAudience.${plan.id}`)}
+              </p>
+
+              <div className="mt-4 flex items-baseline">
+                <span className="text-5xl font-bold text-white">
+                  ${plan.price}
+                </span>
+                <span className="ml-2 text-gray-500">{t("perMonth")}</span>
               </div>
 
-              {/* Auditor */}
-              <div className="mb-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-copper">
+              {/* HIDDEN: Auditor features section hidden (component preserved) */}
+              {/* <div className="mt-8">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-copper">
                   {ut("auditorLabel")}
                 </p>
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                   {auditorFeatures.map((feat) => (
-                    <li key={feat} className="flex items-start gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-copper" />
-                      <span className="text-sm text-gray-300">{feat}</span>
+                    <li key={feat.text} className="flex items-start gap-3">
+                      {feat.present ? (
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      ) : (
+                        <X className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                      )}
+                      <span className={cn("text-sm", feat.present ? "text-gray-300" : "text-gray-500")}>{feat.text}</span>
                     </li>
                   ))}
                 </ul>
-              </div>
+              </div> */}
 
-              {/* Indexator */}
-              <div className="mb-6 flex-1 border-t border-gray-800 pt-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-copper">
+              {/* Indexator features */}
+              <div className="mt-8 flex-1">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-copper">
                   {ut("indexatorLabel")}
                 </p>
-                <ul className="space-y-2">
+                <ul className="space-y-3">
                   {indexatorFeatures.map((feat) => (
-                    <li key={feat} className="flex items-start gap-2">
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-copper" />
-                      <span className="text-sm text-gray-300">{feat}</span>
+                    <li key={feat.text} className="flex items-start gap-3">
+                      {feat.present ? (
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      ) : (
+                        <X className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                      )}
+                      <span className={cn("text-sm", feat.present ? "text-gray-300" : "text-gray-500")}>{feat.text}</span>
                     </li>
                   ))}
                 </ul>
@@ -199,12 +230,12 @@ export default function PlansPage() {
                 onClick={() => handleSelectPlan(plan.id)}
                 disabled={isCurrent || isSwitching}
                 className={cn(
-                  "mt-auto flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition-opacity",
+                  "mt-8 flex w-full items-center justify-center gap-2 rounded-md px-4 py-3.5 text-sm font-semibold transition-opacity",
                   isCurrent
                     ? "cursor-not-allowed bg-gray-900 text-gray-500"
                     : isPro
                     ? "bg-gradient-to-r from-copper to-copper-light text-white hover:opacity-90"
-                    : "border border-gray-700 text-white hover:bg-gray-900"
+                    : "border border-gray-700 text-white hover:border-copper-light transition-colors"
                 )}
               >
                 {isSwitching ? (

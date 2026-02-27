@@ -10,6 +10,5 @@ export const { Link, redirect, usePathname, useRouter } =
  * Omits the locale prefix for the default locale (en).
  */
 export function localePath(locale: string, path: string): string {
-  if (locale === routing.defaultLocale) return path;
   return `/${locale}${path}`;
 }

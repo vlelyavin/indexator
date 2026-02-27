@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const locale = cookieStore.get("NEXT_LOCALE")?.value ?? "en";
 
   const baseUrl = process.env.AUTH_URL ?? "http://localhost:3000";
-  const prefix = locale === "en" ? "" : `/${locale}`;
+  const prefix = `/${locale}`;
   const dashboardUrl = new URL(`${prefix}/app`, baseUrl);
 
   // Handle errors from Google

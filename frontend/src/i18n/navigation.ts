@@ -7,8 +7,9 @@ export const { Link, redirect, usePathname, useRouter } =
 /**
  * Build a locale-aware path string for non-component contexts
  * (NextAuth callbacks, emails, etc.).
- * Always includes /{locale} prefix.
+ * Omits the locale prefix for the default locale (en).
  */
 export function localePath(locale: string, path: string): string {
+  if (locale === routing.defaultLocale) return path;
   return `/${locale}${path}`;
 }

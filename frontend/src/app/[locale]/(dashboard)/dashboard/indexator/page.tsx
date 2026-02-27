@@ -736,7 +736,7 @@ export default function IndexingPage() {
               </div>
 
               {globalQuota && (
-                <div className="flex flex-col gap-1 w-full sm:flex-row sm:items-center sm:gap-5 sm:ml-auto sm:w-auto">
+                <div className="flex flex-col gap-2 w-full sm:flex-row sm:items-center sm:gap-5 sm:ml-auto sm:w-auto">
                   <QuotaPill
                     icon={<Search className="h-3 w-3" />}
                     label={t("inspectionQuota")}
@@ -1594,12 +1594,12 @@ function SiteCard({
                       value={urlSearch}
                       onChange={(e) => handleSearchChange(e.target.value)}
                       placeholder={t("searchUrls")}
-                      className="h-11 w-full rounded-lg border border-gray-800 bg-black py-1.5 pl-9 pr-3 text-base md:text-sm text-white outline-none placeholder-gray-500 transition-colors focus:border-copper focus:ring-2 focus:ring-copper/20"
+                      className="h-10 w-full rounded-lg border border-gray-800 bg-black py-1.5 pl-9 pr-3 text-sm text-white outline-none placeholder-gray-500 transition-colors focus:border-copper focus:ring-2 focus:ring-copper/20"
                     />
                   </div>
                   <button
                     onClick={() => loadUrls(urlFilter, urlCurrentPage, urlSearch)}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-gray-800 bg-black text-gray-400 transition-colors hover:text-white"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-800 bg-black text-gray-400 transition-colors hover:text-white"
                   >
                     <RefreshCw className="h-4 w-4" />
                   </button>
@@ -1660,119 +1660,9 @@ function SiteCard({
                 </div>
               ) : (
                 <>
-                  {/* Mobile card list */}
-                  <div className="md:hidden space-y-2">
-                    {sortedUrls.map((url) => {
-                      const gsc = gscStatusColor(url.gscStatus, t);
-                      const our = ourStatusColor(url.indexingStatus, t);
-                      const isInspecting = inspecting[url.url] ?? false;
-                      return (
-                        <div key={url.id} className="rounded-lg border border-gray-800 bg-gray-950 p-3">
-                          <div className="flex items-start gap-2.5">
-                            {/* Checkbox */}
-                            <Checkbox
-                              checked={selectedUrls.has(url.id)}
-                              onChange={() => toggleUrl(url.id)}
-                              className="mt-0.5"
-                            />
-                            {/* Content */}
-                            <div className="flex-1 min-w-0 space-y-1.5">
-                              {/* URL */}
-                              <div className="flex items-center gap-1.5">
-                                <span className="truncate text-xs text-gray-200 min-w-0" title={url.url}>
-                                  {url.url}
-                                </span>
-                                <a
-                                  href={url.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="shrink-0 text-gray-500 hover:text-white transition"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
-                              </div>
-                              {/* Status badges */}
-                              <div className="flex flex-wrap gap-1.5">
-                                <span
-                                  className={cn(
-                                    "inline-flex items-center rounded-full px-2 py-0.5 text-xs",
-                                    gsc.bg,
-                                    gsc.text,
-                                  )}
-                                >
-                                  {gsc.label}
-                                </span>
-                                <span
-                                  className={cn(
-                                    "inline-flex items-center rounded-full px-2 py-0.5 text-xs",
-                                    our.bg,
-                                    our.text,
-                                  )}
-                                >
-                                  {our.label}
-                                </span>
-                              </div>
-                              {/* Timestamps */}
-                              <div className="flex flex-wrap gap-3 text-xs text-gray-600">
-                                {url.lastSyncedAt && (
-                                  <span>{t("syncedTime", { time: formatTimestamp(url.lastSyncedAt) })}</span>
-                                )}
-                              </div>
-                            </div>
-                            {/* Action buttons */}
-                            <div className="flex items-center gap-1 shrink-0">
-                              <button
-                                onClick={() => inspectUrl(url.url)}
-                                disabled={isInspecting || !gscConnected}
-                                title={!gscConnected ? t("reconnectRequired") : t("inspect")}
-                                className="flex h-9 w-9 items-center justify-center rounded-md border border-gray-700 text-gray-400 transition-colors hover:bg-gray-900 hover:text-white disabled:opacity-50"
-                              >
-                                {isInspecting ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <Search className="h-3.5 w-3.5" />
-                                )}
-                              </button>
-                              <button
-                                onClick={() => onRequestSubmit(site.id, [url.id], ["google"], 1)}
-                                title={!gscConnected ? t("reconnectRequired") : t("submitToGoogle")}
-                                disabled={!gscConnected || quota?.googleSubmissions.remaining === 0}
-                                className="flex h-9 w-9 items-center justify-center rounded-md border border-gray-700 text-xs font-semibold text-gray-400 transition-colors hover:bg-copper/20 hover:text-copper-light hover:border-copper/30 disabled:opacity-50"
-                              >
-                                G
-                              </button>
-                              {site.indexnowKey && (
-                                <button
-                                  onClick={() => bingSubmit(() => onRequestSubmit(site.id, [url.id], ["bing"], 1))}
-                                  title={t("submitToBing")}
-                                  className="flex h-9 w-9 items-center justify-center rounded-md border border-gray-700 text-xs font-semibold text-gray-400 transition-colors hover:bg-gray-900 hover:text-white"
-                                >
-                                  B
-                                </button>
-                              )}
-                              <button
-                                onClick={() => requestRemoval(url.id)}
-                                disabled={removingUrl[url.id] || url.indexingStatus === "removal_requested"}
-                                title={t("requestRemoval")}
-                                className="flex h-9 w-9 items-center justify-center rounded-md border border-gray-700 text-gray-400 transition-colors hover:bg-red-900/20 hover:text-red-400 hover:border-red-900/40 disabled:opacity-50"
-                              >
-                                {removingUrl[url.id] ? (
-                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                )}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Desktop table */}
-                  <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-800">
-                    <table className="w-full text-sm">
+                  {/* Scrollable table (all screen sizes) */}
+                  <div className="overflow-x-auto rounded-lg border border-gray-800">
+                    <table className="w-full min-w-[700px] text-sm">
                       <thead className="sticky top-0 z-10">
                         <tr className="border-b border-gray-800 bg-gray-950">
                           <th className="w-10 px-3 py-3 text-left">
@@ -1788,7 +1678,7 @@ function SiteCard({
                             </span>
                           </th>
                           <th
-                            className="hidden md:table-cell px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-200"
+                            className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-200"
                             onClick={() => handleUrlSort("gscStatus")}
                           >
                             <span className="flex items-center gap-1">
@@ -1797,7 +1687,7 @@ function SiteCard({
                             </span>
                           </th>
                           <th
-                            className="hidden sm:table-cell px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-200"
+                            className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-200"
                             onClick={() => handleUrlSort("ourStatus")}
                           >
                             <span className="flex items-center gap-1">
@@ -1806,7 +1696,7 @@ function SiteCard({
                             </span>
                           </th>
                           <th
-                            className="hidden lg:table-cell px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-200"
+                            className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-200"
                             onClick={() => handleUrlSort("lastSynced")}
                           >
                             <span className="flex items-center gap-1">
@@ -1845,32 +1735,11 @@ function SiteCard({
                                     <ExternalLink className="h-3 w-3" />
                                   </a>
                                 </div>
-                                {/* Mobile: show statuses inline */}
-                                <div className="flex gap-1.5 mt-1 md:hidden">
-                                  <span
-                                    className={cn(
-                                      "inline-flex items-center rounded-full px-2 py-0.5 text-xs",
-                                      gsc.bg,
-                                      gsc.text,
-                                    )}
-                                  >
-                                    {gsc.label}
-                                  </span>
-                                  <span
-                                    className={cn(
-                                      "inline-flex items-center rounded-full px-2 py-0.5 text-xs",
-                                      our.bg,
-                                      our.text,
-                                    )}
-                                  >
-                                    {our.label}
-                                  </span>
-                                </div>
                               </td>
-                              <td className="hidden md:table-cell px-4 py-3">
+                              <td className="px-4 py-3">
                                 <GscStatusBadge status={url.gscStatus} gsc={gsc} t={t} />
                               </td>
-                              <td className="hidden sm:table-cell px-4 py-3">
+                              <td className="px-4 py-3">
                                 <span
                                   className={cn(
                                     "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium",
@@ -1881,7 +1750,7 @@ function SiteCard({
                                   {our.label}
                                 </span>
                               </td>
-                              <td className="hidden lg:table-cell px-4 py-3 text-xs text-gray-500">
+                              <td className="px-4 py-3 text-xs text-gray-500">
                                 {formatTimestamp(url.lastSyncedAt)}
                               </td>
                               <td className="px-4 py-3">

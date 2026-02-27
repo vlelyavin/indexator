@@ -25,15 +25,6 @@ function stripLocale(pathname: string): string {
   return pathname;
 }
 
-function getLocale(pathname: string): string {
-  for (const locale of locales) {
-    if (pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)) {
-      return locale;
-    }
-  }
-  return routing.defaultLocale;
-}
-
 export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const path = stripLocale(pathname);
@@ -41,16 +32,14 @@ export default async function middleware(req: NextRequest) {
   // Dashboard routes: require authentication
   if (path.startsWith("/dashboard")) {
     if (!hasSessionCookie(req)) {
-      const locale = getLocale(pathname);
-      return NextResponse.redirect(new URL(`/${locale}/login`, req.url));
+      return NextResponse.redirect(new URL("/login", req.url));
     }
   }
 
   // Auth pages: redirect authenticated users to indexator
   if (path === "/login" || path === "/register") {
     if (hasSessionCookie(req)) {
-      const locale = getLocale(pathname);
-      return NextResponse.redirect(new URL(`/${locale}/dashboard/indexator`, req.url));
+      return NextResponse.redirect(new URL("/dashboard/indexator", req.url));
     }
   }
 

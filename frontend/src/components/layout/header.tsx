@@ -7,7 +7,8 @@ import { localePath } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useSession, signOut, signIn } from "next-auth/react";
 import { LogOut, Menu, X } from "lucide-react";
-import { LocaleSwitcher } from "./locale-switcher";
+// HIDDEN: Language switcher disabled while app is English-only
+// import { LocaleSwitcher } from "./locale-switcher";
 import { cn } from "@/lib/utils";
 
 /* PRESERVED: SidebarToggleIcon kept for future use */
@@ -23,9 +24,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const rawName = user?.name?.trim();
-  const firstName = rawName ? rawName.split(/\s+/)[0] : undefined;
   const emailLocal = user?.email?.split("@")[0];
-  const displayName = firstName || emailLocal || "";
   const initials = rawName
     ? rawName
         .split(/\s+/)
@@ -40,7 +39,8 @@ export function Header() {
     // { href: "/dashboard", label: t("dashboard") },
     { href: "/dashboard/indexator", label: t("dashboard") },
     { href: "/dashboard/plans", label: t("plans") },
-    { href: "/dashboard/settings", label: t("settings") },
+    // HIDDEN: Settings page temporarily disabled
+    // { href: "/dashboard/settings", label: t("settings") },
     ...(isAdmin ? [{ href: "/dashboard/admin", label: t("admin") }] : []),
   ];
 
@@ -87,7 +87,8 @@ export function Header() {
 
           {/* Right section */}
           <div className="ml-auto flex items-center gap-3">
-            <LocaleSwitcher />
+            {/* HIDDEN: Language switcher disabled while app is English-only */}
+            {/* <LocaleSwitcher /> */}
 
             {user ? (
               <div className="flex items-center gap-2">
@@ -104,9 +105,6 @@ export function Header() {
                     {initials}
                   </div>
                 )}
-                <span className="hidden text-sm text-white sm:inline">
-                  {displayName}
-                </span>
                 <button
                   onClick={() =>
                     signOut({ callbackUrl: localePath(locale, "/") })
@@ -133,7 +131,7 @@ export function Header() {
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileMenuOpen((prev) => !prev)}
-              className="flex h-10 w-10 items-center justify-center rounded-md text-white transition-colors hover:bg-gray-900 md:hidden"
+              className="flex h-10 items-center justify-center rounded-md px-2 text-white transition-colors hover:bg-gray-900 md:hidden"
               aria-label={mobileMenuOpen ? t("closeSidebar") : t("openSidebar")}
               type="button"
             >

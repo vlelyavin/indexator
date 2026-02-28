@@ -330,7 +330,7 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto pb-4">
+        <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-gray-700 bg-gray-900">

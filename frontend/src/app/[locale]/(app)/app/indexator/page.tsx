@@ -487,7 +487,7 @@ export default function IndexingPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        await loadSiteStats(siteId);
+        await Promise.all([loadSiteStats(siteId), loadSites()]);
         showToast(t("syncUrlsSuccess", { total: data.totalUrls ?? 0 }));
       } else {
         showToast(t("errorSync"), false);
@@ -738,7 +738,7 @@ export default function IndexingPage() {
       {/* Sites — shown when connected OR when data was retained after disconnect */}
       {(isConnected || sites.length > 0) && (
         <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-white">{t("sites")}</h2>
+          <h2 className="text-2xl font-bold text-white">{t("sites")}</h2>
 
           {sites.length === 0 ? (
             <div className="rounded-xl border border-gray-800 bg-gray-950 p-10 text-center">

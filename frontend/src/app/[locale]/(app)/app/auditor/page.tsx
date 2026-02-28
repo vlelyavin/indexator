@@ -155,34 +155,50 @@ export default function AuditorListPage() {
 
       {/* General stats */}
       {audits.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-xl border border-gray-800 bg-gray-950 p-4">
-            <div className="flex items-center gap-2 text-gray-400 mb-1">
-              <BarChart3 className="h-4 w-4" />
-              <span className="text-xs">Total Audits</span>
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-gray-900 p-2 text-white">
+                <BarChart3 className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{stats.totalAudits}</p>
+                <p className="text-[11px] leading-tight whitespace-nowrap text-gray-400 sm:text-xs">Total Audits</p>
+              </div>
             </div>
-            <p className="text-xl font-bold text-white">{stats.totalAudits}</p>
           </div>
           <div className="rounded-xl border border-gray-800 bg-gray-950 p-4">
-            <div className="flex items-center gap-2 text-gray-400 mb-1">
-              <Globe className="h-4 w-4" />
-              <span className="text-xs">Pages Crawled</span>
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-gray-900 p-2 text-white">
+                <Globe className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{stats.totalPages}</p>
+                <p className="text-[11px] leading-tight whitespace-nowrap text-gray-400 sm:text-xs">Pages Crawled</p>
+              </div>
             </div>
-            <p className="text-xl font-bold text-white">{stats.totalPages}</p>
           </div>
           <div className="rounded-xl border border-gray-800 bg-gray-950 p-4">
-            <div className="flex items-center gap-2 text-red-400 mb-1">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-xs">Errors</span>
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-red-900/35 p-2 text-red-400">
+                <AlertCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{stats.totalErrors}</p>
+                <p className="text-[11px] leading-tight whitespace-nowrap text-gray-400 sm:text-xs">Errors</p>
+              </div>
             </div>
-            <p className="text-xl font-bold text-white">{stats.totalErrors}</p>
           </div>
           <div className="rounded-xl border border-gray-800 bg-gray-950 p-4">
-            <div className="flex items-center gap-2 text-yellow-400 mb-1">
-              <FileWarning className="h-4 w-4" />
-              <span className="text-xs">Warnings</span>
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-yellow-900/35 p-2 text-yellow-400">
+                <FileWarning className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-white">{stats.totalWarnings}</p>
+                <p className="text-[11px] leading-tight whitespace-nowrap text-gray-400 sm:text-xs">Warnings</p>
+              </div>
             </div>
-            <p className="text-xl font-bold text-white">{stats.totalWarnings}</p>
           </div>
         </div>
       )}

@@ -101,6 +101,7 @@
     "filterWarnings": "Warnings",
     "filterPassed": "Passed",
     "backToDashboard": "Back to Dashboard",
+    "startNewAudit": "Start New Audit",
     "auditInProgress": "Audit in Progress",
     "currentAudit": "Current Audit",
     "audits": "Audits",

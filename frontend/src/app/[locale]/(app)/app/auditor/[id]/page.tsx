@@ -8,6 +8,7 @@ import { useAuditProgress } from "@/hooks/use-audit-progress";
 import { AuditProgressView } from "@/components/audit/audit-progress";
 import { AuditResultsView } from "@/components/audit/audit-results";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { AlertOctagon, Plus } from "lucide-react";
 import type { AuditResults } from "@/types/audit";
 
 export default function AuditPage({
@@ -247,17 +248,28 @@ export default function AuditPage({
     );
   }
 
-  // Failed
+  // Failed (live progress reported failure)
   if (progress?.status === "failed") {
     return (
-      <div className="mx-auto max-w-[50rem] py-12 text-center">
-        <div className="mb-4 text-5xl">&#10060;</div>
-        <h1 className="text-xl font-bold text-white">
-          {tAudit("failed")}
-        </h1>
-        <p className="mt-2 text-sm text-gray-400">
-          {progress.message}
-        </p>
+      <div className="mx-auto max-w-xl py-6 sm:py-16">
+        <div className="rounded-xl border border-gray-800 bg-gray-950 p-4 sm:p-8 text-center">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-red-800/50 bg-red-900/20">
+            <AlertOctagon className="h-7 w-7 text-red-400" />
+          </div>
+          <h2 className="mb-2 text-xl font-semibold text-white">
+            {tAudit("failed")}
+          </h2>
+          <p className="mb-6 text-sm text-gray-400">
+            {progress.message}
+          </p>
+          <Link
+            href="/app/auditor/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-copper to-copper-light px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" />
+            {tAudit("startNewAudit")}
+          </Link>
+        </div>
       </div>
     );
   }
@@ -277,23 +289,35 @@ export default function AuditPage({
     );
   }
 
-  // Page error
+  // Page error (failed audit loaded from DB)
   if (pageError) {
     return (
-      <div className="mx-auto max-w-[50rem] py-12 text-center">
-        <div className="mb-4 text-5xl">&#10060;</div>
-        <h1 className="text-xl font-bold text-white">
-          {tAudit("error")}
-        </h1>
-        <p className="mt-2 text-sm text-gray-400">
-          {pageError}
-        </p>
-        <Link
-          href={"/app"}
-          className="mt-4 inline-block text-gray-400 hover:text-white transition-colors"
-        >
-          {tAudit("backToDashboard")}
-        </Link>
+      <div className="mx-auto max-w-xl py-6 sm:py-16">
+        <div className="rounded-xl border border-gray-800 bg-gray-950 p-4 sm:p-8 text-center">
+          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-red-800/50 bg-red-900/20">
+            <AlertOctagon className="h-7 w-7 text-red-400" />
+          </div>
+          <h2 className="mb-2 text-xl font-semibold text-white">
+            {tAudit("failed")}
+          </h2>
+          <p className="mb-2 text-sm text-gray-400">
+            {pageError}
+          </p>
+          {auditUrl && (
+            <p className="mb-2 text-xs text-gray-500">
+              URL: {auditUrl}
+            </p>
+          )}
+          <div className="mt-6 flex items-center justify-center gap-4">
+            <Link
+              href="/app/auditor/new"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-copper to-copper-light px-6 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
+            >
+              <Plus className="h-4 w-4" />
+              {tAudit("startNewAudit")}
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }

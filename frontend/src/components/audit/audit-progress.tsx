@@ -1,11 +1,57 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import type { ProgressEvent } from "@/types/audit";
 
 interface AuditProgressViewProps {
   progress: ProgressEvent | null;
+}
+
+function CircularArc({ pct }: { pct: number }) {
+  const size = 160;
+  const stroke = 7;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (pct / 100) * circumference;
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        {/* Background arc */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#374151"
+          strokeWidth={stroke}
+        />
+        {/* Progress arc */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="url(#arcGradient)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-all duration-700 ease-out"
+        />
+        <defs>
+          <linearGradient id="arcGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="var(--color-copper)" />
+            <stop offset="100%" stopColor="var(--color-copper-light)" />
+          </linearGradient>
+        </defs>
+      </svg>
+      {/* Percentage text in center */}
+      <span className="absolute text-2xl font-bold text-white">
+        {Math.round(pct)}%
+      </span>
+    </div>
+  );
 }
 
 export function AuditProgressView({ progress }: AuditProgressViewProps) {
@@ -53,8 +99,9 @@ export function AuditProgressView({ progress }: AuditProgressViewProps) {
   return (
     <div className="mx-auto max-w-xl py-6 sm:py-16">
       <div className="rounded-xl border border-gray-800 bg-gray-950 p-4 sm:p-8">
+        {/* Circular arc */}
         <div className="mb-6 flex items-center justify-center">
-          <Loader2 className="h-10 w-10 animate-spin text-copper" />
+          <CircularArc pct={pct} />
         </div>
 
         <h2 className="mb-2 text-center text-lg font-semibold text-white">
@@ -64,20 +111,6 @@ export function AuditProgressView({ progress }: AuditProgressViewProps) {
         <p className="mb-6 text-center text-sm text-gray-400">
           {getProgressMessage()}
         </p>
-
-        {/* Progress bar */}
-        <div className="mb-6">
-          <div className="mb-1.5 flex items-center justify-between text-xs text-gray-400">
-            <span>{Math.round(pct)}%</span>
-            {pagesCrawled > 0 && <span>{t("pages", { count: pagesCrawled })}</span>}
-          </div>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-700">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-copper to-copper-light transition-all duration-500"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-        </div>
 
         {/* Stage indicators */}
         <div className="flex items-center justify-between">

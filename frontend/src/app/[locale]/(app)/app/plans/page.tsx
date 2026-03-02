@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
-import { useSearchParams } from "next/navigation";
 import {
   Check,
   X,
@@ -35,8 +34,9 @@ export default function PlansPage() {
   const ut = useTranslations("marketing.unifiedPricing");
   const tBreadcrumbs = useTranslations("breadcrumbs");
   const { data: session, update } = useSession();
-  const searchParams = useSearchParams();
   const paddle = usePaddle();
+  const [checkoutProcessing, setCheckoutProcessing] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,18 +73,41 @@ export default function PlansPage() {
     loadData();
   }, [loadData]);
 
-  // Handle checkout success redirect
+  // Handle Paddle checkout completion via event callback
   useEffect(() => {
-    if (searchParams.get("success") === "true") {
-      toast.success(t("planUpdated"));
-      // Give webhook a moment to process, then refresh data
-      const timer = setTimeout(() => {
-        loadData();
-        update().catch(() => {});
-      }, 2000);
-      return () => clearTimeout(timer);
+    function handleCheckoutCompleted() {
+      setCheckoutProcessing(true);
+
+      // Poll for plan change every second
+      const startPlanId = currentPlanId;
+      pollingRef.current = setInterval(async () => {
+        try {
+          const res = await fetch("/api/user/plan");
+          if (res.ok) {
+            const data = await res.json();
+            if (data.plan?.id && data.plan.id !== startPlanId) {
+              // Plan changed — stop polling and update
+              if (pollingRef.current) clearInterval(pollingRef.current);
+              pollingRef.current = null;
+              setCurrentPlanId(data.plan.id);
+              setCheckoutProcessing(false);
+              toast.success(t("planUpdated"));
+              loadData();
+              update().catch(() => {});
+            }
+          }
+        } catch {
+          /* ignore polling errors */
+        }
+      }, 1000);
     }
-  }, [searchParams, t, loadData, update]);
+
+    window.addEventListener("paddle:checkout-completed", handleCheckoutCompleted);
+    return () => {
+      window.removeEventListener("paddle:checkout-completed", handleCheckoutCompleted);
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [currentPlanId, t, loadData, update]);
 
   function handleSelectPlan(planId: string) {
     if (planId === "free") {
@@ -105,7 +128,6 @@ export default function PlansPage() {
         ? { customer: { email: session.user.email } }
         : {}),
       settings: {
-        successUrl: `${window.location.origin}${window.location.pathname}?success=true`,
         displayMode: "overlay",
         theme: "dark",
       },
@@ -177,6 +199,15 @@ export default function PlansPage() {
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent" />
         <p className="text-sm text-gray-400">{t("loadingPlans")}</p>
+      </div>
+    );
+  }
+
+  if (checkoutProcessing) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-copper" />
+        <p className="text-sm text-gray-400">{t("activatingPlan")}</p>
       </div>
     );
   }

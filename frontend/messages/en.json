@@ -320,7 +320,8 @@
     "pageSpeedScreenshotsDisabled": "No PageSpeed screenshots",
     "brandedReports": "Custom branded reports",
     "noBrandedReports": "No custom branded reports",
-    "loadingPlans": "Loading plans..."
+    "loadingPlans": "Loading plans...",
+    "activatingPlan": "Activating your plan..."
   },
   "indexing": {
     "title": "Indexator",

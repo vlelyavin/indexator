@@ -22,6 +22,11 @@ export function usePaddle() {
         (process.env.NEXT_PUBLIC_PADDLE_ENV as "sandbox" | "production") ??
         "sandbox",
       token,
+      eventCallback: (event) => {
+        if (event.name === "checkout.completed") {
+          window.dispatchEvent(new CustomEvent("paddle:checkout-completed"));
+        }
+      },
     }).then((instance) => {
       if (instance) {
         paddleInstance = instance;

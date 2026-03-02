@@ -41,7 +41,6 @@ export default function PlansPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState<string | null>(null);
-  const [cancelling, setCancelling] = useState(false);
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionInfo | null>(
     null
@@ -173,25 +172,6 @@ export default function PlansPage() {
       toast.error(t("updateFailed"));
     }
     setSwitching(null);
-  }
-
-  async function handleCancelSubscription() {
-    if (!confirm(t("confirmCancel"))) return;
-
-    setCancelling(true);
-    try {
-      const res = await fetch("/api/user/subscription", { method: "DELETE" });
-      if (res.ok) {
-        toast.success(t("cancelSuccess"));
-        loadData();
-        update().catch(() => {});
-      } else {
-        toast.error(t("cancelFailed"));
-      }
-    } catch {
-      toast.error(t("cancelFailed"));
-    }
-    setCancelling(false);
   }
 
   if (loading) {
@@ -477,23 +457,6 @@ export default function PlansPage() {
                 )}
               </button>
 
-              {/* Cancel subscription button for current paid plan */}
-              {isCurrent && hasActiveSubscription && (
-                <button
-                  onClick={handleCancelSubscription}
-                  disabled={cancelling}
-                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-md px-4 py-2.5 text-xs text-gray-500 transition-colors hover:text-red-400"
-                >
-                  {cancelling ? (
-                    <>
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      {t("cancelling")}
-                    </>
-                  ) : (
-                    t("cancelSubscription")
-                  )}
-                </button>
-              )}
             </div>
           );
         })}

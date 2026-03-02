@@ -1,8 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useSession } from "next-auth/react";
-import { Link } from "@/i18n/navigation";
+import { useSession, signIn } from "next-auth/react";
+import { useLocale } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
+import { localePath } from "@/i18n/navigation";
 import { Check, X, Zap, Rocket, Building2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,8 +24,29 @@ export function PricingSection() {
   const t = useTranslations("marketing.unifiedPricing");
   const pt = useTranslations("plans");
   const { data: session } = useSession();
+  const locale = useLocale();
+  const router = useRouter();
 
-  const ctaHref = session?.user ? "/app/plans" : "/login";
+  function handleCtaClick(planId: string) {
+    const isPaidPlan = planId !== "free";
+
+    if (session?.user) {
+      // Already authenticated
+      if (isPaidPlan) {
+        router.push(`/app/plans?selected=${planId}`);
+      } else {
+        router.push("/app");
+      }
+    } else {
+      // Not authenticated — go through sign-in then redirect
+      const callbackPath = isPaidPlan
+        ? `/app/plans?selected=${planId}`
+        : "/app";
+      signIn("google", {
+        callbackUrl: localePath(locale, callbackPath),
+      });
+    }
+  }
 
   return (
     <section id="pricing" className="bg-black py-24">
@@ -132,7 +155,7 @@ export function PricingSection() {
                 </div>
 
                 {/* Indexator features */}
-                <div className="mt-8">
+                <div className="mt-8 flex-1">
                   <p className="mb-3 text-sm font-semibold tracking-wider text-copper">
                     {t("indexatorLabel")}
                   </p>
@@ -150,8 +173,8 @@ export function PricingSection() {
                   </ul>
                 </div>
 
-                <Link
-                  href={ctaHref}
+                <button
+                  onClick={() => handleCtaClick(plan.id)}
                   className={cn(
                     "mt-8 flex items-center justify-center gap-2 rounded-md px-4 py-3.5 text-center text-sm font-semibold",
                     isPro
@@ -161,7 +184,7 @@ export function PricingSection() {
                 >
                   <Sparkles className="h-4 w-4" />
                   {plan.price === 0 ? t("ctaFree") : t("ctaPaid")}
-                </Link>
+                </button>
               </div>
             );
           })}

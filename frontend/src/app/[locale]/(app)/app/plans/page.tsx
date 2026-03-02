@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   Check,
   X,
@@ -36,9 +37,11 @@ export default function PlansPage() {
   const tBreadcrumbs = useTranslations("breadcrumbs");
   const { data: session, update } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const paddle = usePaddle();
   const [checkoutProcessing, setCheckoutProcessing] = useState(false);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoOpenRef = useRef(false);
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,6 +76,33 @@ export default function PlansPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Auto-open checkout when redirected from pricing page with ?selected=plan
+  useEffect(() => {
+    const selected = searchParams.get("selected");
+    if (!selected || autoOpenRef.current || loading || !paddle) return;
+
+    const priceId = PLAN_TO_PADDLE_PRICE[selected];
+    if (!priceId) return;
+
+    // Don't open checkout if user already has this plan or an active subscription
+    if (subscription?.paddleSubscriptionId && subscription.paddleSubscriptionStatus === "active") return;
+
+    autoOpenRef.current = true;
+    window.history.replaceState({}, "", window.location.pathname);
+
+    paddle.Checkout.open({
+      items: [{ priceId, quantity: 1 }],
+      customData: { userId: session?.user?.id },
+      ...(session?.user?.email
+        ? { customer: { email: session.user.email } }
+        : {}),
+      settings: {
+        displayMode: "overlay",
+        theme: "dark",
+      },
+    });
+  }, [searchParams, loading, paddle, session, subscription]);
 
   // Handle Paddle checkout completion via event callback
   useEffect(() => {

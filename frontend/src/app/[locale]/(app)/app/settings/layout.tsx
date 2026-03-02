@@ -19,6 +19,7 @@ export default function SettingsLayout({
   const tabs = [
     { href: basePath, label: t("tabGeneral") },
     { href: `${basePath}/branding`, label: t("tabBranding") },
+    { href: `${basePath}/billing`, label: t("tabBilling") },
   ];
 
   return (

@@ -65,13 +65,101 @@ export async function DELETE() {
     await paddle.subscriptions.cancel(user.paddleSubscriptionId, {
       effectiveFrom: "next_billing_period",
     });
-  } catch (err) {
-    console.error("[subscription] Cancel failed:", err);
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error("[subscription] Cancel failed:", errorMessage, err);
     return NextResponse.json(
-      { error: "Failed to cancel subscription" },
+      { error: "Failed to cancel subscription", details: errorMessage },
       { status: 500 }
     );
   }
 
   return NextResponse.json({ success: true });
+}
+
+/**
+ * POST /api/user/subscription
+ * Resumes a canceled subscription.
+ */
+export async function POST() {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { paddleSubscriptionId: true, paddleSubscriptionStatus: true },
+  });
+
+  if (!user?.paddleSubscriptionId) {
+    return NextResponse.json(
+      { error: "No subscription found" },
+      { status: 400 }
+    );
+  }
+
+  if (user.paddleSubscriptionStatus !== "canceled") {
+    return NextResponse.json(
+      { error: "Subscription is not canceled" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    await paddle.subscriptions.activate(user.paddleSubscriptionId);
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { paddleSubscriptionStatus: "active", paddleCancelledAt: null },
+    });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error("[subscription] Resume failed:", errorMessage, err);
+    return NextResponse.json(
+      { error: "Failed to resume subscription", details: errorMessage },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ success: true });
+}
+
+/**
+ * PATCH /api/user/subscription
+ * Switches the user to a different Paddle price (plan upgrade/downgrade with proration).
+ */
+export async function PATCH(req: Request) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { priceId } = await req.json();
+  if (!priceId) {
+    return NextResponse.json({ error: "priceId required" }, { status: 400 });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { paddleSubscriptionId: true, paddleSubscriptionStatus: true },
+  });
+
+  if (!user?.paddleSubscriptionId || user.paddleSubscriptionStatus !== "active") {
+    return NextResponse.json({ error: "No active subscription" }, { status: 400 });
+  }
+
+  try {
+    await paddle.subscriptions.update(user.paddleSubscriptionId, {
+      items: [{ priceId, quantity: 1 }],
+      prorationBillingMode: "prorated_immediately",
+    });
+    return NextResponse.json({ success: true });
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error("[subscription] Update failed:", errorMessage, err);
+    return NextResponse.json(
+      { error: "Failed to update subscription", details: errorMessage },
+      { status: 500 }
+    );
+  }
 }

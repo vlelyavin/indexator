@@ -79,9 +79,18 @@ export default function PlansPage() {
     function handleCheckoutCompleted() {
       setCheckoutProcessing(true);
 
-      // Poll for plan change every second
+      // Poll for plan change every second, stop after 3 minutes
       const startPlanId = currentPlanId;
+      let attempts = 0;
+      const MAX_ATTEMPTS = 180;
       pollingRef.current = setInterval(async () => {
+        attempts++;
+        if (attempts >= MAX_ATTEMPTS) {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          pollingRef.current = null;
+          setCheckoutProcessing(false);
+          return;
+        }
         try {
           const res = await fetch("/api/user/plan");
           if (res.ok) {

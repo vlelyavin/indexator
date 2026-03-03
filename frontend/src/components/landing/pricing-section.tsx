@@ -106,15 +106,10 @@ export function PricingSection() {
 
             const PlanIcon = PLAN_ICONS[plan.id];
 
-            const isCurrentPlan = session?.user?.planId === plan.id;
-
             return (
               <div
                 key={plan.id}
-                className={cn(
-                  "relative flex flex-col rounded-xl border bg-gray-950 p-8",
-                  isCurrentPlan ? "border-copper/50" : "border-gray-800"
-                )}
+                className="relative flex flex-col rounded-xl border border-gray-800 bg-gray-950 p-8"
               >
 
                 {PlanIcon && (
@@ -175,12 +170,7 @@ export function PricingSection() {
 
                 <button
                   onClick={() => handleCtaClick(plan.id)}
-                  className={cn(
-                    "mt-8 flex items-center justify-center gap-2 rounded-md px-4 py-3.5 text-center text-sm font-semibold",
-                    isPro
-                      ? "landing-btn bg-gradient-to-r from-copper to-copper-light text-white"
-                      : "landing-btn-outline border border-gray-700 text-white transition-colors hover:border-copper-light"
-                  )}
+                  className="mt-8 flex items-center justify-center gap-2 rounded-md px-4 py-3.5 text-center text-sm font-semibold landing-btn bg-gradient-to-r from-copper to-copper-light text-white"
                 >
                   <Sparkles className="h-4 w-4" />
                   {plan.price === 0 ? t("ctaFree") : t("ctaPaid")}

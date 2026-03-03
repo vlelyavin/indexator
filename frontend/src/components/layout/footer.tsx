@@ -9,7 +9,7 @@ export function Footer() {
 
   return (
     <footer className="bg-black">
-      <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-8 sm:flex-row sm:justify-between lg:px-6">
+      <div className="flex flex-col items-center gap-4 px-4 py-8 sm:flex-row sm:justify-between lg:px-6">
         <p className="text-sm text-gray-500">
           {t("copyright", { year })}
         </p>

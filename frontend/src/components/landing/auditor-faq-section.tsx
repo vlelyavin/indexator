@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, CircleHelp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const FAQ_COUNT = 6;
@@ -33,7 +33,8 @@ export function AuditorFaqSection() {
                   onClick={() => setOpenIndex(isOpen ? null : i)}
                   className="flex w-full items-center justify-between px-6 py-5 text-left"
                 >
-                  <span className="text-sm font-medium text-white">
+                  <span className="flex items-center gap-3 text-sm font-medium text-white">
+                    <CircleHelp className="h-5 w-5 shrink-0 text-copper" />
                     {t(`q${i}`)}
                   </span>
                   <motion.span

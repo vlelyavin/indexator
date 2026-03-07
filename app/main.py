@@ -697,7 +697,7 @@ async def run_audit(audit_id: str, request: AuditRequest):
 
             async def progress_callback(page: PageData):
                 progress = min(len(pages) / max_pages * 40, 40)
-                total_links = len({link for p in pages for link in p.internal_links})
+                total_links = len({link for p in pages.values() for link in p.internal_links})
                 elapsed = time.time() - crawl_started_ts
                 est_seconds = None
                 if len(pages) > 1 and elapsed > 0:

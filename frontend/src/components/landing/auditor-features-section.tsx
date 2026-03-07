@@ -9,7 +9,7 @@ import {
   Download,
   ShieldCheck,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 const ICONS = [FileSearch, FileText, Paintbrush, Layers, Download, ShieldCheck];
 

@@ -9,7 +9,7 @@ import {
   Mail,
   Lightbulb,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 const ICONS = [BarChart3, MousePointerClick, RefreshCw, ShieldAlert, Mail, Lightbulb];
 

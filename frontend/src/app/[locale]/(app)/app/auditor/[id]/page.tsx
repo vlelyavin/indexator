@@ -35,7 +35,7 @@ export default function AuditPage({
     });
   }, [params, searchParams]);
 
-  const { progress, done } = useAuditProgress(fastApiId, auditId);
+  const { progress, done, activityLog } = useAuditProgress(fastApiId, auditId);
   const tAudit = useTranslations("audit");
   const tBreadcrumbs = useTranslations("breadcrumbs");
 
@@ -217,7 +217,7 @@ export default function AuditPage({
       <div>
         <Breadcrumbs items={breadcrumbItems} />
         <h1 className="mb-4 md:mb-6 text-2xl font-bold text-white">{breadcrumbLabel}</h1>
-        <AuditProgressView progress={progress} />
+        <AuditProgressView progress={progress} activityLog={activityLog} status={progress?.status} />
       </div>
     );
   }

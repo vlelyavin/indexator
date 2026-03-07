@@ -3,23 +3,94 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import type { ProgressEvent } from "@/types/audit";
+import type { ActivityEntry } from "@/components/audit/audit-progress";
 
 const MAX_SSE_RETRIES = 2;
 const SSE_RETRY_DELAY = 2000; // 2 seconds
 const POLL_INTERVAL = 2000; // 2 seconds
 const STALL_TIMEOUT = 120000; // 2 minutes without events = stalled
+const MAX_ACTIVITY_ENTRIES = 500;
+
+function formatUrlPath(url: string): string {
+  try {
+    const u = new URL(url);
+    return u.pathname + u.search;
+  } catch {
+    return url;
+  }
+}
 
 export function useAuditProgress(fastApiId: string | null, auditId: string | null) {
   const [progress, setProgress] = useState<ProgressEvent | null>(null);
   const [connected, setConnected] = useState(false);
   const [done, setDone] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
+  const [activityLog, setActivityLog] = useState<ActivityEntry[]>([]);
   const connectionAttemptsRef = useRef(0);
   const esRef = useRef<EventSource | null>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastEventTimeRef = useRef<number>(0);
   const stallCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const connectingToastRef = useRef<string | number | null>(null);
+
+  // Activity tracking refs (deduplication)
+  const lastUrlRef = useRef<string | null>(null);
+  const lastStageRef = useRef<string | null>(null);
+  const lastAnalyzerRef = useRef<string | null>(null);
+  const lastAnalyzerCompleteRef = useRef<string | null>(null);
+  const entryIdRef = useRef(0);
+
+  const addActivityEntry = useCallback((type: ActivityEntry["type"], label: string) => {
+    const entry: ActivityEntry = {
+      id: String(++entryIdRef.current),
+      type,
+      label,
+    };
+    setActivityLog((prev) => {
+      const next = [...prev, entry];
+      return next.length > MAX_ACTIVITY_ENTRIES ? next.slice(-MAX_ACTIVITY_ENTRIES) : next;
+    });
+  }, []);
+
+  const trackProgress = useCallback((data: ProgressEvent) => {
+    // Track URL changes
+    if (data.current_url && data.current_url !== lastUrlRef.current) {
+      lastUrlRef.current = data.current_url;
+      addActivityEntry("url", formatUrlPath(data.current_url));
+    }
+
+    // Track stage changes
+    if (data.stage && data.stage !== lastStageRef.current) {
+      lastStageRef.current = data.stage;
+      const stageLabels: Record<string, string> = {
+        crawling: "Crawling",
+        analyzing: "Analyzing",
+        generating_report: "Generating Report",
+        report: "Generating Report",
+      };
+      addActivityEntry("stage", stageLabels[data.stage] || data.stage);
+    }
+
+    // Track analyzer starts
+    if (
+      data.analyzer_name &&
+      data.analyzer_phase === "running" &&
+      data.analyzer_name !== lastAnalyzerRef.current
+    ) {
+      lastAnalyzerRef.current = data.analyzer_name;
+      addActivityEntry("analyzer", data.analyzer_name);
+    }
+
+    // Track analyzer completions
+    if (
+      data.analyzer_name &&
+      data.analyzer_phase === "completed" &&
+      `completed-${data.analyzer_name}` !== lastAnalyzerCompleteRef.current
+    ) {
+      lastAnalyzerCompleteRef.current = `completed-${data.analyzer_name}`;
+      addActivityEntry("analyzer_done", `✓ ${data.analyzer_name}`);
+    }
+  }, [addActivityEntry]);
 
   const dismissConnectingToast = useCallback(() => {
     if (connectingToastRef.current !== null) {
@@ -48,6 +119,7 @@ export function useAuditProgress(fastApiId: string | null, auditId: string | nul
         const res = await fetch(`/api/audit/${auditId}/progress`);
         if (res.ok) {
           const data: ProgressEvent = await res.json();
+          trackProgress(data);
           setProgress(data);
           setConnected(true);
           dismissConnectingToast();
@@ -72,7 +144,7 @@ export function useAuditProgress(fastApiId: string | null, auditId: string | nul
 
     poll();
     pollIntervalRef.current = setInterval(poll, POLL_INTERVAL);
-  }, [auditId, isPolling, dismissConnectingToast]);
+  }, [auditId, isPolling, dismissConnectingToast, trackProgress]);
 
   const connectRef = useRef<() => void>(null);
 
@@ -99,6 +171,7 @@ export function useAuditProgress(fastApiId: string | null, auditId: string | nul
     es.addEventListener("progress", (event) => {
       try {
         const data: ProgressEvent = JSON.parse(event.data);
+        trackProgress(data);
         setProgress(data);
         dismissConnectingToast();
         lastEventTimeRef.current = Date.now();
@@ -136,7 +209,7 @@ export function useAuditProgress(fastApiId: string | null, auditId: string | nul
         }, SSE_RETRY_DELAY);
       }
     };
-  }, [fastApiId, isPolling, startPolling, dismissConnectingToast]);
+  }, [fastApiId, isPolling, startPolling, dismissConnectingToast, trackProgress]);
 
   useEffect(() => {
     connectRef.current = connect;
@@ -166,5 +239,5 @@ export function useAuditProgress(fastApiId: string | null, auditId: string | nul
     };
   }, [fastApiId, connect, checkForStall, dismissConnectingToast]);
 
-  return { progress, connected, done };
+  return { progress, connected, done, isPolling, activityLog };
 }

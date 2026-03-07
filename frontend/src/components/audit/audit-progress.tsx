@@ -1,15 +1,21 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Globe, Link2, Clock } from "lucide-react";
+import { Globe, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProgressEvent } from "@/types/audit";
 
+export interface ActivityEntry {
+  id: string;
+  type: "url" | "stage" | "analyzer" | "analyzer_done";
+  label: string;
+}
+
 interface AuditProgressViewProps {
   progress: ProgressEvent | null;
-  connected?: boolean;
-  isPolling?: boolean;
+  activityLog: ActivityEntry[];
+  status?: string | null;
 }
 
 /* ── Progress Ring ─────────────────────────────────────────── */
@@ -76,21 +82,6 @@ function getStageState(current: Stage, target: Stage): "done" | "active" | "upco
   return "upcoming";
 }
 
-function formatEstimate(seconds: number, t: ReturnType<typeof useTranslations<"audit">>): string {
-  if (seconds < 60) return t("estimateSeconds", { count: seconds });
-  const mins = Math.ceil(seconds / 60);
-  return t("estimateMinutes", { count: mins });
-}
-
-function formatUrlPath(url: string): string {
-  try {
-    const u = new URL(url);
-    return u.pathname + u.search;
-  } catch {
-    return url;
-  }
-}
-
 function getProgressMessage(progress: ProgressEvent | null, t: ReturnType<typeof useTranslations<"audit">>): string {
   if (!progress) return t("progressConnecting");
 
@@ -118,110 +109,21 @@ function getProgressMessage(progress: ProgressEvent | null, t: ReturnType<typeof
   }
 }
 
-/* ── Activity Log Entry ────────────────────────────────────── */
-
-interface ActivityEntry {
-  id: string;
-  type: "url" | "stage" | "analyzer" | "analyzer_done";
-  label: string;
-}
-
 /* ── Main Component ────────────────────────────────────────── */
 
-export function AuditProgressView({ progress, connected = true, isPolling = false }: AuditProgressViewProps) {
+export function AuditProgressView({ progress, activityLog, status }: AuditProgressViewProps) {
   const t = useTranslations("audit");
   const pct = progress?.progress || 0;
   const logRef = useRef<HTMLDivElement>(null);
-  const activityRef = useRef<ActivityEntry[]>([]);
-  const lastUrlRef = useRef<string | null>(null);
-  const lastStageRef = useRef<string | null>(null);
-  const lastAnalyzerRef = useRef<string | null>(null);
-  const lastAnalyzerCompleteRef = useRef<string | null>(null);
-  const entryIdRef = useRef(0);
-
-  // Build activity log from progress changes
-  if (progress) {
-    // Track URL changes
-    if (progress.current_url && progress.current_url !== lastUrlRef.current) {
-      lastUrlRef.current = progress.current_url;
-      activityRef.current = [
-        ...activityRef.current,
-        { id: String(++entryIdRef.current), type: "url", label: formatUrlPath(progress.current_url) },
-      ];
-      if (activityRef.current.length > 20) {
-        activityRef.current = activityRef.current.slice(-20);
-      }
-    }
-
-    // Track stage changes
-    if (progress.stage && progress.stage !== lastStageRef.current) {
-      lastStageRef.current = progress.stage;
-      const stageLabel =
-        progress.stage === "crawling" ? t("stageCrawling") :
-        progress.stage === "analyzing" ? t("stageAnalyzing") :
-        t("stageGeneratingReport");
-      activityRef.current = [
-        ...activityRef.current,
-        { id: String(++entryIdRef.current), type: "stage", label: stageLabel },
-      ];
-      if (activityRef.current.length > 20) {
-        activityRef.current = activityRef.current.slice(-20);
-      }
-    }
-
-    // Track analyzer starts
-    if (
-      progress.analyzer_name &&
-      progress.analyzer_phase === "running" &&
-      progress.analyzer_name !== lastAnalyzerRef.current
-    ) {
-      lastAnalyzerRef.current = progress.analyzer_name;
-      activityRef.current = [
-        ...activityRef.current,
-        { id: String(++entryIdRef.current), type: "analyzer", label: progress.analyzer_name },
-      ];
-      if (activityRef.current.length > 20) {
-        activityRef.current = activityRef.current.slice(-20);
-      }
-    }
-
-    // Track analyzer completions
-    if (
-      progress.analyzer_name &&
-      progress.analyzer_phase === "completed" &&
-      `completed-${progress.analyzer_name}` !== lastAnalyzerCompleteRef.current
-    ) {
-      lastAnalyzerCompleteRef.current = `completed-${progress.analyzer_name}`;
-      activityRef.current = [
-        ...activityRef.current,
-        { id: String(++entryIdRef.current), type: "analyzer_done", label: `✓ ${progress.analyzer_name}` },
-      ];
-      if (activityRef.current.length > 20) {
-        activityRef.current = activityRef.current.slice(-20);
-      }
-    }
-  }
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const displayLog = useMemo(() => activityRef.current.slice(-20), [progress]);
+  const currentStage = getPipelineStage(progress);
+  const isRunning = status !== "completed" && status !== "failed";
 
   // Auto-scroll activity feed
-  const prevLenRef = useRef(0);
-  if (displayLog.length !== prevLenRef.current) {
-    prevLenRef.current = displayLog.length;
-    queueMicrotask(() => {
-      if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-    });
-  }
-
-  const currentStage = getPipelineStage(progress);
-
-  // Connection badge
-  const connectionMeta = connected && !isPolling
-    ? { dotClass: "bg-emerald-400 animate-pulse", label: t("transportLive") }
-    : isPolling
-      ? { dotClass: "bg-amber-400", label: t("transportPolling") }
-      : { dotClass: "bg-copper-light animate-pulse", label: t("transportReconnecting") };
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight;
+    }
+  }, [activityLog.length]);
 
   // Analyzer progress description for pipeline
   function getAnalyzerDescription(): string {
@@ -243,30 +145,8 @@ export function AuditProgressView({ progress, connected = true, isPolling = fals
   return (
     <div className="rounded-xl border border-gray-800 bg-gray-950">
       {/* Header */}
-      <div className="flex flex-col gap-3 border-b border-gray-800 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <div>
-          <h2 className="text-lg font-semibold text-white">{t("auditInProgress")}</h2>
-          <p className="mt-0.5 text-sm text-gray-400">{getProgressMessage(progress, t)}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Connection badge */}
-          <span className="inline-flex items-center gap-1.5 rounded-lg border border-gray-800 bg-gray-900 px-3 py-1.5 text-xs font-medium text-gray-300">
-            <span className={cn("h-1.5 w-1.5 rounded-full", connectionMeta.dotClass)} />
-            {connectionMeta.label}
-          </span>
-          {/* Stage badge */}
-          <span className="inline-flex items-center gap-1.5 rounded-lg border border-gray-800 bg-gray-900 px-3 py-1.5 text-xs font-medium text-gray-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-copper-light animate-pulse" />
-            {currentStage === "crawling" ? t("stageCrawling") : currentStage === "analyzing" ? t("stageAnalyzing") : t("stageGeneratingReport")}
-          </span>
-          {/* ETA badge */}
-          {progress?.estimated_seconds != null && progress.estimated_seconds > 0 && (
-            <span className="inline-flex items-center gap-1.5 rounded-lg border border-gray-800 bg-gray-900 px-3 py-1.5 text-xs font-medium text-gray-300">
-              <Clock className="h-3 w-3 text-gray-500" />
-              {formatEstimate(progress.estimated_seconds, t)}
-            </span>
-          )}
-        </div>
+      <div className="border-b border-gray-800 p-4 sm:p-6">
+        <h2 className="text-lg font-semibold text-white">{t("auditInProgress")}</h2>
       </div>
 
       {/* Body: two-column grid */}
@@ -280,7 +160,7 @@ export function AuditProgressView({ progress, connected = true, isPolling = fals
 
           {/* Metric cards */}
           {progress && (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <MetricCard
                 icon={Globe}
                 value={String(progress.pages_crawled || 0)}
@@ -291,34 +171,21 @@ export function AuditProgressView({ progress, connected = true, isPolling = fals
                 value={String(progress.links_found || 0)}
                 label={t("statLinksFound")}
               />
-              {progress.estimated_seconds != null && progress.estimated_seconds > 0 ? (
-                <MetricCard
-                  icon={Clock}
-                  value={formatEstimate(progress.estimated_seconds, t)}
-                  label={t("statTimeRemaining")}
-                />
-              ) : (
-                <MetricCard
-                  icon={Clock}
-                  value="--"
-                  label={t("statTimeRemaining")}
-                />
-              )}
             </div>
           )}
 
           {/* Pipeline stepper */}
           <div className="rounded-xl border border-gray-800 bg-gray-950 p-4">
-            <div className="space-y-3">
+            <div className="relative flex flex-col">
               {pipelineStages.map((stage, i) => {
                 const state = getStageState(currentStage, stage.key);
                 return (
                   <div key={stage.key} className="flex items-start gap-3">
                     {/* Dot + connector line */}
-                    <div className="flex flex-col items-center">
+                    <div className="relative flex flex-col items-center">
                       <div
                         className={cn(
-                          "h-3 w-3 rounded-full border-2 mt-0.5",
+                          "relative z-10 h-3 w-3 rounded-full border-2 mt-0.5",
                           state === "done" && "border-green-500 bg-green-500",
                           state === "active" && "border-copper-light bg-copper-light",
                           state === "upcoming" && "border-gray-600 bg-transparent"
@@ -327,14 +194,14 @@ export function AuditProgressView({ progress, connected = true, isPolling = fals
                       {i < pipelineStages.length - 1 && (
                         <div
                           className={cn(
-                            "mt-1 h-5 w-px",
+                            "w-px flex-1 min-h-4",
                             state === "done" ? "bg-green-500/40" : "bg-gray-700"
                           )}
                         />
                       )}
                     </div>
                     {/* Text */}
-                    <div className="min-w-0">
+                    <div className={cn("min-w-0", i < pipelineStages.length - 1 && "pb-3")}>
                       <p
                         className={cn(
                           "text-sm font-medium",
@@ -363,15 +230,15 @@ export function AuditProgressView({ progress, connected = true, isPolling = fals
             ref={logRef}
             className="flex-1 overflow-y-auto rounded-xl border border-gray-800 bg-gray-950 p-3 max-h-[500px]"
           >
-            {displayLog.length === 0 ? (
+            {activityLog.length === 0 ? (
               <p className="py-8 text-center text-sm text-gray-600">{t("noActivityYet")}</p>
             ) : (
               <div className="space-y-1.5">
-                {displayLog.map((entry) => (
+                {activityLog.map((entry) => (
                   <div key={entry.id} className="flex items-center gap-2 text-xs">
                     <span
                       className={cn(
-                        "h-1.5 w-1.5 shrink-0 rounded-full",
+                        "h-2 w-2 shrink-0 rounded-full",
                         entry.type === "url" && "bg-emerald-400",
                         entry.type === "stage" && "bg-gray-400",
                         entry.type === "analyzer" && "bg-copper-light",
@@ -380,14 +247,20 @@ export function AuditProgressView({ progress, connected = true, isPolling = fals
                     />
                     <span
                       className={cn(
-                        "truncate",
-                        entry.type === "stage" ? "font-medium text-gray-300" : "text-gray-500"
+                        "truncate text-sm",
+                        entry.type === "stage" ? "font-medium text-gray-200" : "text-gray-300"
                       )}
                     >
                       {entry.label}
                     </span>
                   </div>
                 ))}
+                {isRunning && (
+                  <div className="flex items-center gap-2 py-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-copper-light animate-pulse" />
+                    <span className="text-xs text-gray-500">Scanning...</span>
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -95,12 +95,15 @@ settings.ensure_dirs()
 # Analyzer concurrency control (max 10 analyzers running simultaneously)
 _analyzer_semaphore = asyncio.Semaphore(10)
 
+# Limit concurrent audits to prevent resource exhaustion
+_audit_semaphore = asyncio.Semaphore(2)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown hooks."""
     # Startup
-    asyncio.create_task(cleanup_old_audits())
+    cleanup_task = asyncio.create_task(cleanup_old_audits())
     logger.info("Audit cleanup task started")
 
     from .http_client import get_session
@@ -110,6 +113,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
+    cleanup_task.cancel()
     from .http_client import close_session
     await close_session()
     logger.info("HTTP client closed")
@@ -607,6 +611,12 @@ async def translate_results(request: Request):
 
 async def run_audit(audit_id: str, request: AuditRequest):
     """Background task to run the full audit with 10-minute timeout."""
+    async with _audit_semaphore:
+        await _run_audit_inner(audit_id, request)
+
+
+async def _run_audit_inner(audit_id: str, request: AuditRequest):
+    """Inner audit logic, guarded by _audit_semaphore."""
     channel = broadcast_channels[audit_id]
     audit, _ = audits[audit_id]
 

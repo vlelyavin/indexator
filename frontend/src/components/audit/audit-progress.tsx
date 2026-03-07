@@ -8,8 +8,8 @@ import type { ProgressEvent } from "@/types/audit";
 
 interface AuditProgressViewProps {
   progress: ProgressEvent | null;
-  connected: boolean;
-  isPolling: boolean;
+  connected?: boolean;
+  isPolling?: boolean;
 }
 
 /* ── Progress Ring ─────────────────────────────────────────── */
@@ -128,7 +128,7 @@ interface ActivityEntry {
 
 /* ── Main Component ────────────────────────────────────────── */
 
-export function AuditProgressView({ progress, connected, isPolling }: AuditProgressViewProps) {
+export function AuditProgressView({ progress, connected = true, isPolling = false }: AuditProgressViewProps) {
   const t = useTranslations("audit");
   const pct = progress?.progress || 0;
   const logRef = useRef<HTMLDivElement>(null);

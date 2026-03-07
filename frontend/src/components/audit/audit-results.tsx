@@ -171,7 +171,7 @@ export function AuditResultsView({ results, meta, auditId }: AuditResultsViewPro
       {/* Main content */}
       <div className="min-w-0 flex-1 space-y-6">
         {/* Summary stat cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard icon={BarChart3} label={t("pagesCrawled")} value={pagesCrawled} color="gray" />
           <StatCard icon={CheckCircle} label={t("passedChecks")} value={passedChecks} color="green" />
           <StatCard icon={AlertTriangle} label={t("warnings")} value={warnings} color="yellow" />

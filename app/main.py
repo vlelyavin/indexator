@@ -742,16 +742,10 @@ async def _run_audit_inner(audit_id: str, request: AuditRequest):
                     estimated_seconds=est_seconds,
                 ))
 
-            # Capture homepage screenshot during crawl (reuses crawler's browser)
-            async def screenshot_callback(screenshot_b64: str):
-                audit.homepage_screenshot = screenshot_b64
-                logger.info(f"[Audit {audit.id}] Homepage screenshot captured during crawl")
-
             crawler = WebCrawler(
                 str(request.url),
                 max_pages=max_pages,
                 progress_callback=progress_callback,
-                screenshot_callback=screenshot_callback,
             )
 
             try:
@@ -764,18 +758,17 @@ async def _run_audit_inner(audit_id: str, request: AuditRequest):
             audit.pages_crawled = len(pages)
             audit.pages = pages
 
-            # Fallback: if screenshot wasn't captured during crawl, try standalone
-            if not audit.homepage_screenshot:
-                try:
-                    from .screenshots import screenshot_capture
-                    audit.homepage_screenshot = await screenshot_capture.capture_page(
-                        str(request.url),
-                        viewport=screenshot_capture.DESKTOP_VIEWPORT,
-                        full_page=False,
-                        filename=f"homepage_{audit_id}.png",
-                    )
-                except Exception as e:
-                    logger.warning(f"Homepage screenshot fallback failed (non-fatal): {e}")
+            # Capture homepage screenshot via Playwright (standalone, one-time)
+            try:
+                from .screenshots import screenshot_capture
+                audit.homepage_screenshot = await screenshot_capture.capture_page(
+                    str(request.url),
+                    viewport=screenshot_capture.DESKTOP_VIEWPORT,
+                    full_page=False,
+                    filename=f"homepage_{audit_id}.png",
+                )
+            except Exception as e:
+                logger.warning(f"Homepage screenshot failed (non-fatal): {e}")
 
             crawl_duration = time.time() - crawl_started_ts
             logger.info(

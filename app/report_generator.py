@@ -1979,7 +1979,7 @@ class ReportGenerator:
             cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
             badge_bg = badge_bg_map.get(section["severity"], 'F3F4F6')
             self._docx_set_cell_shading(cell, badge_bg)
-            self._docx_add_status_icon(cell.paragraphs[0], section["severity"], size_inches=0.13)
+            self._docx_add_status_icon(cell.paragraphs[0], section["severity"], size_inches=0.11)
             badge = badge_text_map.get(section["severity"], "—")
             badge_clr = badge_color_map.get(section["severity"], (55, 65, 81))
             run = cell.paragraphs[0].add_run(f" {badge}")

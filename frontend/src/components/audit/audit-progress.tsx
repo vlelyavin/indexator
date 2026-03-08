@@ -327,6 +327,11 @@ export function AuditProgressView({
         />
       </div>
 
+      {/* ── Live Activity URL log ── */}
+      {activityLog.length > 0 && (
+        <ActivityLog entries={activityLog} />
+      )}
+
       {/* CSS animations */}
       <style jsx>{`
         @keyframes progress-indeterminate {
@@ -414,6 +419,68 @@ function MetricCard({
             {label}
           </p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Activity Log ─────────────────────────────────────────── */
+
+function ActivityLog({ entries }: { entries: ActivityEntry[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [entries.length]);
+
+  const statusColor = (code?: number) => {
+    if (!code) return "text-gray-500";
+    if (code >= 200 && code < 300) return "text-emerald-400";
+    if (code >= 300 && code < 400) return "text-yellow-400";
+    return "text-red-400";
+  };
+
+  return (
+    <div className="rounded-xl border border-gray-800 bg-gray-950 p-4 sm:p-6">
+      <div
+        ref={scrollRef}
+        className="max-h-64 space-y-1 overflow-y-auto font-mono text-xs"
+      >
+        {entries.map((entry) => (
+          <div key={entry.id} className="flex items-center gap-2">
+            {entry.type === "url" && (
+              <>
+                {entry.statusCode != null && (
+                  <span className={cn("w-8 shrink-0 text-right", statusColor(entry.statusCode))}>
+                    {entry.statusCode}
+                  </span>
+                )}
+                <span className="truncate text-gray-300">{entry.label}</span>
+                {entry.responseTime != null && (
+                  <span className="ml-auto shrink-0 text-gray-600">
+                    {entry.responseTime}ms
+                  </span>
+                )}
+              </>
+            )}
+            {entry.type === "stage" && (
+              <span className="font-semibold text-copper-light">
+                ▸ {entry.label}
+              </span>
+            )}
+            {entry.type === "analyzer" && (
+              <span className="text-gray-400">
+                ◆ {entry.label}
+              </span>
+            )}
+            {entry.type === "analyzer_done" && (
+              <span className="text-emerald-400/70">
+                {entry.label}
+              </span>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -223,7 +223,7 @@ export function AuditProgressView({
                     ? "50%"
                     : "100%",
                 background:
-                  currentStage === "report"
+                  status === "completed"
                     ? "rgba(16,185,129,0.6)"
                     : "rgba(217,171,111,0.6)",
               }}
@@ -245,13 +245,14 @@ export function AuditProgressView({
                     <div
                       className={cn(
                         "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors bg-gray-950",
-                        state === "done" && "border-emerald-500 bg-emerald-900",
+                        state === "done" && status === "completed" && "border-emerald-500 bg-emerald-900",
+                        state === "done" && status !== "completed" && "border-copper-light bg-amber-950",
                         state === "active" && "border-transparent bg-amber-950",
                         state === "upcoming" && "border-gray-700"
                       )}
                     >
                       {state === "done" ? (
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                        <CheckCircle2 className={cn("h-4 w-4", status === "completed" ? "text-emerald-400" : "text-copper-light")} />
                       ) : (
                         <Icon
                           className={cn(

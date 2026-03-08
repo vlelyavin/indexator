@@ -233,13 +233,33 @@ export default function BillingPage() {
             </div>
           )}
 
-          {/* Pending cancellation banner */}
+          {/* Pending cancellation banner with actions */}
           {hasPendingCancel && formattedPeriodEndDate && (
-            <div className="mb-6 flex items-center gap-3 rounded-lg border border-gray-700 bg-gray-900 p-4">
-              <Info className="h-5 w-5 shrink-0 text-gray-400" />
-              <p className="text-sm text-gray-400">
-                {t("pendingCancelBanner", { date: formattedPeriodEndDate })}
-              </p>
+            <div className="mb-6 rounded-lg border border-gray-700 bg-gray-900 p-4">
+              <div className="flex items-center gap-3">
+                <Info className="h-5 w-5 shrink-0 text-gray-400" />
+                <p className="text-sm text-gray-400">
+                  {t("pendingCancelBanner", { date: formattedPeriodEndDate })}
+                </p>
+              </div>
+              <div className="mt-3 flex gap-3 pl-8">
+                <button
+                  onClick={() => handleCancelSubscription("immediately")}
+                  disabled={cancelling}
+                  className="flex items-center gap-1.5 rounded-md border border-red-800 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-900/20 disabled:opacity-50"
+                >
+                  {cancelling && <Loader2 className="h-3 w-3 animate-spin" />}
+                  Cancel Now
+                </button>
+                <button
+                  onClick={handleResumeSubscription}
+                  disabled={resuming}
+                  className="flex items-center gap-1.5 rounded-md border border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-emerald-700 hover:text-emerald-400 disabled:opacity-50"
+                >
+                  {resuming && <Loader2 className="h-3 w-3 animate-spin" />}
+                  Keep Subscription
+                </button>
+              </div>
             </div>
           )}
 

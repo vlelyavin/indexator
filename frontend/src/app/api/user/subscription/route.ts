@@ -195,7 +195,9 @@ export async function DELETE(req: Request) {
 
 /**
  * POST /api/user/subscription
- * Resumes a canceled subscription.
+ * Resumes a canceled or pending-cancel subscription.
+ * - For "active" subscriptions with a scheduled cancel: removes the scheduled change via update().
+ * - For truly "canceled" (paused) subscriptions: reactivates via activate().
  */
 export async function POST() {
   const session = await auth();
@@ -215,14 +217,26 @@ export async function POST() {
     );
   }
 
-  if (user.paddleSubscriptionStatus !== "canceled") {
-    return NextResponse.json(
-      { error: "Subscription is not canceled" },
-      { status: 400 }
-    );
-  }
-
   try {
+    // Check if subscription has a pending scheduled cancel (still active)
+    const sub = await paddle.subscriptions.get(user.paddleSubscriptionId);
+
+    if (sub.status === "active" && sub.scheduledChange?.action === "cancel") {
+      // Remove the scheduled cancel by updating with scheduledChange: null
+      await paddle.subscriptions.update(user.paddleSubscriptionId, {
+        scheduledChange: null,
+      });
+      return NextResponse.json({ success: true });
+    }
+
+    if (user.paddleSubscriptionStatus !== "canceled") {
+      return NextResponse.json(
+        { error: "Subscription is not canceled" },
+        { status: 400 }
+      );
+    }
+
+    // Truly canceled subscription — reactivate
     await paddle.subscriptions.activate(user.paddleSubscriptionId);
     await prisma.user.update({
       where: { id: session.user.id },

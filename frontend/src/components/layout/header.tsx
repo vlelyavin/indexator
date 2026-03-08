@@ -48,12 +48,7 @@ export function Header({ onToggleSidebar, sidebarOpen }: HeaderProps) {
 
   const handleLogout = async () => {
     await signOut({ redirect: false });
-    // Delete session cookies manually to prevent stale token redirects
-    document.cookie = "authjs.session-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    document.cookie = "__Secure-authjs.session-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure;";
-    document.cookie = "authjs.callback-url=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    document.cookie = "authjs.csrf-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-    window.location.href = localePath(locale, "/login");
+    window.location.href = localePath(locale, "/login?logged_out=true");
   };
 
   const avatar = user?.image ? (

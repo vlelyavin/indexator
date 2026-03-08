@@ -209,14 +209,34 @@ export function AuditProgressView({
           </div>
         </div>
 
-        {/* Step indicator */}
-        <div className="flex w-full items-center">
-          {pipelineStages.map((stage, i) => {
-            const state = getStageState(currentStage, stage.key);
-            const Icon = stage.icon;
-            return (
-              <div key={stage.key} className="flex flex-1 items-center">
-                <div className="flex shrink-0 items-center gap-2">
+        {/* Step indicator — two layers: line underneath, steps on top */}
+        <div className="relative w-full">
+          {/* Bottom layer: full-width connecting line */}
+          <div className="absolute top-4 left-0 right-0 h-px bg-gray-800">
+            <div
+              className="absolute top-0 left-0 h-px transition-all duration-700"
+              style={{
+                width:
+                  currentStage === "crawling"
+                    ? "0%"
+                    : currentStage === "analyzing"
+                    ? "50%"
+                    : "100%",
+                background:
+                  currentStage === "report"
+                    ? "rgba(16,185,129,0.6)"
+                    : "rgba(217,171,111,0.6)",
+              }}
+            />
+          </div>
+
+          {/* Top layer: three steps — left, center, right */}
+          <div className="relative flex w-full items-center justify-between">
+            {pipelineStages.map((stage) => {
+              const state = getStageState(currentStage, stage.key);
+              const Icon = stage.icon;
+              return (
+                <div key={stage.key} className="flex shrink-0 items-center gap-2">
                   <div className="relative flex items-center justify-center">
                     {/* Spinning arc for active step */}
                     {state === "active" && (
@@ -253,26 +273,9 @@ export function AuditProgressView({
                     {stage.label}
                   </span>
                 </div>
-                {/* Connecting line */}
-                {i < pipelineStages.length - 1 && (
-                  <div className="mx-2 h-px flex-1">
-                    <div className="relative h-px w-full bg-gray-800">
-                      <div
-                        className={cn(
-                          "absolute top-0 left-0 h-px transition-all duration-700",
-                          state === "done"
-                            ? "w-full bg-emerald-500/60"
-                            : state === "active"
-                            ? "w-1/2 bg-copper-light/60"
-                            : "w-0"
-                        )}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
 

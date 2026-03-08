@@ -1300,16 +1300,13 @@ class ReportGenerator:
     @classmethod
     def _docx_add_status_icon(cls, paragraph, severity, size_inches: float = 0.14):
         """Insert a small inline status icon image into a paragraph."""
-        from docx.shared import Inches, Pt
+        from docx.shared import Inches
         icon_file = cls._DOCX_ICON_MAP.get(severity)
         if not icon_file:
             return
         icon_path = cls._DOCX_ASSETS_DIR / icon_file
         if not icon_path.exists():
             return
-        # Ensure no extra spacing on the paragraph
-        paragraph.paragraph_format.space_before = Pt(0)
-        paragraph.paragraph_format.space_after = Pt(0)
         run = paragraph.add_run()
         run.add_picture(str(icon_path), width=Inches(size_inches))
 
@@ -2082,7 +2079,7 @@ class ReportGenerator:
             )
             run = heading.add_run("  ")
             self._docx_set_font(run, size_pt=11)
-            self._docx_add_status_icon(heading, result.severity, size_inches=0.15)
+            self._docx_add_status_icon(heading, result.severity, size_inches=0.13)
             run = heading.add_run(f" {badge_label}")
             self._docx_set_font(run, size_pt=11, bold=False, color_rgb=badge_color)
 

@@ -2062,16 +2062,6 @@ class ReportGenerator:
             heading.paragraph_format.keep_with_next = True
             heading.paragraph_format.space_before = Pt(14)
             heading.paragraph_format.space_after = Pt(6)
-            # Bottom border for heading (matching PDF section-header border-bottom)
-            p_pr = heading._element.get_or_add_pPr()
-            p_bdr = OxmlElement('w:pBdr')
-            bottom = OxmlElement('w:bottom')
-            bottom.set(qn('w:val'), 'single')
-            bottom.set(qn('w:sz'), '4')
-            bottom.set(qn('w:space'), '4')
-            bottom.set(qn('w:color'), 'E5E7EB')
-            p_bdr.append(bottom)
-            p_pr.append(p_bdr)
 
             # Add severity icon + badge after heading
             badge_label, badge_color = severity_badge_text.get(

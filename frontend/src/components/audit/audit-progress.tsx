@@ -11,6 +11,7 @@ import {
   Gauge,
   Clock,
   CheckCircle2,
+  ListTodo,
   Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -45,7 +46,10 @@ function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string
 
     const diff = value - prev;
     const steps = Math.min(Math.abs(diff), 20);
-    if (steps === 0) { setDisplay(value); return; }
+    if (steps === 0) {
+      setDisplay(value);
+      return;
+    }
 
     const stepSize = diff / steps;
     let step = 0;
@@ -63,7 +67,12 @@ function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string
     return () => clearInterval(id);
   }, [value]);
 
-  return <>{display}{suffix}</>;
+  return (
+    <>
+      {display}
+      {suffix}
+    </>
+  );
 }
 
 /* ── Helpers ───────────────────────────────────────────────── */
@@ -91,15 +100,11 @@ function getStageState(current: Stage, target: Stage): "done" | "active" | "upco
   return "upcoming";
 }
 
-function getPhaseLabel(
-  progress: ProgressEvent | null,
-  t: ReturnType<typeof useTranslations<"audit">>
-): string {
+function getPhaseLabel(progress: ProgressEvent | null, t: ReturnType<typeof useTranslations<"audit">>): string {
   if (!progress) return t("progressConnecting");
 
   const speedIsBlocking =
-    progress.speed_blocking ||
-    (progress.current_task_type === "speed" && progress.analyzer_phase === "running");
+    progress.speed_blocking || (progress.current_task_type === "speed" && progress.analyzer_phase === "running");
   if (speedIsBlocking) return t("progressSpeedBlocking");
 
   switch (progress.stage) {
@@ -123,13 +128,7 @@ function formatElapsed(seconds: number): string {
 
 /* ── Main Component ────────────────────────────────────────── */
 
-export function AuditProgressView({
-  progress,
-  activityLog,
-  status,
-  connected,
-  isPolling,
-}: AuditProgressViewProps) {
+export function AuditProgressView({ progress, activityLog, status, connected, isPolling }: AuditProgressViewProps) {
   const t = useTranslations("audit");
   const pct = progress?.progress || 0;
   const currentStage = getPipelineStage(progress);
@@ -151,7 +150,7 @@ export function AuditProgressView({
   const pipelineStages: { key: Stage; label: string; icon: typeof Globe }[] = [
     { key: "crawling", label: t("stageCrawling"), icon: Globe },
     { key: "analyzing", label: t("stageAnalyzing"), icon: Search },
-    { key: "report", label: t("stageGeneratingReport"), icon: CheckCircle2 },
+    { key: "report", label: t("stageGeneratingReport"), icon: ListTodo },
   ];
 
   return (
@@ -171,9 +170,7 @@ export function AuditProgressView({
           <div className="flex items-center gap-3">
             {/* Estimated time */}
             {progress?.estimated_seconds != null && progress.estimated_seconds > 0 && (
-              <span className="text-xs text-gray-500">
-                ~{formatElapsed(progress.estimated_seconds)}
-              </span>
+              <span className="text-xs text-gray-500">~{formatElapsed(progress.estimated_seconds)}</span>
             )}
             {/* Connection indicator */}
             {connected && (
@@ -199,13 +196,9 @@ export function AuditProgressView({
                 "h-full rounded-full transition-all duration-700 ease-out",
                 currentStage === "crawling" && pct === 0
                   ? "animate-progress-indeterminate bg-gradient-to-r from-transparent via-copper-light to-transparent"
-                  : "bg-copper-light"
+                  : "bg-copper-light",
               )}
-              style={
-                currentStage === "crawling" && pct === 0
-                  ? { width: "100%" }
-                  : { width: `${Math.max(pct, 2)}%` }
-              }
+              style={currentStage === "crawling" && pct === 0 ? { width: "100%" } : { width: `${Math.max(pct, 2)}%` }}
             />
           </div>
         </div>
@@ -217,16 +210,8 @@ export function AuditProgressView({
             <div
               className="absolute top-0 left-0 h-px transition-all duration-700"
               style={{
-                width:
-                  currentStage === "crawling"
-                    ? "0%"
-                    : currentStage === "analyzing"
-                    ? "50%"
-                    : "100%",
-                background:
-                  status === "completed"
-                    ? "rgba(16,185,129,0.6)"
-                    : "rgba(217,171,111,0.6)",
+                width: currentStage === "crawling" ? "0%" : currentStage === "analyzing" ? "50%" : "100%",
+                background: status === "completed" ? "rgba(16,185,129,0.6)" : "rgba(217,171,111,0.6)",
               }}
             />
           </div>
@@ -237,7 +222,7 @@ export function AuditProgressView({
               const state = getStageState(currentStage, stage.key);
               const Icon = stage.icon;
               return (
-                <div key={stage.key} className="flex shrink-0 items-center gap-2">
+                <div key={stage.key} className="flex shrink-0 items-center">
                   <div className="relative flex items-center justify-center">
                     {/* Spinning arc for active step */}
                     {state === "active" && (
@@ -249,27 +234,24 @@ export function AuditProgressView({
                         state === "done" && status === "completed" && "border-emerald-500 bg-emerald-900",
                         state === "done" && status !== "completed" && "border-copper-light bg-amber-950",
                         state === "active" && "border-transparent bg-amber-950",
-                        state === "upcoming" && "border-gray-700"
+                        state === "upcoming" && "border-gray-700",
                       )}
                     >
                       {state === "done" ? (
-                        <CheckCircle2 className={cn("h-4 w-4", status === "completed" ? "text-emerald-400" : "text-copper-light")} />
-                      ) : (
-                        <Icon
-                          className={cn(
-                            "h-4 w-4",
-                            state === "active" ? "text-copper-light" : "text-gray-600"
-                          )}
+                        <CheckCircle2
+                          className={cn("h-4 w-4", status === "completed" ? "text-emerald-400" : "text-copper-light")}
                         />
+                      ) : (
+                        <Icon className={cn("h-4 w-4", state === "active" ? "text-copper-light" : "text-gray-600")} />
                       )}
                     </div>
                   </div>
                   <span
                     className={cn(
-                      "text-sm whitespace-nowrap hidden sm:inline",
+                      "text-sm whitespace-nowrap hidden sm:inline px-2 bg-gray-950",
                       state === "done" && "text-gray-400",
                       state === "active" && "font-medium text-white",
-                      state === "upcoming" && "text-gray-600"
+                      state === "upcoming" && "text-gray-600",
                     )}
                   >
                     {stage.label}
@@ -283,30 +265,14 @@ export function AuditProgressView({
 
       {/* ── Middle: Metric cards grid ── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <MetricCard
-          icon={Globe}
-          value={progress?.pages_crawled || 0}
-          label={t("statPagesCrawled")}
-        />
-        <MetricCard
-          icon={Link2}
-          value={progress?.links_found || 0}
-          label={t("statLinksFound")}
-        />
-        <MetricCard
-          icon={ExternalLink}
-          value={progress?.external_links_count || 0}
-          label={t("statExternalLinks")}
-        />
+        <MetricCard icon={Globe} value={progress?.pages_crawled || 0} label={t("statPagesCrawled")} />
+        <MetricCard icon={Link2} value={progress?.links_found || 0} label={t("statLinksFound")} />
+        <MetricCard icon={ExternalLink} value={progress?.external_links_count || 0} label={t("statExternalLinks")} />
         <MetricCard
           icon={AlertTriangle}
           value={(progress?.errors_4xx || 0) + (progress?.errors_5xx || 0)}
           label={t("statErrors")}
-          accent={
-            (progress?.errors_4xx || 0) + (progress?.errors_5xx || 0) > 0
-              ? "red"
-              : undefined
-          }
+          accent={(progress?.errors_4xx || 0) + (progress?.errors_5xx || 0) > 0 ? "red" : undefined}
         />
         <MetricCard
           icon={ArrowRightLeft}
@@ -325,30 +291,36 @@ export function AuditProgressView({
               ? progress.avg_response_time > 3000
                 ? "red"
                 : progress.avg_response_time > 1000
-                ? "yellow"
-                : "green"
+                  ? "yellow"
+                  : "green"
               : undefined
           }
         />
       </div>
 
       {/* ── Live Activity URL log ── */}
-      {activityLog.length > 0 && (
-        <ActivityLog entries={activityLog} />
-      )}
+      {activityLog.length > 0 && <ActivityLog entries={activityLog} />}
 
       {/* CSS animations */}
       <style jsx>{`
         @keyframes progress-indeterminate {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
         }
         .animate-progress-indeterminate {
           animation: progress-indeterminate 1.5s ease-in-out infinite;
         }
-@keyframes step-spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+        @keyframes step-spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
         .animate-step-spin {
           animation: step-spin 1.5s linear infinite;
@@ -397,32 +369,17 @@ function MetricCard({
 
   return (
     <div
-      className={cn(
-        "rounded-xl border bg-gray-950 p-4 transition-colors",
-        colors ? colors.border : "border-gray-800"
-      )}
+      className={cn("rounded-xl border bg-gray-950 p-4 transition-colors", colors ? colors.border : "border-gray-800")}
     >
       <div className="flex items-center gap-3">
-        <div
-          className={cn(
-            "rounded-lg p-2",
-            colors ? colors.bg : "bg-gray-900"
-          )}
-        >
-          <Icon
-            className={cn(
-              "h-5 w-5",
-              colors ? colors.icon : "text-white"
-            )}
-          />
+        <div className={cn("rounded-lg p-2", colors ? colors.bg : "bg-gray-900")}>
+          <Icon className={cn("h-5 w-5", colors ? colors.icon : "text-white")} />
         </div>
         <div>
           <p className={cn("text-2xl font-bold leading-none", colors ? colors.icon : "text-white")}>
             {formatValue ? formatValue(value) : <AnimatedNumber value={value} suffix={suffix ? ` ${suffix}` : ""} />}
           </p>
-          <p className="mt-1 text-xs text-gray-400 truncate leading-tight">
-            {label}
-          </p>
+          <p className="mt-1 text-xs text-gray-400 truncate leading-tight">{label}</p>
         </div>
       </div>
     </div>
@@ -448,10 +405,7 @@ function ActivityLog({ entries }: { entries: ActivityEntry[] }) {
 
   return (
     <div className="rounded-xl border border-gray-800 bg-gray-950 p-4 sm:p-6">
-      <div
-        ref={scrollRef}
-        className="max-h-64 space-y-1 overflow-y-auto font-mono text-xs"
-      >
+      <div ref={scrollRef} className="max-h-64 space-y-1 overflow-y-auto font-mono text-xs">
         {entries.map((entry) => (
           <div key={entry.id} className="flex items-center gap-2">
             {entry.type === "url" && (
@@ -463,27 +417,13 @@ function ActivityLog({ entries }: { entries: ActivityEntry[] }) {
                 )}
                 <span className="truncate text-gray-300">{entry.label}</span>
                 {entry.responseTime != null && (
-                  <span className="ml-auto shrink-0 text-gray-600">
-                    {entry.responseTime}ms
-                  </span>
+                  <span className="ml-auto shrink-0 text-gray-600">{entry.responseTime}ms</span>
                 )}
               </>
             )}
-            {entry.type === "stage" && (
-              <span className="font-semibold text-copper-light">
-                ▸ {entry.label}
-              </span>
-            )}
-            {entry.type === "analyzer" && (
-              <span className="text-gray-400">
-                ◆ {entry.label}
-              </span>
-            )}
-            {entry.type === "analyzer_done" && (
-              <span className="text-emerald-400/70">
-                {entry.label}
-              </span>
-            )}
+            {entry.type === "stage" && <span className="font-semibold text-copper-light">▸ {entry.label}</span>}
+            {entry.type === "analyzer" && <span className="text-gray-400">◆ {entry.label}</span>}
+            {entry.type === "analyzer_done" && <span className="text-emerald-400/70">{entry.label}</span>}
           </div>
         ))}
       </div>

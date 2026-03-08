@@ -1912,7 +1912,7 @@ class ReportGenerator:
         cat_table.columns[2].width = Inches(1.0)
         cat_table.columns[3].width = Inches(1.0)
 
-        # Header row — dark slate background with white text
+        # Header row — subtle light gray background with dark text
         headers = [t("report.category"), t("report.status"), t("report.critical_count"), t("report.warning_count")]
         for i, header_text in enumerate(headers):
             cell = cat_table.rows[0].cells[i]
@@ -1921,8 +1921,8 @@ class ReportGenerator:
             if i in (1, 2, 3):
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = p.add_run(header_text)
-            self._docx_set_font(run, size_pt=8, bold=True, color_rgb=(255, 255, 255))
-            self._docx_set_cell_shading(cell, '1E293B')
+            self._docx_set_font(run, size_pt=8, bold=True, color_rgb=(55, 65, 81))
+            self._docx_set_cell_shading(cell, 'F3F4F6')
 
         badge_text_map = {
             SeverityLevel.SUCCESS: t("report.badge_ok"),

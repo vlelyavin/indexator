@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   Globe,
@@ -120,13 +120,6 @@ function formatElapsed(seconds: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-function getStatusBadge(code: number): { bg: string; text: string } {
-  if (code >= 500) return { bg: "bg-red-500/20", text: "text-red-400" };
-  if (code >= 400) return { bg: "bg-red-500/20", text: "text-red-400" };
-  if (code >= 300) return { bg: "bg-yellow-500/20", text: "text-yellow-400" };
-  return { bg: "bg-emerald-500/20", text: "text-emerald-400" };
-}
-
 /* ── Main Component ────────────────────────────────────────── */
 
 export function AuditProgressView({
@@ -138,7 +131,6 @@ export function AuditProgressView({
 }: AuditProgressViewProps) {
   const t = useTranslations("audit");
   const pct = progress?.progress || 0;
-  const logRef = useRef<HTMLDivElement>(null);
   const currentStage = getPipelineStage(progress);
   const isRunning = status !== "completed" && status !== "failed";
   const phaseLabel = getPhaseLabel(progress, t);
@@ -155,28 +147,11 @@ export function AuditProgressView({
     return () => clearInterval(id);
   }, []);
 
-  // Auto-scroll activity feed (scroll to top for newest-first)
-  const autoScrollRef = useRef(true);
-
-  const handleScroll = useCallback(() => {
-    if (!logRef.current) return;
-    autoScrollRef.current = logRef.current.scrollTop <= 10;
-  }, []);
-
-  useEffect(() => {
-    if (logRef.current && autoScrollRef.current) {
-      logRef.current.scrollTop = 0;
-    }
-  }, [activityLog.length]);
-
   const pipelineStages: { key: Stage; label: string; icon: typeof Globe }[] = [
     { key: "crawling", label: t("stageCrawling"), icon: Globe },
     { key: "analyzing", label: t("stageAnalyzing"), icon: Gauge },
     { key: "report", label: t("stageGeneratingReport"), icon: CheckCircle2 },
   ];
-
-  // Reverse activity log so newest entries appear at top
-  const reversedLog = [...activityLog].reverse();
 
   return (
     <div className="space-y-4">
@@ -242,7 +217,7 @@ export function AuditProgressView({
             return (
               <div key={stage.key} className="flex flex-1 items-center">
                 <div className="flex shrink-0 items-center gap-2">
-                  <div className="relative">
+                  <div className="relative flex items-center justify-center">
                     {/* Spinning arc for active step */}
                     {state === "active" && (
                       <div className="absolute inset-[-3px] animate-step-spin rounded-full border-2 border-transparent border-t-copper-light border-r-copper-light border-b-copper-light" />
@@ -280,7 +255,7 @@ export function AuditProgressView({
                 </div>
                 {/* Connecting line */}
                 {i < pipelineStages.length - 1 && (
-                  <div className="mx-3 h-px flex-1">
+                  <div className="mx-2 h-px flex-1">
                     <div className="relative h-px w-full bg-gray-800">
                       <div
                         className={cn(
@@ -352,94 +327,6 @@ export function AuditProgressView({
         />
       </div>
 
-      {/* ── Bottom: Live Activity feed ── */}
-      <div className="rounded-xl border border-gray-800 bg-gray-950">
-        <div className="flex items-center gap-2 border-b border-gray-800 px-4 py-3 sm:px-6">
-          <span className="relative flex h-2.5 w-2.5">
-            {isRunning && (
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            )}
-            <span
-              className={cn(
-                "relative inline-flex h-2.5 w-2.5 rounded-full",
-                isRunning ? "bg-emerald-400" : "bg-gray-600"
-              )}
-            />
-          </span>
-          <h3 className="text-sm font-medium text-gray-300">{t("liveActivity")}</h3>
-          <span className="text-xs text-gray-600">{activityLog.length}</span>
-        </div>
-        <div
-          ref={logRef}
-          onScroll={handleScroll}
-          className="max-h-[360px] overflow-y-auto p-2 sm:p-3"
-        >
-          {reversedLog.length === 0 ? (
-            <p className="py-8 text-center text-sm text-gray-600">
-              {t("noActivityYet")}
-            </p>
-          ) : (
-            <div className="space-y-0.5">
-              {reversedLog.map((entry, i) => (
-                <div
-                  key={entry.id}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors hover:bg-gray-900/50",
-                    i === 0 && isRunning && "animate-fade-in"
-                  )}
-                >
-                  {entry.type === "url" && entry.statusCode ? (
-                    <span
-                      className={cn(
-                        "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-mono font-semibold",
-                        getStatusBadge(entry.statusCode).bg,
-                        getStatusBadge(entry.statusCode).text
-                      )}
-                    >
-                      {entry.statusCode}
-                    </span>
-                  ) : (
-                    <span
-                      className={cn(
-                        "h-2 w-2 shrink-0 rounded-full",
-                        entry.type === "url" && "bg-emerald-400",
-                        entry.type === "stage" && "bg-blue-400",
-                        entry.type === "analyzer" && "bg-copper-light",
-                        entry.type === "analyzer_done" && "bg-emerald-400"
-                      )}
-                    />
-                  )}
-                  <span
-                    className={cn(
-                      "min-w-0 flex-1 truncate",
-                      entry.type === "stage"
-                        ? "font-medium text-gray-200"
-                        : "text-gray-400"
-                    )}
-                  >
-                    {entry.label}
-                  </span>
-                  {entry.type === "url" && entry.responseTime != null && (
-                    <span
-                      className={cn(
-                        "shrink-0 text-[11px] font-mono",
-                        entry.responseTime > 3000
-                          ? "text-red-400"
-                          : entry.responseTime > 1000
-                          ? "text-yellow-400"
-                          : "text-gray-600"
-                      )}
-                    >
-                      {Math.round(entry.responseTime)}ms
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* CSS animations */}
       <style jsx>{`
         @keyframes progress-indeterminate {
@@ -449,14 +336,7 @@ export function AuditProgressView({
         .animate-progress-indeterminate {
           animation: progress-indeterminate 1.5s ease-in-out infinite;
         }
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(-4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.3s ease-out;
-        }
-        @keyframes step-spin {
+@keyframes step-spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }

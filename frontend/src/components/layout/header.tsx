@@ -46,9 +46,8 @@ export function Header({ onToggleSidebar, sidebarOpen }: HeaderProps) {
 
   const isMarketingActive = (href: string) => pathname === href;
 
-  const handleLogout = async () => {
-    await signOut({ redirect: false });
-    window.location.href = localePath(locale, "/login?logged_out=true");
+  const handleLogout = () => {
+    signOut({ callbackUrl: localePath(locale, "/login?logged_out=true") });
   };
 
   const avatar = user?.image ? (

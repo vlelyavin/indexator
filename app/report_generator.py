@@ -1182,6 +1182,28 @@ class ReportGenerator:
 
     # --- DOCX Helper Methods ---
 
+    # Path to status icon assets
+    _DOCX_ASSETS_DIR = Path(__file__).parent / "resources" / "assets"
+    _DOCX_ICON_MAP = {
+        SeverityLevel.SUCCESS: "check-green.png",
+        SeverityLevel.WARNING: "warning-yellow.png",
+        SeverityLevel.ERROR: "error-red.png",
+        SeverityLevel.INFO: "info-blue.png",
+    }
+
+    @classmethod
+    def _docx_add_status_icon(cls, paragraph, severity, size_inches: float = 0.16):
+        """Insert a small inline status icon image into a paragraph."""
+        from docx.shared import Inches
+        icon_file = cls._DOCX_ICON_MAP.get(severity)
+        if not icon_file:
+            return
+        icon_path = cls._DOCX_ASSETS_DIR / icon_file
+        if not icon_path.exists():
+            return
+        run = paragraph.add_run()
+        run.add_picture(str(icon_path), width=Inches(size_inches))
+
     @staticmethod
     def _docx_set_cell_shading(cell, color_hex: str):
         """Set background color on a table cell."""
@@ -1278,9 +1300,16 @@ class ReportGenerator:
 
         hyperlink = OxmlElement('w:hyperlink')
         hyperlink.set(qn('r:id'), r_id)
+        # w:history="1" ensures links open in browser on Windows Word
+        hyperlink.set(qn('w:history'), '1')
 
         new_run = OxmlElement('w:r')
         rPr = OxmlElement('w:rPr')
+
+        # Apply Hyperlink character style for proper Windows Word behavior
+        rStyle = OxmlElement('w:rStyle')
+        rStyle.set(qn('w:val'), 'Hyperlink')
+        rPr.append(rStyle)
 
         # Font
         rFonts = OxmlElement('w:rFonts')
@@ -1667,6 +1696,20 @@ class ReportGenerator:
         run = meta_para.add_run(f"{pages_text} · {generated_at}")
         self._docx_set_font(run, size_pt=10, color_rgb=(107, 114, 128))
 
+        # Header separator line
+        sep = doc.add_paragraph()
+        sep.paragraph_format.space_before = Pt(0)
+        sep.paragraph_format.space_after = Pt(8)
+        p_pr = sep._element.get_or_add_pPr()
+        p_bdr = OxmlElement('w:pBdr')
+        bottom_bdr = OxmlElement('w:bottom')
+        bottom_bdr.set(qn('w:val'), 'single')
+        bottom_bdr.set(qn('w:sz'), '6')
+        bottom_bdr.set(qn('w:space'), '1')
+        bottom_bdr.set(qn('w:color'), 'D1D5DB')
+        p_bdr.append(bottom_bdr)
+        p_pr.append(p_bdr)
+
         # Summary stats table
         summary_items = [
             (t_labels['passed_checks'], str(audit.passed_checks), '10B981'),
@@ -1805,16 +1848,17 @@ class ReportGenerator:
             self._docx_set_cell_margins(cell, top=50, right=80, bottom=50, left=80)
             run = cell.paragraphs[0].add_run(section["title"])
             self._docx_set_font(run, size_pt=9, color_rgb=(55, 65, 81))
-            # Status badge with colored background
+            # Status badge with icon + colored background
             cell = row.cells[1]
             cell.text = ''
             cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
             self._docx_set_cell_margins(cell, top=50, right=80, bottom=50, left=80)
             badge_bg = badge_bg_map.get(section["severity"], 'F3F4F6')
             self._docx_set_cell_shading(cell, badge_bg)
+            self._docx_add_status_icon(cell.paragraphs[0], section["severity"], size_inches=0.13)
             badge = badge_text_map.get(section["severity"], "—")
             badge_clr = badge_color_map.get(section["severity"], (55, 65, 81))
-            run = cell.paragraphs[0].add_run(badge)
+            run = cell.paragraphs[0].add_run(f" {badge}")
             self._docx_set_font(run, size_pt=8, bold=True, color_rgb=badge_clr)
             # Critical count
             cell = row.cells[2]
@@ -1871,13 +1915,16 @@ class ReportGenerator:
                 section_title = result.display_name
             section_title = self._strip_docx_decorations(section_title)
 
+            # Page break before each section (except the first)
+            if section_index > 1:
+                doc.add_page_break()
+
             # Section heading — match PDF: 17px bold with border-bottom
             heading = doc.add_heading(f"{section_index}. {section_title}", level=1)
             heading.paragraph_format.keep_with_next = True
             heading.paragraph_format.space_before = Pt(14)
             heading.paragraph_format.space_after = Pt(6)
             # Bottom border for heading (matching PDF section-header border-bottom)
-            p_fmt = heading.paragraph_format
             p_pr = heading._element.get_or_add_pPr()
             p_bdr = OxmlElement('w:pBdr')
             bottom = OxmlElement('w:bottom')
@@ -1888,11 +1935,14 @@ class ReportGenerator:
             p_bdr.append(bottom)
             p_pr.append(p_bdr)
 
-            # Add severity badge after heading
+            # Add severity icon + badge after heading
             badge_label, badge_color = severity_badge_text.get(
                 result.severity, (t("report.badge_info"), (59, 130, 246))
             )
-            run = heading.add_run(f"  [{badge_label}]")
+            run = heading.add_run("  ")
+            self._docx_set_font(run, size_pt=11)
+            self._docx_add_status_icon(heading, result.severity, size_inches=0.15)
+            run = heading.add_run(f" {badge_label}")
             self._docx_set_font(run, size_pt=11, bold=False, color_rgb=badge_color)
 
             # Summary — skip if it duplicates first issue message

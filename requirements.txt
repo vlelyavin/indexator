@@ -23,7 +23,7 @@ pydantic
 pydantic-settings
 
 # Utilities
-httpx
+httpx[http2]
 validators
 
 # SSE

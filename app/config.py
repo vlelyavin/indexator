@@ -16,10 +16,10 @@ class Settings(BaseSettings):
 
     # Crawling Limits
     MAX_PAGES: int = 100
-    PAGE_TIMEOUT: int = 10  # seconds per page
+    PAGE_TIMEOUT: int = 15  # seconds per page (httpx timeout)
     TOTAL_TIMEOUT: int = 600  # 10 minutes total
     MAX_EXTERNAL_LINKS: int = 500
-    PARALLEL_REQUESTS: int = 8  # Increased from 5 for faster crawling
+    PARALLEL_REQUESTS: int = 15  # httpx is lightweight, can safely run more
 
     # Performance Optimizations
     ENABLE_PARALLEL_ANALYZERS: bool = True

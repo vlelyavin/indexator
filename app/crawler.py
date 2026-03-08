@@ -1,7 +1,6 @@
-"""Web crawler for SEO audit using Playwright for JavaScript rendering."""
+"""Web crawler for SEO audit using httpx for lightweight HTTP fetching."""
 
 import asyncio
-import gzip
 import logging
 import re
 import time
@@ -10,8 +9,8 @@ from typing import AsyncGenerator, Callable, Dict, Optional, Set
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
 
 import aiohttp
+import httpx
 from bs4 import BeautifulSoup
-from playwright.async_api import async_playwright, Browser, BrowserContext
 
 from .config import settings
 from .models import ImageData, LinkData, PageData
@@ -30,7 +29,7 @@ _TRACKING_PARAMS = re.compile(
 
 
 class WebCrawler:
-    """Async BFS web crawler with Playwright for JavaScript rendering."""
+    """Async BFS web crawler with httpx for lightweight HTTP fetching."""
 
     def __init__(
         self,
@@ -39,7 +38,6 @@ class WebCrawler:
         timeout: int = None,
         parallel_requests: int = None,
         progress_callback: Optional[Callable] = None,
-        screenshot_callback: Optional[Callable] = None,
     ):
         self.start_url = self._normalize_url(start_url)
         parsed = urlparse(self.start_url)
@@ -47,11 +45,9 @@ class WebCrawler:
         self.base_scheme = parsed.scheme
 
         self.max_pages = max_pages or settings.MAX_PAGES
-        self.timeout = (timeout or settings.PAGE_TIMEOUT) * 1000  # Convert to ms for Playwright
+        self.timeout = timeout or settings.PAGE_TIMEOUT  # seconds
         self.parallel_requests = parallel_requests or settings.PARALLEL_REQUESTS
         self.progress_callback = progress_callback
-        self.screenshot_callback = screenshot_callback
-        self._homepage_screenshot_taken = False
 
         self.visited: Set[str] = set()
         self.queue: deque = deque()
@@ -218,75 +214,43 @@ class WebCrawler:
 
         return internal_links, external_links
 
-    async def _fetch_page(self, context: BrowserContext, url: str, depth: int) -> Optional[PageData]:
-        """Fetch and parse a single page using Playwright."""
+    async def _fetch_page(self, client: httpx.AsyncClient, url: str, depth: int) -> Optional[PageData]:
+        """Fetch and parse a single page using httpx."""
         async with self.semaphore:
             start_time = time.time()
-            page = None
 
             try:
-                page = await context.new_page()
+                response = await client.get(
+                    url,
+                    follow_redirects=True,
+                    timeout=float(self.timeout),
+                )
 
-                # Navigate to URL (retry once on 429 with back-off)
-                response = await page.goto(url, wait_until="domcontentloaded", timeout=self.timeout)
-
-                if response and response.status == 429:
-                    retry_after = int(response.headers.get('retry-after', '5'))
-                    retry_after = min(retry_after, 30)  # cap at 30s
+                # Retry on 429
+                if response.status_code == 429:
+                    retry_after = min(int(response.headers.get('retry-after', '5')), 30)
                     logger.info(f"429 for {url}, retrying after {retry_after}s")
-                    await page.close()
                     await asyncio.sleep(retry_after)
-                    page = await context.new_page()
                     start_time = time.time()
-                    response = await page.goto(url, wait_until="domcontentloaded", timeout=self.timeout)
+                    response = await client.get(url, follow_redirects=True, timeout=float(self.timeout))
 
-                if response is None:
-                    return PageData(url=url, status_code=0, depth=depth)
-
-                # Measure TTFB (time to first byte) using Playwright timing API
-                timing = response.request.timing
-                if timing and timing.get("responseStart", -1) > 0:
-                    load_time = timing["responseStart"] / 1000.0  # ms → seconds
-                else:
-                    load_time = time.time() - start_time
-
-                # Save response headers
-                response_headers = dict(response.headers) if response else {}
-
-                # Track redirect chain
-                redirect_chain = []
-                final_url = str(page.url)
-                req = response.request
-                chain_urls = []
-                while req.redirected_from:
-                    chain_urls.append(req.redirected_from.url)
-                    req = req.redirected_from
-                chain_urls.reverse()
-                if chain_urls:
-                    redirect_chain = chain_urls + [response.url]
+                load_time = time.time() - start_time
 
                 # Check content type
                 content_type = response.headers.get('content-type', '')
                 ct_lower = content_type.lower()
-                is_html = 'text/html' in ct_lower or 'application/xhtml+xml' in ct_lower
+                if 'text/html' not in ct_lower and 'application/xhtml+xml' not in ct_lower:
+                    return None
 
-                if is_html:
-                    # Standard path: browser rendered the page correctly
-                    html = await page.content()
-                else:
-                    # Content-Type doesn't indicate HTML.
-                    # Chromium treats non-HTML as downloads, so page.content() is an empty skeleton.
-                    # Fall back to raw response body — handle gzip if server omits Content-Encoding.
-                    try:
-                        raw_body = await response.body()
-                        if len(raw_body) > 2 and raw_body[:2] == b'\x1f\x8b':
-                            raw_body = gzip.decompress(raw_body)
-                        html = raw_body.decode('utf-8', errors='replace')
-                        html_lower = html[:500].lower()
-                        if '<html' not in html_lower and '<!doctype' not in html_lower:
-                            return None
-                    except Exception:
-                        return None
+                html = response.text
+
+                # Build redirect chain from response.history
+                redirect_chain = []
+                if response.history:
+                    redirect_chain = [str(r.url) for r in response.history] + [str(response.url)]
+                final_url = str(response.url)
+
+                response_headers = dict(response.headers)
 
                 soup = BeautifulSoup(html, 'lxml')
 
@@ -327,7 +291,7 @@ class WebCrawler:
 
                 page_data = PageData(
                     url=url,
-                    status_code=response.status,
+                    status_code=response.status_code,
                     title=title,
                     meta_description=meta_description,
                     meta_robots=meta_robots,
@@ -354,62 +318,50 @@ class WebCrawler:
                 # Cache the parsed soup for analyzers to reuse
                 page_data.set_soup(soup)
 
-                # Capture homepage screenshot during crawl (avoids separate browser launch)
-                if depth == 0 and self.screenshot_callback and not self._homepage_screenshot_taken:
-                    self._homepage_screenshot_taken = True
-                    try:
-                        # Wait briefly for remaining resources to load
-                        await page.wait_for_load_state("networkidle", timeout=5000)
-                    except Exception:
-                        pass  # networkidle timeout is non-fatal
-                    try:
-                        import base64
-                        screenshot_bytes = await page.screenshot(type="png")
-                        screenshot_b64 = base64.b64encode(screenshot_bytes).decode("utf-8")
-                        await self.screenshot_callback(screenshot_b64)
-                    except Exception as e:
-                        logger.warning(f"Homepage screenshot during crawl failed: {e}")
-
                 return page_data
 
+            except httpx.TimeoutException:
+                logger.warning(f"Timeout ({self.timeout}s) for {url}")
+                return PageData(url=url, status_code=0, depth=depth)
             except Exception as e:
-                logger.error(f"Failed to fetch {url}: {e}", exc_info=True)
+                logger.error(f"Failed to fetch {url}: {e}")
                 return PageData(url=url, status_code=0, depth=depth)
 
-            finally:
-                if page:
-                    await page.close()
-
     async def _fetch_page_with_timeout(
-        self, context: BrowserContext, url: str, depth: int
+        self, client: httpx.AsyncClient, url: str, depth: int
     ) -> Optional[PageData]:
         """Wrap _fetch_page with a hard timeout to prevent hanging."""
-        per_page_timeout = self.timeout / 1000 + 10  # page timeout + 10s buffer
+        hard_timeout = self.timeout + 5  # httpx timeout + 5s buffer
         try:
             return await asyncio.wait_for(
-                self._fetch_page(context, url, depth),
-                timeout=per_page_timeout,
+                self._fetch_page(client, url, depth),
+                timeout=hard_timeout,
             )
         except asyncio.TimeoutError:
-            logger.warning(f"Hard timeout ({per_page_timeout}s) for {url}")
+            logger.warning(f"Hard timeout ({hard_timeout}s) for {url}")
             return PageData(url=url, status_code=0, depth=depth)
 
     async def crawl(self) -> AsyncGenerator[PageData, None]:
         """
         BFS crawl starting from start_url.
         Yields PageData for each crawled page.
-        Uses Playwright for JavaScript rendering.
+        Uses httpx for lightweight HTTP fetching.
         """
         self.queue.append((self.start_url, 0))  # (url, depth)
         self.visited.add(self.start_url)
 
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            context = await browser.new_context(
-                viewport={"width": settings.VIEWPORT_WIDTH, "height": settings.VIEWPORT_HEIGHT},
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-            )
-
+        async with httpx.AsyncClient(
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+            },
+            follow_redirects=True,
+            timeout=float(self.timeout),
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+            http2=True,
+        ) as client:
             try:
                 while self.queue and len(self.pages) < self.max_pages:
                     # Process batch of URLs (cap to remaining page budget)
@@ -418,7 +370,7 @@ class WebCrawler:
                     batch = [self.queue.popleft() for _ in range(batch_size)]
 
                     # Fetch pages concurrently with per-page timeout safety net
-                    tasks = [self._fetch_page_with_timeout(context, url, depth) for url, depth in batch]
+                    tasks = [self._fetch_page_with_timeout(client, url, depth) for url, depth in batch]
                     results = await asyncio.gather(*tasks, return_exceptions=True)
 
                     for result in results:
@@ -449,10 +401,8 @@ class WebCrawler:
                                     self._is_valid_url(normalized_link)):
                                     self.visited.add(normalized_link)
                                     self.queue.append((normalized_link, page.depth + 1))
-
             finally:
-                await context.close()
-                await browser.close()
+                pass  # httpx client cleanup handled by context manager
 
     async def crawl_all(self) -> Dict[str, PageData]:
         """Crawl all pages and return complete results."""

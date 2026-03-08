@@ -244,10 +244,10 @@ export function AuditProgressView({
                     )}
                     <div
                       className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors",
-                        state === "done" && "border-emerald-500 bg-emerald-500/20",
-                        state === "active" && "border-transparent bg-copper-light/20",
-                        state === "upcoming" && "border-gray-700 bg-transparent"
+                        "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors bg-gray-950",
+                        state === "done" && "border-emerald-500 bg-emerald-900",
+                        state === "active" && "border-transparent bg-amber-950",
+                        state === "upcoming" && "border-gray-700"
                       )}
                     >
                       {state === "done" ? (

@@ -11,6 +11,7 @@ import {
   Gauge,
   Clock,
   CheckCircle2,
+  Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProgressEvent } from "@/types/audit";
@@ -149,7 +150,7 @@ export function AuditProgressView({
 
   const pipelineStages: { key: Stage; label: string; icon: typeof Globe }[] = [
     { key: "crawling", label: t("stageCrawling"), icon: Globe },
-    { key: "analyzing", label: t("stageAnalyzing"), icon: Gauge },
+    { key: "analyzing", label: t("stageAnalyzing"), icon: Search },
     { key: "report", label: t("stageGeneratingReport"), icon: CheckCircle2 },
   ];
 

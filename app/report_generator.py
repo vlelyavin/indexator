@@ -1821,20 +1821,6 @@ class ReportGenerator:
         run = meta_para.add_run(f"{pages_text} · {generated_at}")
         self._docx_set_font(run, size_pt=10, color_rgb=(107, 114, 128))
 
-        # Header separator line
-        sep = doc.add_paragraph()
-        sep.paragraph_format.space_before = Pt(0)
-        sep.paragraph_format.space_after = Pt(8)
-        p_pr = sep._element.get_or_add_pPr()
-        p_bdr = OxmlElement('w:pBdr')
-        bottom_bdr = OxmlElement('w:bottom')
-        bottom_bdr.set(qn('w:val'), 'single')
-        bottom_bdr.set(qn('w:sz'), '6')
-        bottom_bdr.set(qn('w:space'), '1')
-        bottom_bdr.set(qn('w:color'), 'D1D5DB')
-        p_bdr.append(bottom_bdr)
-        p_pr.append(p_bdr)
-
         # Summary stats table
         summary_items = [
             (t_labels['passed_checks'], str(audit.passed_checks), '10B981'),

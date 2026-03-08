@@ -55,16 +55,7 @@ export function useAuditProgress(fastApiId: string | null, auditId: string | nul
   }, []);
 
   const trackProgress = useCallback((data: ProgressEvent) => {
-    // Track URL changes
-    if (data.current_url && data.current_url !== lastUrlRef.current) {
-      lastUrlRef.current = data.current_url;
-      addActivityEntry("url", formatUrlPath(data.current_url), {
-        statusCode: data.current_url_status ?? undefined,
-        responseTime: data.current_url_time ?? undefined,
-      });
-    }
-
-    // Track stage changes
+    // Track stage changes (before URLs so stage header appears first)
     if (data.stage && data.stage !== lastStageRef.current) {
       lastStageRef.current = data.stage;
       const stageLabels: Record<string, string> = {
@@ -74,6 +65,15 @@ export function useAuditProgress(fastApiId: string | null, auditId: string | nul
         report: "Generating Report",
       };
       addActivityEntry("stage", stageLabels[data.stage] || data.stage);
+    }
+
+    // Track URL changes
+    if (data.current_url && data.current_url !== lastUrlRef.current) {
+      lastUrlRef.current = data.current_url;
+      addActivityEntry("url", formatUrlPath(data.current_url), {
+        statusCode: data.current_url_status ?? undefined,
+        responseTime: data.current_url_time ?? undefined,
+      });
     }
 
     // Track analyzer starts

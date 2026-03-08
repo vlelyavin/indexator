@@ -12,7 +12,7 @@ import {
   Clock,
   CheckCircle2,
   ListTodo,
-  Search,
+  ScanSearch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProgressEvent } from "@/types/audit";
@@ -149,7 +149,7 @@ export function AuditProgressView({ progress, activityLog, status, connected, is
 
   const pipelineStages: { key: Stage; label: string; icon: typeof Globe }[] = [
     { key: "crawling", label: t("stageCrawling"), icon: Globe },
-    { key: "analyzing", label: t("stageAnalyzing"), icon: Search },
+    { key: "analyzing", label: t("stageAnalyzing"), icon: ScanSearch },
     { key: "report", label: t("stageGeneratingReport"), icon: ListTodo },
   ];
 
@@ -397,7 +397,7 @@ function ActivityLog({ entries }: { entries: ActivityEntry[] }) {
   }, [entries.length]);
 
   const statusColor = (code?: number) => {
-    if (!code) return "text-gray-500";
+    if (!code || code === 0) return "text-red-400";
     if (code >= 200 && code < 300) return "text-emerald-400";
     if (code >= 300 && code < 400) return "text-yellow-400";
     return "text-red-400";
@@ -411,8 +411,8 @@ function ActivityLog({ entries }: { entries: ActivityEntry[] }) {
             {entry.type === "url" && (
               <>
                 {entry.statusCode != null && (
-                  <span className={cn("w-8 shrink-0 text-right", statusColor(entry.statusCode))}>
-                    {entry.statusCode}
+                  <span className={cn("w-8 shrink-0 text-right uppercase", statusColor(entry.statusCode))}>
+                    {entry.statusCode === 0 ? "ERR" : entry.statusCode}
                   </span>
                 )}
                 <span className="truncate text-gray-300">{entry.label}</span>

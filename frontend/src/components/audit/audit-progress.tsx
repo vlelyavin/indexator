@@ -232,39 +232,40 @@ export function AuditProgressView({
               }
             />
           </div>
-          {pct > 0 && (
-            <span className="absolute right-0 -top-5 text-xs font-medium text-gray-400">
-              {Math.round(pct)}%
-            </span>
-          )}
         </div>
 
         {/* Step indicator */}
-        <div className="flex items-center justify-between">
+        <div className="flex w-full items-center">
           {pipelineStages.map((stage, i) => {
             const state = getStageState(currentStage, stage.key);
             const Icon = stage.icon;
             return (
               <div key={stage.key} className="flex flex-1 items-center">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors",
-                      state === "done" && "border-emerald-500 bg-emerald-500/20",
-                      state === "active" && "border-copper-light bg-copper-light/20",
-                      state === "upcoming" && "border-gray-700 bg-transparent"
+                <div className="flex shrink-0 items-center gap-2">
+                  <div className="relative">
+                    {/* Spinning arc for active step */}
+                    {state === "active" && (
+                      <div className="absolute inset-[-3px] animate-step-spin rounded-full border-2 border-transparent border-t-copper-light border-r-copper-light border-b-copper-light" />
                     )}
-                  >
-                    {state === "done" ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                    ) : (
-                      <Icon
-                        className={cn(
-                          "h-4 w-4",
-                          state === "active" ? "text-copper-light" : "text-gray-600"
-                        )}
-                      />
-                    )}
+                    <div
+                      className={cn(
+                        "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors",
+                        state === "done" && "border-emerald-500 bg-emerald-500/20",
+                        state === "active" && "border-transparent bg-copper-light/20",
+                        state === "upcoming" && "border-gray-700 bg-transparent"
+                      )}
+                    >
+                      {state === "done" ? (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                      ) : (
+                        <Icon
+                          className={cn(
+                            "h-4 w-4",
+                            state === "active" ? "text-copper-light" : "text-gray-600"
+                          )}
+                        />
+                      )}
+                    </div>
                   </div>
                   <span
                     className={cn(
@@ -301,7 +302,7 @@ export function AuditProgressView({
       </div>
 
       {/* ── Middle: Metric cards grid ── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <MetricCard
           icon={Globe}
           value={progress?.pages_crawled || 0}
@@ -455,6 +456,13 @@ export function AuditProgressView({
         .animate-fade-in {
           animation: fade-in 0.3s ease-out;
         }
+        @keyframes step-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-step-spin {
+          animation: step-spin 1.5s linear infinite;
+        }
       `}</style>
     </div>
   );
@@ -500,31 +508,33 @@ function MetricCard({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-gray-950 p-3 transition-colors",
+        "rounded-xl border bg-gray-950 p-4 transition-colors",
         colors ? colors.border : "border-gray-800"
       )}
     >
-      <div className="mb-2 flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <div
           className={cn(
-            "rounded-lg p-1.5",
-            colors ? colors.bg : "bg-gray-800/50"
+            "rounded-lg p-2",
+            colors ? colors.bg : "bg-gray-900"
           )}
         >
           <Icon
             className={cn(
-              "h-3.5 w-3.5",
-              colors ? colors.icon : "text-gray-500"
+              "h-5 w-5",
+              colors ? colors.icon : "text-white"
             )}
           />
         </div>
-        <span className="text-[11px] text-gray-500 truncate leading-tight">
-          {label}
-        </span>
+        <div>
+          <p className={cn("text-2xl font-bold leading-none", colors ? colors.icon : "text-white")}>
+            {formatValue ? formatValue(value) : <AnimatedNumber value={value} suffix={suffix ? ` ${suffix}` : ""} />}
+          </p>
+          <p className="mt-1 text-xs text-gray-400 truncate leading-tight">
+            {label}
+          </p>
+        </div>
       </div>
-      <p className={cn("text-xl font-bold leading-none", colors ? colors.icon : "text-white")}>
-        {formatValue ? formatValue(value) : <AnimatedNumber value={value} suffix={suffix ? ` ${suffix}` : ""} />}
-      </p>
     </div>
   );
 }

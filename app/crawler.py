@@ -243,7 +243,12 @@ class WebCrawler:
                 if response is None:
                     return PageData(url=url, status_code=0, depth=depth)
 
-                load_time = time.time() - start_time
+                # Measure TTFB (time to first byte) using Playwright timing API
+                timing = response.request.timing
+                if timing and timing.get("responseStart", -1) > 0:
+                    load_time = timing["responseStart"] / 1000.0  # ms → seconds
+                else:
+                    load_time = time.time() - start_time
 
                 # Save response headers
                 response_headers = dict(response.headers) if response else {}

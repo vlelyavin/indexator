@@ -717,6 +717,107 @@ class ReportGenerator:
             return legacy
         return "Website SEO audit"
 
+    # SEO terms to auto-bold in theory sections (case-insensitive matching)
+    _SEO_BOLD_TERMS = [
+        # Technical SEO
+        "canonical", "meta description", "meta title", "title tag",
+        "robots.txt", "sitemap.xml", "XML sitemap", "hreflang",
+        "alt text", "alt attribute", "noindex", "nofollow",
+        "noarchive", "nosnippet",
+        "301 redirect", "302 redirect", "redirect chain",
+        "HTTPS", "HTTP", "SSL", "TLS",
+        # Core Web Vitals
+        "Core Web Vitals", "LCP", "CLS", "FID", "INP", "TTFB",
+        "Largest Contentful Paint", "Cumulative Layout Shift",
+        "First Input Delay", "Interaction to Next Paint",
+        "Time to First Byte",
+        # Structured Data
+        "schema markup", "Schema.org", "structured data",
+        "JSON-LD", "rich snippets", "rich results",
+        # Social & OG
+        "Open Graph", "og:title", "og:description", "og:image",
+        "Twitter Cards", "twitter:card",
+        # HTML elements
+        "H1", "H2", "H3", "H4", "H5", "H6",
+        "viewport", "meta viewport",
+        # Page types
+        "404 page", "404 error",
+        # Link related
+        "internal links", "external links", "broken links",
+        "anchor text", "backlinks", "dofollow", "rel=canonical",
+        # Performance
+        "lazy loading", "minification", "compression",
+        "browser caching", "CDN",
+        # Indexing
+        "indexing", "crawl budget", "crawlability",
+        "search engine", "SERP", "SERPs",
+        # Security
+        "HSTS", "Content-Security-Policy", "X-Frame-Options",
+        "X-Content-Type-Options",
+        # CMS
+        "WordPress", "Joomla", "Drupal",
+        # Other
+        "favicon", "breadcrumbs", "pagination",
+        "duplicate content", "thin content", "keyword density",
+        "mobile-friendly", "responsive design",
+        "page speed", "PageSpeed", "Lighthouse",
+        "Google Search Console", "Google Analytics",
+        "URL structure", "URL slug",
+    ]
+
+    @staticmethod
+    def _bold_seo_terms_html(text: str, terms: list[str]) -> str:
+        """Wrap known SEO terms in <strong> tags within plain text (not inside existing tags)."""
+        if not text:
+            return text
+
+        import re
+
+        # Sort terms by length (longest first) to match longer phrases before shorter ones
+        sorted_terms = sorted(terms, key=len, reverse=True)
+
+        # Build regex pattern — match terms that are NOT already inside an HTML tag
+        # We split by existing HTML tags and only process text nodes
+        tag_pattern = re.compile(r'(<(?:strong|code|a|em|b|/strong|/code|/a|/em|/b)[^>]*>)')
+        parts = tag_pattern.split(text)
+
+        result = []
+        inside_tag = False
+        open_tags = set()
+
+        for part in parts:
+            # Check if this part is an HTML tag
+            if tag_pattern.match(part):
+                tag_lower = part.lower()
+                if tag_lower.startswith('</'):
+                    tag_name = re.match(r'</(\w+)', tag_lower)
+                    if tag_name:
+                        open_tags.discard(tag_name.group(1))
+                else:
+                    tag_name = re.match(r'<(\w+)', tag_lower)
+                    if tag_name:
+                        open_tags.add(tag_name.group(1))
+                result.append(part)
+                continue
+
+            # Skip if we're inside strong/code/a tags
+            if open_tags & {'strong', 'code', 'a'}:
+                result.append(part)
+                continue
+
+            # Process plain text — bold SEO terms
+            processed = part
+            for term in sorted_terms:
+                # Word boundary match (case-insensitive)
+                # Use lookahead/lookbehind for word boundaries that work with special chars
+                escaped = re.escape(term)
+                pattern = re.compile(r'(?<![<\w])(' + escaped + r')(?![>\w/])', re.IGNORECASE)
+                processed = pattern.sub(r'<strong>\1</strong>', processed)
+
+            result.append(processed)
+
+        return ''.join(result)
+
     @staticmethod
     def _should_include_theory(result: 'AnalyzerResult', theory_level: str) -> bool:
         """Determine if theory/reference section should be included based on level."""
@@ -757,6 +858,11 @@ class ReportGenerator:
                 if result.theory and not self._should_include_theory(result, theory_level):
                     result = copy.copy(result)
                     result.theory = ""
+
+                # Bold SEO terms in theory text
+                if result.theory:
+                    result = copy.copy(result)
+                    result.theory = self._bold_seo_terms_html(result.theory, self._SEO_BOLD_TERMS)
 
                 # Get translated title, fallback to display_name from result
                 title = t(f"analyzers.{name}.name")
@@ -1192,17 +1298,37 @@ class ReportGenerator:
     }
 
     @classmethod
-    def _docx_add_status_icon(cls, paragraph, severity, size_inches: float = 0.16):
+    def _docx_add_status_icon(cls, paragraph, severity, size_inches: float = 0.14):
         """Insert a small inline status icon image into a paragraph."""
-        from docx.shared import Inches
+        from docx.shared import Inches, Pt
         icon_file = cls._DOCX_ICON_MAP.get(severity)
         if not icon_file:
             return
         icon_path = cls._DOCX_ASSETS_DIR / icon_file
         if not icon_path.exists():
             return
+        # Ensure no extra spacing on the paragraph
+        paragraph.paragraph_format.space_before = Pt(0)
+        paragraph.paragraph_format.space_after = Pt(0)
         run = paragraph.add_run()
         run.add_picture(str(icon_path), width=Inches(size_inches))
+
+    @staticmethod
+    def _docx_set_table_full_width(table):
+        """Set table width to 100% of page width."""
+        from docx.oxml.ns import qn
+        from docx.oxml import OxmlElement
+        tbl = table._tbl
+        tbl_pr = tbl.tblPr
+        if tbl_pr is None:
+            tbl_pr = OxmlElement('w:tblPr')
+            tbl.insert(0, tbl_pr)
+        tbl_w = tbl_pr.find(qn('w:tblW'))
+        if tbl_w is None:
+            tbl_w = OxmlElement('w:tblW')
+            tbl_pr.append(tbl_w)
+        tbl_w.set(qn('w:type'), 'pct')
+        tbl_w.set(qn('w:w'), '5000')
 
     @staticmethod
     def _docx_set_cell_shading(cell, color_hex: str):
@@ -1463,6 +1589,7 @@ class ReportGenerator:
         # Create a single-cell table for gray background
         table = doc.add_table(rows=1, cols=1)
         table.style = 'Table Grid'
+        self._docx_set_table_full_width(table)
         cell = table.rows[0].cells[0]
         self._docx_remove_cell_borders(cell)
         self._docx_set_cell_shading(cell, 'F0F4F8')
@@ -1531,6 +1658,7 @@ class ReportGenerator:
         # Create single-cell table for the card
         table = doc.add_table(rows=1, cols=1)
         table.style = 'Table Grid'
+        self._docx_set_table_full_width(table)
         cell = table.rows[0].cells[0]
         self._docx_remove_cell_borders(cell)
         self._docx_set_cell_shading(cell, bg_color)
@@ -1627,7 +1755,7 @@ class ReportGenerator:
 
         # --- Setup cross-platform DOCX fonts ---
         from docx.oxml import OxmlElement
-        from docx.enum.table import WD_TABLE_ALIGNMENT
+        from docx.enum.table import WD_TABLE_ALIGNMENT, WD_ALIGN_VERTICAL
 
         def _set_style_font(s, font_name=DOCX_DEFAULT_FONT):
             s.font.name = font_name
@@ -1721,6 +1849,7 @@ class ReportGenerator:
 
         summary_table = doc.add_table(rows=2, cols=len(summary_items))
         summary_table.style = 'Table Grid'
+        self._docx_set_table_full_width(summary_table)
 
         for i, (label, value, color) in enumerate(summary_items):
             header_cell = summary_table.rows[0].cells[i]
@@ -1770,7 +1899,7 @@ class ReportGenerator:
             try:
                 img_bytes = b64.b64decode(audit.homepage_screenshot)
                 img_stream = BytesIO(img_bytes)
-                doc.add_picture(img_stream, width=Inches(6.0))
+                doc.add_picture(img_stream, width=Inches(7.1))
             except Exception as e:
                 logger.warning(f"Failed to add homepage screenshot to DOCX: {e}")
             doc.add_paragraph()
@@ -1792,6 +1921,7 @@ class ReportGenerator:
         cat_table = doc.add_table(rows=1 + len(sorted_sections), cols=4)
         cat_table.style = 'Table Grid'
         cat_table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        self._docx_set_table_full_width(cat_table)
 
         # Match PDF proportions: Category ~50%, Status ~20%, Critical ~15%, Warnings ~15%
         cat_table.columns[0].width = Inches(3.25)
@@ -1799,7 +1929,7 @@ class ReportGenerator:
         cat_table.columns[2].width = Inches(1.0)
         cat_table.columns[3].width = Inches(1.0)
 
-        # Header row
+        # Header row — dark slate background with white text
         headers = [t("report.category"), t("report.status"), t("report.critical_count"), t("report.warning_count")]
         for i, header_text in enumerate(headers):
             cell = cat_table.rows[0].cells[i]
@@ -1808,8 +1938,8 @@ class ReportGenerator:
             if i in (1, 2, 3):
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = p.add_run(header_text)
-            self._docx_set_font(run, size_pt=8, bold=True, color_rgb=(55, 65, 81))
-            self._docx_set_cell_shading(cell, 'F1F5F9')
+            self._docx_set_font(run, size_pt=8, bold=True, color_rgb=(255, 255, 255))
+            self._docx_set_cell_shading(cell, '1E293B')
 
         badge_text_map = {
             SeverityLevel.SUCCESS: t("report.badge_ok"),
@@ -1831,6 +1961,14 @@ class ReportGenerator:
             SeverityLevel.INFO: 'EFF6FF',
         }
 
+        # Severity row tint colors (applied to ALL cells in the row)
+        severity_row_tint = {
+            SeverityLevel.ERROR: 'FEF2F2',
+            SeverityLevel.WARNING: 'FFFBEB',
+            SeverityLevel.INFO: 'EFF6FF',
+            SeverityLevel.SUCCESS: 'F0FDF4',
+        }
+
         for row_idx, section in enumerate(sorted_sections, 1):
             result = section["result"]
             criticals = sum(1 for iss in result.issues if iss.severity == SeverityLevel.ERROR)
@@ -1838,13 +1976,15 @@ class ReportGenerator:
 
             row = cat_table.rows[row_idx]
 
-            if row_idx % 2 == 0:
-                for shaded_cell in row.cells:
-                    self._docx_set_cell_shading(shaded_cell, 'F8FAFC')
+            # Apply severity tint to ALL cells in the row
+            row_tint = severity_row_tint.get(section["severity"], 'FFFFFF')
+            for tinted_cell in row.cells:
+                self._docx_set_cell_shading(tinted_cell, row_tint)
 
             # Category
             cell = row.cells[0]
             cell.text = ''
+            cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
             self._docx_set_cell_margins(cell, top=50, right=80, bottom=50, left=80)
             run = cell.paragraphs[0].add_run(section["title"])
             self._docx_set_font(run, size_pt=9, color_rgb=(55, 65, 81))
@@ -1853,6 +1993,7 @@ class ReportGenerator:
             cell.text = ''
             cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
             self._docx_set_cell_margins(cell, top=50, right=80, bottom=50, left=80)
+            cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
             badge_bg = badge_bg_map.get(section["severity"], 'F3F4F6')
             self._docx_set_cell_shading(cell, badge_bg)
             self._docx_add_status_icon(cell.paragraphs[0], section["severity"], size_inches=0.13)
@@ -1966,7 +2107,8 @@ class ReportGenerator:
                 p.paragraph_format.keep_with_next = True
                 run = p.add_run(t_labels['theory_title'])
                 self._docx_set_font(run, size_pt=10, bold=True, color_rgb=(75, 85, 99))
-                self._docx_parse_theory(doc, result.theory)
+                theory_text = self._bold_seo_terms_html(result.theory, self._SEO_BOLD_TERMS)
+                self._docx_parse_theory(doc, theory_text)
                 doc.add_paragraph()  # spacing after theory
 
             # Issues
@@ -2002,6 +2144,7 @@ class ReportGenerator:
                 if headers and rows:
                     table = doc.add_table(rows=len(rows) + 1, cols=len(headers))
                     table.style = 'Table Grid'
+                    self._docx_set_table_full_width(table)
 
                     # Core Web Vitals table: 40% / 20% / 20% / 20%
                     is_cwv = name == "speed" and len(headers) == 4

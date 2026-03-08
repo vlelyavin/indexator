@@ -206,7 +206,7 @@ export function AuditProgressView({ progress, activityLog, status, connected, is
         {/* Step indicator — two layers: line underneath, steps on top */}
         <div className="relative w-full">
           {/* Bottom layer: full-width connecting line */}
-          <div className="absolute top-4 left-0 right-0 h-px bg-gray-800">
+          <div className="absolute top-4 left-[16px] right-[16px] h-px bg-gray-800">
             <div
               className="absolute top-0 left-0 h-px transition-all duration-700"
               style={{
@@ -230,7 +230,7 @@ export function AuditProgressView({ progress, activityLog, status, connected, is
                     )}
                     <div
                       className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors bg-gray-950",
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-colors bg-gray-950",
                         state === "done" && status === "completed" && "border-emerald-500 bg-emerald-900",
                         state === "done" && status !== "completed" && "border-copper-light bg-amber-950",
                         state === "active" && "border-transparent bg-amber-950",
@@ -239,10 +239,10 @@ export function AuditProgressView({ progress, activityLog, status, connected, is
                     >
                       {state === "done" ? (
                         <CheckCircle2
-                          className={cn("h-4 w-4", status === "completed" ? "text-emerald-400" : "text-copper-light")}
+                          className={cn("h-4 w-4 shrink-0", status === "completed" ? "text-emerald-400" : "text-copper-light")}
                         />
                       ) : (
-                        <Icon className={cn("h-4 w-4", state === "active" ? "text-copper-light" : "text-gray-600")} />
+                        <Icon className={cn("h-4 w-4 shrink-0", state === "active" ? "text-copper-light" : "text-gray-600")} />
                       )}
                     </div>
                   </div>

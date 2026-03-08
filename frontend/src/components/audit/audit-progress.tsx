@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Globe, Link2 } from "lucide-react";
+import { Globe, Link2, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProgressEvent } from "@/types/audit";
 
@@ -16,15 +16,27 @@ interface AuditProgressViewProps {
   progress: ProgressEvent | null;
   activityLog: ActivityEntry[];
   status?: string | null;
+  connected?: boolean;
+  isPolling?: boolean;
 }
 
 /* ── Progress Ring ─────────────────────────────────────────── */
 
-function ProgressRing({ pct, size = 200 }: { pct: number; size?: number }) {
+function ProgressRing({
+  pct,
+  size = 200,
+  indeterminate = false,
+}: {
+  pct: number;
+  size?: number;
+  indeterminate?: boolean;
+}) {
   const stroke = 8;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (pct / 100) * circumference;
+  const offset = indeterminate
+    ? circumference * 0.75
+    : circumference - (pct / 100) * circumference;
 
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
@@ -47,12 +59,22 @@ function ProgressRing({ pct, size = 200 }: { pct: number; size?: number }) {
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          className="transition-all duration-700 ease-out"
+          className={cn(
+            "transition-all duration-700 ease-out",
+            indeterminate && "animate-spin-slow origin-center"
+          )}
+          style={indeterminate ? { animation: "spin 2s linear infinite", transformOrigin: `${size / 2}px ${size / 2}px` } : undefined}
         />
       </svg>
-      <span className="absolute text-3xl font-bold text-white">
-        {Math.round(pct)}%
-      </span>
+      <div className="absolute flex flex-col items-center">
+        {indeterminate ? (
+          <Loader2 className="h-8 w-8 animate-spin text-copper-light" />
+        ) : (
+          <span className="text-3xl font-bold text-white">
+            {Math.round(pct)}%
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -82,41 +104,57 @@ function getStageState(current: Stage, target: Stage): "done" | "active" | "upco
   return "upcoming";
 }
 
-function getProgressMessage(progress: ProgressEvent | null, t: ReturnType<typeof useTranslations<"audit">>): string {
-  if (!progress) return t("progressConnecting");
+function getPhaseLabel(
+  progress: ProgressEvent | null,
+  t: ReturnType<typeof useTranslations<"audit">>
+): { title: string; subtitle: string } {
+  if (!progress) return { title: t("progressConnecting"), subtitle: "" };
 
   const speedIsBlocking =
     progress.speed_blocking ||
     (progress.current_task_type === "speed" && progress.analyzer_phase === "running");
-  if (speedIsBlocking) return t("progressSpeedBlocking");
+  if (speedIsBlocking) return { title: t("progressSpeedBlocking"), subtitle: "" };
 
   switch (progress.stage) {
     case "crawling":
-      return progress.pages_crawled
-        ? t("progressCrawling", { count: progress.pages_crawled })
-        : t("progressCrawlingStart");
-    case "analyzing":
-      return progress.current_task_type === "analyzing" &&
-        progress.analyzer_name &&
-        progress.analyzer_phase === "running"
-        ? t("progressAnalyzingName", { name: progress.analyzer_name })
-        : t("progressAnalyzing");
+      return {
+        title: t("stageCrawling"),
+        subtitle: progress.pages_crawled
+          ? t("progressCrawling", { count: progress.pages_crawled })
+          : t("progressCrawlingStart"),
+      };
+    case "analyzing": {
+      const completed = progress.analyzers_completed ?? 0;
+      const total = progress.analyzers_total ?? 0;
+      return {
+        title: t("stageAnalyzing"),
+        subtitle: total > 0 ? `${completed} / ${total}` : "",
+      };
+    }
     case "report":
     case "generating_report":
-      return t("progressGeneratingReport");
+      return { title: t("stageGeneratingReport"), subtitle: "" };
     default:
-      return t("progressConnecting");
+      return { title: t("progressConnecting"), subtitle: "" };
   }
 }
 
 /* ── Main Component ────────────────────────────────────────── */
 
-export function AuditProgressView({ progress, activityLog, status }: AuditProgressViewProps) {
+export function AuditProgressView({
+  progress,
+  activityLog,
+  status,
+  connected,
+  isPolling,
+}: AuditProgressViewProps) {
   const t = useTranslations("audit");
   const pct = progress?.progress || 0;
   const logRef = useRef<HTMLDivElement>(null);
   const currentStage = getPipelineStage(progress);
   const isRunning = status !== "completed" && status !== "failed";
+  const isCrawling = currentStage === "crawling";
+  const phaseLabel = getPhaseLabel(progress, t);
 
   // Auto-scroll activity feed
   useEffect(() => {
@@ -125,37 +163,48 @@ export function AuditProgressView({ progress, activityLog, status }: AuditProgre
     }
   }, [activityLog.length]);
 
-  // Analyzer progress description for pipeline
-  function getAnalyzerDescription(): string {
-    if (currentStage !== "analyzing" || !progress) return "";
-    const completed = progress.analyzers_completed ?? 0;
-    const total = progress.analyzers_total ?? 0;
-    const count = total > 0 ? ` (${completed}/${total})` : "";
-    if (progress.analyzer_name) return `${progress.analyzer_name}${count}`;
-    if (total > 0) return `${completed}/${total} analyzers`;
-    return "";
-  }
-
-  const pipelineStages: { key: Stage; label: string; description: string }[] = [
-    { key: "crawling", label: t("stageCrawling"), description: currentStage === "crawling" ? getProgressMessage(progress, t) : "" },
-    { key: "analyzing", label: t("stageAnalyzing"), description: getAnalyzerDescription() },
-    { key: "report", label: t("stageGeneratingReport"), description: "" },
+  const pipelineStages: { key: Stage; label: string }[] = [
+    { key: "crawling", label: t("stageCrawling") },
+    { key: "analyzing", label: t("stageAnalyzing") },
+    { key: "report", label: t("stageGeneratingReport") },
   ];
 
   return (
     <div className="rounded-xl border border-gray-800 bg-gray-950">
       {/* Header */}
-      <div className="border-b border-gray-800 p-4 sm:p-6">
+      <div className="flex items-center justify-between border-b border-gray-800 p-4 sm:p-6">
         <h2 className="text-lg font-semibold text-white">{t("auditInProgress")}</h2>
+        {connected && (
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs text-emerald-400">Live</span>
+          </div>
+        )}
+        {!connected && isPolling && (
+          <div className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-amber-400" />
+            <span className="text-xs text-amber-400">Polling</span>
+          </div>
+        )}
       </div>
 
       {/* Body: two-column grid */}
       <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-2">
         {/* Left column: ring + metrics + pipeline */}
         <div className="space-y-6">
-          {/* Progress ring */}
-          <div className="flex justify-center">
-            <ProgressRing pct={pct} size={200} />
+          {/* Progress ring with phase label */}
+          <div className="flex flex-col items-center gap-3">
+            <ProgressRing
+              pct={pct}
+              size={200}
+              indeterminate={isCrawling}
+            />
+            <div className="text-center">
+              <p className="text-base font-semibold text-white">{phaseLabel.title}</p>
+              {phaseLabel.subtitle && (
+                <p className="mt-0.5 text-sm text-gray-400">{phaseLabel.subtitle}</p>
+              )}
+            </div>
           </div>
 
           {/* Metric cards */}
@@ -174,48 +223,46 @@ export function AuditProgressView({ progress, activityLog, status }: AuditProgre
             </div>
           )}
 
-          {/* Pipeline stepper */}
-          <div className="rounded-xl border border-gray-800 bg-gray-950 p-4">
-            <div className="relative flex flex-col">
+          {/* Horizontal pipeline */}
+          <div className="rounded-xl border border-gray-800 bg-gray-900 p-4">
+            <div className="flex items-center justify-between">
               {pipelineStages.map((stage, i) => {
                 const state = getStageState(currentStage, stage.key);
                 return (
-                  <div key={stage.key} className="flex items-start gap-3">
-                    {/* Dot + connector line */}
-                    <div className="relative flex flex-col items-center">
+                  <div key={stage.key} className="flex flex-1 items-center">
+                    {/* Node */}
+                    <div className="flex flex-col items-center gap-1.5">
                       <div
                         className={cn(
-                          "relative z-10 h-3 w-3 rounded-full border-2 mt-0.5",
+                          "h-3 w-3 rounded-full border-2",
                           state === "done" && "border-green-500 bg-green-500",
                           state === "active" && "border-copper-light bg-copper-light",
                           state === "upcoming" && "border-gray-600 bg-transparent"
                         )}
                       />
-                      {i < pipelineStages.length - 1 && (
-                        <div
-                          className={cn(
-                            "w-px flex-1 min-h-4",
-                            state === "done" ? "bg-green-500/40" : "bg-gray-700"
-                          )}
-                        />
-                      )}
-                    </div>
-                    {/* Text */}
-                    <div className={cn("min-w-0", i < pipelineStages.length - 1 && "pb-3")}>
-                      <p
+                      <span
                         className={cn(
-                          "text-sm font-medium",
+                          "text-xs whitespace-nowrap",
                           state === "done" && "text-gray-400",
-                          state === "active" && "text-white",
+                          state === "active" && "font-medium text-white",
                           state === "upcoming" && "text-gray-600"
                         )}
                       >
                         {stage.label}
-                      </p>
-                      {state === "active" && stage.description && (
-                        <p className="mt-0.5 truncate text-xs text-gray-500">{stage.description}</p>
-                      )}
+                      </span>
                     </div>
+                    {/* Connecting line */}
+                    {i < pipelineStages.length - 1 && (
+                      <div className="mx-2 h-px flex-1 relative top-[-0.5rem]">
+                        <div className="h-px w-full bg-gray-700" />
+                        <div
+                          className={cn(
+                            "absolute top-0 left-0 h-px transition-all duration-700",
+                            state === "done" ? "w-full bg-green-500/60" : state === "active" ? "w-1/2 bg-copper-light/60" : "w-0"
+                          )}
+                        />
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -228,7 +275,7 @@ export function AuditProgressView({ progress, activityLog, status }: AuditProgre
           <h3 className="mb-3 text-sm font-medium text-gray-400">Live Activity</h3>
           <div
             ref={logRef}
-            className="flex-1 overflow-y-auto rounded-xl border border-gray-800 bg-gray-950 p-3 max-h-[500px]"
+            className="flex-1 overflow-y-auto rounded-xl border border-gray-800 bg-gray-900 p-3 max-h-[500px]"
           >
             {activityLog.length === 0 ? (
               <p className="py-8 text-center text-sm text-gray-600">{t("noActivityYet")}</p>
@@ -257,7 +304,7 @@ export function AuditProgressView({ progress, activityLog, status }: AuditProgre
                 ))}
                 {isRunning && (
                   <div className="flex items-center gap-2 py-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-copper-light animate-pulse" />
+                    <span className="scanning-dot h-1.5 w-1.5 rounded-full bg-copper-light" />
                     <span className="text-xs text-gray-500">Scanning...</span>
                   </div>
                 )}
@@ -266,11 +313,22 @@ export function AuditProgressView({ progress, activityLog, status }: AuditProgre
           </div>
         </div>
       </div>
+
+      {/* CSS animation for scanning indicator */}
+      <style jsx>{`
+        .scanning-dot {
+          animation: scanning-pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes scanning-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.75); }
+        }
+      `}</style>
     </div>
   );
 }
 
-/* ── Metric Card (matches StatCard from audit-results) ───── */
+/* ── Metric Card ──────────────────────────────────────────── */
 
 function MetricCard({
   icon: Icon,
@@ -282,9 +340,9 @@ function MetricCard({
   label: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-950 p-3">
+    <div className="rounded-xl border border-gray-800 bg-gray-900 p-3">
       <div className="flex items-center gap-2.5">
-        <div className="rounded-lg bg-gray-900 p-2">
+        <div className="rounded-lg bg-gray-800 p-2">
           <Icon className="h-4 w-4 text-gray-400" />
         </div>
         <div className="min-w-0">

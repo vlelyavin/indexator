@@ -165,6 +165,19 @@ export async function POST(req: Request) {
         break;
       }
 
+      case EventName.TransactionPaymentFailed: {
+        const txn = event.data;
+        const customerId = txn.customerId;
+        if (customerId) {
+          console.warn("[paddle-webhook] Payment failed for customer:", customerId);
+          await prisma.user.updateMany({
+            where: { paddleCustomerId: customerId },
+            data: { paddleSubscriptionStatus: "past_due" },
+          });
+        }
+        break;
+      }
+
       default:
         // Ignore unhandled event types (e.g. transaction.completed)
         break;

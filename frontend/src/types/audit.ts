@@ -50,6 +50,8 @@ export interface ProgressEvent {
   progress: number;
   message: string;
   current_url?: string | null;
+  current_url_status?: number | null;
+  current_url_time?: number | null;
   pages_crawled: number;
   stage?: string | null;
   analyzer_name?: string | null;
@@ -60,6 +62,11 @@ export interface ProgressEvent {
   analyzers_completed?: number;
   analyzer_phase?: "running" | "completed" | null;
   links_found?: number;
+  external_links_count?: number;
+  errors_4xx?: number;
+  errors_5xx?: number;
+  redirects_3xx?: number;
+  avg_response_time?: number | null;
   estimated_seconds?: number | null;
 }
 

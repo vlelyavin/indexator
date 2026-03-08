@@ -208,6 +208,13 @@ class ProgressEvent(BaseModel):
     analyzers_completed: int = 0
     analyzer_phase: Optional[str] = None  # running | completed
     links_found: int = 0  # Total unique internal links discovered so far
+    current_url_status: Optional[int] = None  # Status code of the current URL being crawled
+    current_url_time: Optional[float] = None  # Load time of the current URL in ms
+    external_links_count: int = 0  # Total external links discovered so far
+    errors_4xx: int = 0  # Pages with 4xx status codes
+    errors_5xx: int = 0  # Pages with 5xx status codes
+    redirects_3xx: int = 0  # Pages with 3xx status codes
+    avg_response_time: Optional[float] = None  # Average page load time in ms
     estimated_seconds: Optional[int] = None  # Estimated seconds remaining (crawling phase only)
 
 

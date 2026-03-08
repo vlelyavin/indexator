@@ -40,11 +40,13 @@ export function useAuditProgress(fastApiId: string | null, auditId: string | nul
   const lastAnalyzerCompleteRef = useRef<string | null>(null);
   const entryIdRef = useRef(0);
 
-  const addActivityEntry = useCallback((type: ActivityEntry["type"], label: string) => {
+  const addActivityEntry = useCallback((type: ActivityEntry["type"], label: string, extra?: { statusCode?: number; responseTime?: number }) => {
     const entry: ActivityEntry = {
       id: String(++entryIdRef.current),
       type,
       label,
+      statusCode: extra?.statusCode,
+      responseTime: extra?.responseTime,
     };
     setActivityLog((prev) => {
       const next = [...prev, entry];
@@ -56,7 +58,10 @@ export function useAuditProgress(fastApiId: string | null, auditId: string | nul
     // Track URL changes
     if (data.current_url && data.current_url !== lastUrlRef.current) {
       lastUrlRef.current = data.current_url;
-      addActivityEntry("url", formatUrlPath(data.current_url));
+      addActivityEntry("url", formatUrlPath(data.current_url), {
+        statusCode: data.current_url_status ?? undefined,
+        responseTime: data.current_url_time ?? undefined,
+      });
     }
 
     // Track stage changes

@@ -708,6 +708,12 @@ async def _run_audit_inner(audit_id: str, request: AuditRequest):
             async def progress_callback(page: PageData):
                 progress = min(len(pages) / max_pages * 40, 40)
                 total_links = len({link for p in pages.values() for link in p.internal_links})
+                total_external = sum(len(p.external_links) for p in pages.values())
+                errors_4xx = sum(1 for p in pages.values() if 400 <= p.status_code < 500)
+                errors_5xx = sum(1 for p in pages.values() if 500 <= p.status_code < 600)
+                redirects_3xx = sum(1 for p in pages.values() if 300 <= p.status_code < 400)
+                load_times = [p.load_time for p in pages.values() if p.load_time > 0]
+                avg_rt = round(sum(load_times) / len(load_times) * 1000, 0) if load_times else None
                 elapsed = time.time() - crawl_started_ts
                 est_seconds = None
                 if len(pages) > 1 and elapsed > 0:
@@ -720,12 +726,19 @@ async def _run_audit_inner(audit_id: str, request: AuditRequest):
                     progress=progress,
                     message=t("progress.crawling_pages", progress_lang, count=len(pages)),
                     current_url=page.url,
+                    current_url_status=page.status_code,
+                    current_url_time=round(page.load_time * 1000, 0) if page.load_time > 0 else None,
                     pages_crawled=len(pages),
                     stage="crawling",
                     current_task_type="crawling",
                     analyzers_total=analyzers_total,
                     analyzers_completed=completed_total(),
                     links_found=total_links,
+                    external_links_count=total_external,
+                    errors_4xx=errors_4xx,
+                    errors_5xx=errors_5xx,
+                    redirects_3xx=redirects_3xx,
+                    avg_response_time=avg_rt,
                     estimated_seconds=est_seconds,
                 ))
 

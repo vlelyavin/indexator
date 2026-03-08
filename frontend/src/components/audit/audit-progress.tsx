@@ -1,8 +1,17 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { Globe, Link2, Loader2 } from "lucide-react";
+import {
+  Globe,
+  Link2,
+  ExternalLink,
+  AlertTriangle,
+  ArrowRightLeft,
+  Gauge,
+  Clock,
+  CheckCircle2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ProgressEvent } from "@/types/audit";
 
@@ -10,6 +19,8 @@ export interface ActivityEntry {
   id: string;
   type: "url" | "stage" | "analyzer" | "analyzer_done";
   label: string;
+  statusCode?: number;
+  responseTime?: number;
 }
 
 interface AuditProgressViewProps {
@@ -20,63 +31,38 @@ interface AuditProgressViewProps {
   isPolling?: boolean;
 }
 
-/* ── Progress Ring ─────────────────────────────────────────── */
+/* ── Animated number ─────────────────────────────────────── */
 
-function ProgressRing({
-  pct,
-  size = 200,
-  indeterminate = false,
-}: {
-  pct: number;
-  size?: number;
-  indeterminate?: boolean;
-}) {
-  const stroke = 8;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const offset = indeterminate
-    ? circumference * 0.75
-    : circumference - (pct / 100) * circumference;
+function AnimatedNumber({ value, suffix = "" }: { value: number; suffix?: string }) {
+  const [display, setDisplay] = useState(value);
+  const prevRef = useRef(value);
 
-  return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="#262626"
-          strokeWidth={stroke}
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="var(--color-copper-light)"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          className={cn(
-            "transition-all duration-700 ease-out",
-            indeterminate && "animate-spin-slow origin-center"
-          )}
-          style={indeterminate ? { animation: "spin 2s linear infinite", transformOrigin: `${size / 2}px ${size / 2}px` } : undefined}
-        />
-      </svg>
-      <div className="absolute flex flex-col items-center">
-        {indeterminate ? (
-          <Loader2 className="h-8 w-8 animate-spin text-copper-light" />
-        ) : (
-          <span className="text-3xl font-bold text-white">
-            {Math.round(pct)}%
-          </span>
-        )}
-      </div>
-    </div>
-  );
+  useEffect(() => {
+    const prev = prevRef.current;
+    prevRef.current = value;
+    if (prev === value) return;
+
+    const diff = value - prev;
+    const steps = Math.min(Math.abs(diff), 20);
+    if (steps === 0) { setDisplay(value); return; }
+
+    const stepSize = diff / steps;
+    let step = 0;
+
+    const id = setInterval(() => {
+      step++;
+      if (step >= steps) {
+        setDisplay(value);
+        clearInterval(id);
+      } else {
+        setDisplay(Math.round(prev + stepSize * step));
+      }
+    }, 30);
+
+    return () => clearInterval(id);
+  }, [value]);
+
+  return <>{display}{suffix}</>;
 }
 
 /* ── Helpers ───────────────────────────────────────────────── */
@@ -107,36 +93,38 @@ function getStageState(current: Stage, target: Stage): "done" | "active" | "upco
 function getPhaseLabel(
   progress: ProgressEvent | null,
   t: ReturnType<typeof useTranslations<"audit">>
-): { title: string; subtitle: string } {
-  if (!progress) return { title: t("progressConnecting"), subtitle: "" };
+): string {
+  if (!progress) return t("progressConnecting");
 
   const speedIsBlocking =
     progress.speed_blocking ||
     (progress.current_task_type === "speed" && progress.analyzer_phase === "running");
-  if (speedIsBlocking) return { title: t("progressSpeedBlocking"), subtitle: "" };
+  if (speedIsBlocking) return t("progressSpeedBlocking");
 
   switch (progress.stage) {
     case "crawling":
-      return {
-        title: t("stageCrawling"),
-        subtitle: progress.pages_crawled
-          ? t("progressCrawling", { count: progress.pages_crawled })
-          : t("progressCrawlingStart"),
-      };
-    case "analyzing": {
-      const completed = progress.analyzers_completed ?? 0;
-      const total = progress.analyzers_total ?? 0;
-      return {
-        title: t("stageAnalyzing"),
-        subtitle: total > 0 ? `${completed} / ${total}` : "",
-      };
-    }
+      return t("stageCrawling");
+    case "analyzing":
+      return t("stageAnalyzing");
     case "report":
     case "generating_report":
-      return { title: t("stageGeneratingReport"), subtitle: "" };
+      return t("stageGeneratingReport");
     default:
-      return { title: t("progressConnecting"), subtitle: "" };
+      return t("progressConnecting");
   }
+}
+
+function formatElapsed(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+function getStatusBadge(code: number): { bg: string; text: string } {
+  if (code >= 500) return { bg: "bg-red-500/20", text: "text-red-400" };
+  if (code >= 400) return { bg: "bg-red-500/20", text: "text-red-400" };
+  if (code >= 300) return { bg: "bg-yellow-500/20", text: "text-yellow-400" };
+  return { bg: "bg-emerald-500/20", text: "text-emerald-400" };
 }
 
 /* ── Main Component ────────────────────────────────────────── */
@@ -153,175 +141,319 @@ export function AuditProgressView({
   const logRef = useRef<HTMLDivElement>(null);
   const currentStage = getPipelineStage(progress);
   const isRunning = status !== "completed" && status !== "failed";
-  const isCrawling = currentStage === "crawling";
   const phaseLabel = getPhaseLabel(progress, t);
 
-  // Auto-scroll activity feed
+  // Elapsed time counter
+  const [elapsed, setElapsed] = useState(0);
+  const startTimeRef = useRef(0);
+
   useEffect(() => {
-    if (logRef.current) {
-      logRef.current.scrollTop = logRef.current.scrollHeight;
+    startTimeRef.current = Date.now();
+    const id = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Auto-scroll activity feed (scroll to top for newest-first)
+  const autoScrollRef = useRef(true);
+
+  const handleScroll = useCallback(() => {
+    if (!logRef.current) return;
+    autoScrollRef.current = logRef.current.scrollTop <= 10;
+  }, []);
+
+  useEffect(() => {
+    if (logRef.current && autoScrollRef.current) {
+      logRef.current.scrollTop = 0;
     }
   }, [activityLog.length]);
 
-  const pipelineStages: { key: Stage; label: string }[] = [
-    { key: "crawling", label: t("stageCrawling") },
-    { key: "analyzing", label: t("stageAnalyzing") },
-    { key: "report", label: t("stageGeneratingReport") },
+  const pipelineStages: { key: Stage; label: string; icon: typeof Globe }[] = [
+    { key: "crawling", label: t("stageCrawling"), icon: Globe },
+    { key: "analyzing", label: t("stageAnalyzing"), icon: Gauge },
+    { key: "report", label: t("stageGeneratingReport"), icon: CheckCircle2 },
   ];
 
+  // Reverse activity log so newest entries appear at top
+  const reversedLog = [...activityLog].reverse();
+
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-950">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-800 p-4 sm:p-6">
-        <h2 className="text-lg font-semibold text-white">{t("auditInProgress")}</h2>
-        {connected && (
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs text-emerald-400">Live</span>
+    <div className="space-y-4">
+      {/* ── Top: Progress bar + phase + stepper ── */}
+      <div className="rounded-xl border border-gray-800 bg-gray-950 p-4 sm:p-6">
+        {/* Header row */}
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold text-white">{phaseLabel}</h2>
+            {progress?.stage === "analyzing" && progress.analyzers_total ? (
+              <span className="text-sm text-gray-400">
+                {progress.analyzers_completed ?? 0} / {progress.analyzers_total}
+              </span>
+            ) : null}
           </div>
-        )}
-        {!connected && isPolling && (
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-amber-400" />
-            <span className="text-xs text-amber-400">Polling</span>
-          </div>
-        )}
-      </div>
-
-      {/* Body: two-column grid */}
-      <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-2">
-        {/* Left column: ring + metrics + pipeline */}
-        <div className="space-y-6">
-          {/* Progress ring with phase label */}
-          <div className="flex flex-col items-center gap-3">
-            <ProgressRing
-              pct={pct}
-              size={200}
-              indeterminate={isCrawling}
-            />
-            <div className="text-center">
-              <p className="text-base font-semibold text-white">{phaseLabel.title}</p>
-              {phaseLabel.subtitle && (
-                <p className="mt-0.5 text-sm text-gray-400">{phaseLabel.subtitle}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Metric cards */}
-          {progress && (
-            <div className="grid grid-cols-2 gap-3">
-              <MetricCard
-                icon={Globe}
-                value={String(progress.pages_crawled || 0)}
-                label={t("statPagesCrawled")}
-              />
-              <MetricCard
-                icon={Link2}
-                value={String(progress.links_found || 0)}
-                label={t("statLinksFound")}
-              />
-            </div>
-          )}
-
-          {/* Horizontal pipeline */}
-          <div className="rounded-xl border border-gray-800 bg-gray-900 p-4">
-            <div className="flex items-center justify-between">
-              {pipelineStages.map((stage, i) => {
-                const state = getStageState(currentStage, stage.key);
-                return (
-                  <div key={stage.key} className="flex flex-1 items-center">
-                    {/* Node */}
-                    <div className="flex flex-col items-center gap-1.5">
-                      <div
-                        className={cn(
-                          "h-3 w-3 rounded-full border-2",
-                          state === "done" && "border-green-500 bg-green-500",
-                          state === "active" && "border-copper-light bg-copper-light",
-                          state === "upcoming" && "border-gray-600 bg-transparent"
-                        )}
-                      />
-                      <span
-                        className={cn(
-                          "text-xs whitespace-nowrap",
-                          state === "done" && "text-gray-400",
-                          state === "active" && "font-medium text-white",
-                          state === "upcoming" && "text-gray-600"
-                        )}
-                      >
-                        {stage.label}
-                      </span>
-                    </div>
-                    {/* Connecting line */}
-                    {i < pipelineStages.length - 1 && (
-                      <div className="mx-2 h-px flex-1 relative top-[-0.5rem]">
-                        <div className="h-px w-full bg-gray-700" />
-                        <div
-                          className={cn(
-                            "absolute top-0 left-0 h-px transition-all duration-700",
-                            state === "done" ? "w-full bg-green-500/60" : state === "active" ? "w-1/2 bg-copper-light/60" : "w-0"
-                          )}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Right column: activity feed */}
-        <div className="flex flex-col">
-          <h3 className="mb-3 text-sm font-medium text-gray-400">Live Activity</h3>
-          <div
-            ref={logRef}
-            className="flex-1 overflow-y-auto rounded-xl border border-gray-800 bg-gray-900 p-3 max-h-[500px]"
-          >
-            {activityLog.length === 0 ? (
-              <p className="py-8 text-center text-sm text-gray-600">{t("noActivityYet")}</p>
-            ) : (
-              <div className="space-y-1.5">
-                {activityLog.map((entry) => (
-                  <div key={entry.id} className="flex items-center gap-2 text-xs">
-                    <span
-                      className={cn(
-                        "h-2 w-2 shrink-0 rounded-full",
-                        entry.type === "url" && "bg-emerald-400",
-                        entry.type === "stage" && "bg-gray-400",
-                        entry.type === "analyzer" && "bg-copper-light",
-                        entry.type === "analyzer_done" && "bg-emerald-400"
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        "truncate text-sm",
-                        entry.type === "stage" ? "font-medium text-gray-200" : "text-gray-300"
-                      )}
-                    >
-                      {entry.label}
-                    </span>
-                  </div>
-                ))}
-                {isRunning && (
-                  <div className="flex items-center gap-2 py-2">
-                    <span className="scanning-dot h-1.5 w-1.5 rounded-full bg-copper-light" />
-                    <span className="text-xs text-gray-500">Scanning...</span>
-                  </div>
-                )}
+          <div className="flex items-center gap-3">
+            {/* Estimated time */}
+            {progress?.estimated_seconds != null && progress.estimated_seconds > 0 && (
+              <span className="text-xs text-gray-500">
+                ~{formatElapsed(progress.estimated_seconds)}
+              </span>
+            )}
+            {/* Connection indicator */}
+            {connected && (
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs text-emerald-400">{t("transportLive")}</span>
+              </div>
+            )}
+            {!connected && isPolling && (
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-amber-400" />
+                <span className="text-xs text-amber-400">{t("transportPolling")}</span>
               </div>
             )}
           </div>
         </div>
+
+        {/* Progress bar */}
+        <div className="relative mb-6">
+          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-800">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-700 ease-out",
+                currentStage === "crawling" && pct === 0
+                  ? "animate-progress-indeterminate bg-gradient-to-r from-transparent via-copper-light to-transparent"
+                  : "bg-copper-light"
+              )}
+              style={
+                currentStage === "crawling" && pct === 0
+                  ? { width: "100%" }
+                  : { width: `${Math.max(pct, 2)}%` }
+              }
+            />
+          </div>
+          {pct > 0 && (
+            <span className="absolute right-0 -top-5 text-xs font-medium text-gray-400">
+              {Math.round(pct)}%
+            </span>
+          )}
+        </div>
+
+        {/* Step indicator */}
+        <div className="flex items-center justify-between">
+          {pipelineStages.map((stage, i) => {
+            const state = getStageState(currentStage, stage.key);
+            const Icon = stage.icon;
+            return (
+              <div key={stage.key} className="flex flex-1 items-center">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={cn(
+                      "flex h-8 w-8 items-center justify-center rounded-full border-2 transition-colors",
+                      state === "done" && "border-emerald-500 bg-emerald-500/20",
+                      state === "active" && "border-copper-light bg-copper-light/20",
+                      state === "upcoming" && "border-gray-700 bg-transparent"
+                    )}
+                  >
+                    {state === "done" ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    ) : (
+                      <Icon
+                        className={cn(
+                          "h-4 w-4",
+                          state === "active" ? "text-copper-light" : "text-gray-600"
+                        )}
+                      />
+                    )}
+                  </div>
+                  <span
+                    className={cn(
+                      "text-sm whitespace-nowrap hidden sm:inline",
+                      state === "done" && "text-gray-400",
+                      state === "active" && "font-medium text-white",
+                      state === "upcoming" && "text-gray-600"
+                    )}
+                  >
+                    {stage.label}
+                  </span>
+                </div>
+                {/* Connecting line */}
+                {i < pipelineStages.length - 1 && (
+                  <div className="mx-3 h-px flex-1">
+                    <div className="relative h-px w-full bg-gray-800">
+                      <div
+                        className={cn(
+                          "absolute top-0 left-0 h-px transition-all duration-700",
+                          state === "done"
+                            ? "w-full bg-emerald-500/60"
+                            : state === "active"
+                            ? "w-1/2 bg-copper-light/60"
+                            : "w-0"
+                        )}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* CSS animation for scanning indicator */}
+      {/* ── Middle: Metric cards grid ── */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <MetricCard
+          icon={Globe}
+          value={progress?.pages_crawled || 0}
+          label={t("statPagesCrawled")}
+        />
+        <MetricCard
+          icon={Link2}
+          value={progress?.links_found || 0}
+          label={t("statLinksFound")}
+        />
+        <MetricCard
+          icon={ExternalLink}
+          value={progress?.external_links_count || 0}
+          label={t("statExternalLinks")}
+        />
+        <MetricCard
+          icon={AlertTriangle}
+          value={(progress?.errors_4xx || 0) + (progress?.errors_5xx || 0)}
+          label={t("statErrors")}
+          accent={
+            (progress?.errors_4xx || 0) + (progress?.errors_5xx || 0) > 0
+              ? "red"
+              : undefined
+          }
+        />
+        <MetricCard
+          icon={ArrowRightLeft}
+          value={progress?.redirects_3xx || 0}
+          label={t("statRedirects")}
+          accent={(progress?.redirects_3xx || 0) > 0 ? "yellow" : undefined}
+        />
+        <MetricCard
+          icon={progress?.avg_response_time != null ? Gauge : Clock}
+          value={progress?.avg_response_time != null ? Math.round(progress.avg_response_time) : elapsed}
+          label={progress?.avg_response_time != null ? t("statAvgResponse") : t("statElapsed")}
+          suffix={progress?.avg_response_time != null ? "ms" : undefined}
+          formatValue={progress?.avg_response_time == null ? formatElapsed : undefined}
+          accent={
+            progress?.avg_response_time != null
+              ? progress.avg_response_time > 3000
+                ? "red"
+                : progress.avg_response_time > 1000
+                ? "yellow"
+                : "green"
+              : undefined
+          }
+        />
+      </div>
+
+      {/* ── Bottom: Live Activity feed ── */}
+      <div className="rounded-xl border border-gray-800 bg-gray-950">
+        <div className="flex items-center gap-2 border-b border-gray-800 px-4 py-3 sm:px-6">
+          <span className="relative flex h-2.5 w-2.5">
+            {isRunning && (
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            )}
+            <span
+              className={cn(
+                "relative inline-flex h-2.5 w-2.5 rounded-full",
+                isRunning ? "bg-emerald-400" : "bg-gray-600"
+              )}
+            />
+          </span>
+          <h3 className="text-sm font-medium text-gray-300">{t("liveActivity")}</h3>
+          <span className="text-xs text-gray-600">{activityLog.length}</span>
+        </div>
+        <div
+          ref={logRef}
+          onScroll={handleScroll}
+          className="max-h-[360px] overflow-y-auto p-2 sm:p-3"
+        >
+          {reversedLog.length === 0 ? (
+            <p className="py-8 text-center text-sm text-gray-600">
+              {t("noActivityYet")}
+            </p>
+          ) : (
+            <div className="space-y-0.5">
+              {reversedLog.map((entry, i) => (
+                <div
+                  key={entry.id}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors hover:bg-gray-900/50",
+                    i === 0 && isRunning && "animate-fade-in"
+                  )}
+                >
+                  {entry.type === "url" && entry.statusCode ? (
+                    <span
+                      className={cn(
+                        "shrink-0 rounded px-1.5 py-0.5 text-[10px] font-mono font-semibold",
+                        getStatusBadge(entry.statusCode).bg,
+                        getStatusBadge(entry.statusCode).text
+                      )}
+                    >
+                      {entry.statusCode}
+                    </span>
+                  ) : (
+                    <span
+                      className={cn(
+                        "h-2 w-2 shrink-0 rounded-full",
+                        entry.type === "url" && "bg-emerald-400",
+                        entry.type === "stage" && "bg-blue-400",
+                        entry.type === "analyzer" && "bg-copper-light",
+                        entry.type === "analyzer_done" && "bg-emerald-400"
+                      )}
+                    />
+                  )}
+                  <span
+                    className={cn(
+                      "min-w-0 flex-1 truncate",
+                      entry.type === "stage"
+                        ? "font-medium text-gray-200"
+                        : "text-gray-400"
+                    )}
+                  >
+                    {entry.label}
+                  </span>
+                  {entry.type === "url" && entry.responseTime != null && (
+                    <span
+                      className={cn(
+                        "shrink-0 text-[11px] font-mono",
+                        entry.responseTime > 3000
+                          ? "text-red-400"
+                          : entry.responseTime > 1000
+                          ? "text-yellow-400"
+                          : "text-gray-600"
+                      )}
+                    >
+                      {Math.round(entry.responseTime)}ms
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* CSS animations */}
       <style jsx>{`
-        .scanning-dot {
-          animation: scanning-pulse 1.5s ease-in-out infinite;
+        @keyframes progress-indeterminate {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
         }
-        @keyframes scanning-pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(0.75); }
+        .animate-progress-indeterminate {
+          animation: progress-indeterminate 1.5s ease-in-out infinite;
+        }
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
         }
       `}</style>
     </div>
@@ -334,22 +466,65 @@ function MetricCard({
   icon: Icon,
   value,
   label,
+  accent,
+  suffix,
+  formatValue,
 }: {
   icon: React.ComponentType<{ className?: string }>;
-  value: string;
+  value: number;
   label: string;
+  accent?: "green" | "yellow" | "red";
+  suffix?: string;
+  formatValue?: (v: number) => string;
 }) {
+  const accentColors = {
+    green: {
+      icon: "text-emerald-400",
+      bg: "bg-emerald-500/10",
+      border: "border-emerald-500/20",
+    },
+    yellow: {
+      icon: "text-yellow-400",
+      bg: "bg-yellow-500/10",
+      border: "border-yellow-500/20",
+    },
+    red: {
+      icon: "text-red-400",
+      bg: "bg-red-500/10",
+      border: "border-red-500/20",
+    },
+  };
+
+  const colors = accent ? accentColors[accent] : null;
+
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-900 p-3">
-      <div className="flex items-center gap-2.5">
-        <div className="rounded-lg bg-gray-800 p-2">
-          <Icon className="h-4 w-4 text-gray-400" />
+    <div
+      className={cn(
+        "rounded-xl border bg-gray-950 p-3 transition-colors",
+        colors ? colors.border : "border-gray-800"
+      )}
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <div
+          className={cn(
+            "rounded-lg p-1.5",
+            colors ? colors.bg : "bg-gray-800/50"
+          )}
+        >
+          <Icon
+            className={cn(
+              "h-3.5 w-3.5",
+              colors ? colors.icon : "text-gray-500"
+            )}
+          />
         </div>
-        <div className="min-w-0">
-          <p className="text-lg font-bold text-white leading-tight">{value}</p>
-          <p className="text-[11px] text-gray-500 leading-tight truncate">{label}</p>
-        </div>
+        <span className="text-[11px] text-gray-500 truncate leading-tight">
+          {label}
+        </span>
       </div>
+      <p className={cn("text-xl font-bold leading-none", colors ? colors.icon : "text-white")}>
+        {formatValue ? formatValue(value) : <AnimatedNumber value={value} suffix={suffix ? ` ${suffix}` : ""} />}
+      </p>
     </div>
   );
 }
